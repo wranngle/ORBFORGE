@@ -672,6 +672,14 @@
     eclog('info','playback.'+(playing?'resume':'pause'),{playing:playing},playing?'Playback resumed':'Playback paused');
   });
 
+  /* ---------- Click the preview to pause / resume ---------- */
+  (function(){
+    var stage=document.querySelector('.stage');
+    if(!stage) return;
+    stage.setAttribute('title','Click to pause or resume');
+    stage.addEventListener('click',function(){ if(!exporting) playBtn.click(); });
+  })();
+
   /* ---------- Keyboard shortcuts ---------- */
   document.addEventListener('keydown',function(e){
     if(e.target&&/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
@@ -688,8 +696,16 @@
   var durInp=document.getElementById('crtDur'),durVal=document.getElementById('crtDurVal'),frameInfo=document.getElementById('crtFrameInfo');
   var renderBtn=document.getElementById('crtRenderBtn'),estBtn=document.getElementById('crtEstBtn'),transpChk=document.getElementById('crtTransp'),autoChk=document.getElementById('crtAuto');
   var autoT=3.0;
+  var manualDl=document.getElementById('crtManualDl'),lastManualUrl=null;
   function setWebpStatus(msg,kind){ webpStatus.textContent=msg; webpStatus.className='status'+(kind?' '+kind:''); }
   function setOv(t,frac){ ovText.textContent=t; ovFill.style.width=Math.round(clamp(frac,0,1)*100)+'%'; }
+  function showManualDownload(url,bytes){
+    if(!manualDl) return;
+    if(lastManualUrl) URL.revokeObjectURL(lastManualUrl);
+    lastManualUrl=url;
+    manualDl.href=url; manualDl.hidden=false;
+    manualDl.title='Save orb-forge.webp ('+fmtSize(bytes)+')';
+  }
 
   function autoDuration(){
     var DMIN=2.0,DMAX=9.0;
@@ -830,6 +846,7 @@
     var size0=parseInt(resSel.value,10),fps0=parseInt(fpsSel.value,10),manualQ=parseFloat(qualSel.value);
     var T=currentDur(),transparent=transpChk.checked,target=parseFloat(targetSel.value);
     exporting=true; renderBtn.disabled=true; estBtn.disabled=true; overlay.style.display='flex';
+    if(manualDl) manualDl.hidden=true;
     eclog('info','export.start',{mode:estimateOnly?'estimate':'render',size:size0,fps:fps0,quality:manualQ,duration:T,target:target||null,transparent:transparent},(estimateOnly?'Estimating':'Exporting')+' \u2014 '+size0+' px, '+fps0+' fps, '+T.toFixed(2)+' s');
 
     function setupGL(size){
@@ -865,7 +882,7 @@
               var url=URL.createObjectURL(blob);
               var a=document.createElement('a'); a.href=url; a.download='orb-forge.webp';
               document.body.appendChild(a); a.click(); a.remove();
-              setTimeout(function(){ URL.revokeObjectURL(url); },2500);
+              showManualDownload(url,blob.size); // fallback if the browser blocked the auto-download
               finishExport('Exported '+fmtSize(blob.size)+' \u2014 '+size+' px, '+fps+' fps, '+nF+' frames, '+T.toFixed(2)+' s'+(transparent?', transparent':'')+note,'ok',{bytes:blob.size,size:size,fps:fps,frames:nF,duration:T,transparent:transparent});
             }catch(e){ finishExport('Assembly failed: '+(e&&e.message||e),'err',{reason:e&&e.message||String(e)}); }
           },20);

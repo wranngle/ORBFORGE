@@ -91,12 +91,22 @@ async function main() {
         gl.readPixels(0, 0, cv.width, cv.height, gl.RGBA, gl.UNSIGNED_BYTE, px);
         for (let i = 0; i < px.length; i += 4) if (px[i] + px[i + 1] + px[i + 2] > 12) lit++;
       }
+      const grid = document.querySelector('.grid');
+      const presetsEl = document.querySelector('.presets');
+      // DOCUMENT_POSITION_FOLLOWING (4) => presets comes after grid in DOM order.
+      const presetsAfterGrid = !!(grid && presetsEl &&
+        (grid.compareDocumentPosition(presetsEl) & Node.DOCUMENT_POSITION_FOLLOWING));
+      const glyphBg = getComputedStyle(document.querySelector('.brand-glyph')).backgroundImage;
+      const opt = document.querySelector('#crtWebpPanel select option');
       return {
         glPresent: !!gl,
         lit,
         controls: document.querySelectorAll('#crtControls .row').length,
         presets: document.querySelectorAll('#crtPresetChips .preset-chip').length,
         logLines: document.querySelectorAll('#logConsole .tline').length,
+        presetsAfterGrid,
+        glyphUsesOrb: /orb\.webp/.test(glyphBg),
+        optionBg: opt ? getComputedStyle(opt).backgroundColor : null,
       };
     });
 
@@ -105,6 +115,23 @@ async function main() {
     check('all 25 parameter controls present', load.controls === 25, `${load.controls}`);
     check('built-in presets render', load.presets >= 7, `${load.presets}`);
     check('event terminal logs startup', load.logLines >= 2, `${load.logLines} lines`);
+    // F001: presets bar relocated below the workspace.
+    check('presets bar is at the bottom (after grid)', load.presetsAfterGrid);
+    // F002: brand glyph uses the forged orb webp; the asset must be served.
+    check('brand glyph uses orb.webp', load.glyphUsesOrb);
+    const orbOk = await page.evaluate(async () => (await fetch('/orb.webp')).ok);
+    check('orb.webp asset is served', orbOk);
+    // F004: option popups must not be near-white-on-white (dark background forced).
+    const obg = (load.optionBg || '').match(/\d+/g)?.map(Number) || [255, 255, 255];
+    check('dropdown options have a dark background', obg[0] + obg[1] + obg[2] < 200, load.optionBg || 'n/a');
+
+    // F005: clicking the preview toggles pause/resume.
+    const liveText = async () => page.evaluate(() => document.querySelector('#hudLive .v').textContent);
+    await page.click('.stage');
+    const paused = await liveText();
+    await page.click('.stage');
+    const resumed = await liveText();
+    check('clicking preview pauses then resumes', paused === 'PAUSED' && resumed === 'LIVE', `${paused} -> ${resumed}`);
 
     // Drive the central promise: export a small animated WebP.
     await page.click('#crtWebpBtn'); // open export panel
@@ -136,6 +163,13 @@ async function main() {
     const webp = validateAnimatedWebP(fs.readFileSync(exported));
     check('exports a valid animated WebP', true, `${webp.anmf} frames, ${webp.bytes} bytes, alpha=${webp.hasAlpha}`);
     check('exported WebP has transparency', webp.hasAlpha);
+
+    // F003: manual-download fallback link appears after a successful export.
+    const manual = await page.evaluate(() => {
+      const a = document.getElementById('crtManualDl');
+      return { visible: a && !a.hidden, href: a ? a.getAttribute('href') : '' };
+    });
+    check('manual-download fallback link appears', manual.visible && /^blob:/.test(manual.href), manual.href.slice(0, 12));
 
     check('no console / page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } finally {
