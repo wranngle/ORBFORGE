@@ -49,4 +49,4 @@ Static host. Deployed to Cloudflare Pages; `_headers` is applied automatically.
 
 ## License
 
-MIT © Wranngle LLC — see [LICENSE](LICENSE).
+MIT © Wranngle Systems LLC — see [LICENSE](LICENSE).
