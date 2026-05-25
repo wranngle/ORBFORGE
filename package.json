@@ -1,0 +1,15 @@
+{
+  "name": "orb-forge",
+  "version": "1.0.0",
+  "description": "WebGL agent-avatar synthesizer — tune a burning comet-ring orb and export an animated WebP.",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "start": "python3 -m http.server 8080",
+    "test": "node tests/orb_forge.test.mjs"
+  },
+  "devDependencies": {
+    "puppeteer": "^23.0.0"
+  }
+}

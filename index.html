@@ -1,0 +1,718 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Orb Forge — Wranngle Agent Avatar Maker</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Orb Forge — a WebGL agent avatar synthesizer. Tune 25 parameters for a burning comet-ring orb and export an animated WebP.">
+<meta name="theme-color" content="#ff5f00">
+<meta name="color-scheme" content="dark">
+<meta property="og:title" content="Orb Forge — Wranngle Agent Avatar Maker">
+<meta property="og:description" content="A WebGL orb avatar synthesizer with live preview and animated WebP export.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://orb-forge.wranngle.com/">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="https://orb-forge.wranngle.com/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Cdefs%3E%3CradialGradient%20id='g'%20cx='38%25'%20cy='32%25'%20r='75%25'%3E%3Cstop%20offset='0'%20stop-color='%23ffd5a8'/%3E%3Cstop%20offset='.38'%20stop-color='%23ff7f00'/%3E%3Cstop%20offset='.78'%20stop-color='%239f3000'/%3E%3Cstop%20offset='1'%20stop-color='%232d0914'/%3E%3C/radialGradient%3E%3C/defs%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%230a0910'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='10'%20fill='url(%23g)'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   Wranngle Design System — tokens
+   ============================================================ */
+:root{
+  --sunset-100:#ffe0bf; --sunset-200:#ffc179; --sunset-300:#ff9e33;
+  --sunset-400:#ff7f00; --sunset-500:#ff5f00; --sunset-600:#ef4b00;
+  --violet-300:#ea8aa6; --violet-500:#cf3c69; --violet-700:#972144;
+  --night-700:#464055; --night-800:#393444; --night-900:#201e28; --night-950:#12111a;
+  --color-action:var(--sunset-500); --color-action-glow:rgba(255,95,0,.25);
+  --color-healthy:#5D8C61;
+  --font-display:'Outfit',system-ui,sans-serif;
+  --font-body:'Inter',system-ui,sans-serif;
+  --font-mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --radius-sm:4px; --radius-md:8px; --radius-lg:12px; --radius-xl:16px;
+  --radius-lasso:18px 4px 18px 4px;
+  --ease-out:cubic-bezier(0.16,1,0.3,1);
+  --duration-fast:150ms; --duration-normal:250ms;
+  --bg:#0a0910;
+  --panel:#16151f;
+  --line:#272534;
+  --line-strong:#3a3749;
+  --text:#ece9f3;
+  --text-dim:#9690ab;
+  --text-faint:#5a5670;
+  --text-success:var(--color-healthy);
+  --text-danger:#ef4444;
+}
+
+/* ============================================================
+   Reset & page
+   ============================================================ */
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0;padding:0}
+html{background:var(--bg);color-scheme:dark}
+body{
+  font-family:var(--font-body);color:var(--text);
+  background:
+    radial-gradient(900px 600px at 18% -10%, rgba(255,95,0,.08), transparent 60%),
+    radial-gradient(800px 700px at 95% 10%, rgba(207,60,105,.07), transparent 60%),
+    radial-gradient(1200px 800px at 50% 110%, rgba(45,9,20,.6), transparent 60%),
+    var(--bg);
+  min-height:100vh;font-size:13px;line-height:1.5;
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+  text-wrap:pretty;
+  padding-bottom:172px;
+  transition:padding-bottom var(--duration-normal) var(--ease-out);
+}
+body.term-collapsed{padding-bottom:40px}
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.035;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+}
+button,select,input,textarea{font-family:inherit;color:inherit}
+::selection{background:var(--sunset-500);color:#fff}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+/* ============================================================
+   App shell
+   ============================================================ */
+.app{
+  position:relative;z-index:1;
+  max-width:1480px;margin:0 auto;
+  padding:14px 18px 24px;
+  display:flex;flex-direction:column;gap:12px;
+}
+
+/* ---------- Topbar ---------- */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;
+  padding:8px 12px 8px 10px;
+  border:1px solid var(--line);
+  border-radius:var(--radius-lasso);
+  background:linear-gradient(180deg,rgba(255,95,0,.05),rgba(255,255,255,0) 60%),var(--panel);
+  border-left:4px solid var(--sunset-500);
+  box-shadow:0 6px 22px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.02);
+}
+.brand{display:flex;align-items:center;gap:11px;min-width:0}
+.brand-glyph{
+  width:36px;height:36px;flex:0 0 36px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#ffd5a8 0%,#ff7f00 35%,#9f3000 75%,#2d0914 100%);
+  box-shadow:0 0 0 1px rgba(255,158,51,.5), 0 0 18px rgba(255,95,0,.45), inset 0 0 16px rgba(255,95,0,.4);
+  position:relative;animation:brandPulse 3.4s ease-in-out infinite;
+}
+@keyframes brandPulse{0%,100%{box-shadow:0 0 0 1px rgba(255,158,51,.5),0 0 18px rgba(255,95,0,.45),inset 0 0 16px rgba(255,95,0,.4)}50%{box-shadow:0 0 0 1px rgba(255,158,51,.7),0 0 28px rgba(255,95,0,.65),inset 0 0 22px rgba(255,95,0,.55)}}
+.brand-title{font-family:var(--font-display);font-weight:800;letter-spacing:-.02em;font-size:18px;line-height:1.05;color:var(--text)}
+.brand-title .accent{color:var(--sunset-500)}
+.brand-sub{font-family:var(--font-mono);font-size:10px;letter-spacing:.05em;color:var(--text-dim);margin-top:1px;text-transform:uppercase}
+
+.topbar-actions{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
+.topbar-divider{width:1px;height:22px;background:var(--line)}
+.ic-btn{
+  width:30px;height:30px;padding:0;
+  display:inline-flex;align-items:center;justify-content:center;
+  background:rgba(255,255,255,.02);
+  border:1px solid var(--line);border-radius:var(--radius-md);
+  color:var(--text-dim);cursor:pointer;
+  transition:all var(--duration-fast) var(--ease-out);
+}
+.ic-btn:hover:not(:disabled){border-color:var(--sunset-500);color:var(--sunset-200);background:rgba(255,95,0,.08);transform:translateY(-1px)}
+.ic-btn:active:not(:disabled){transform:translateY(0)}
+.ic-btn:disabled{opacity:.30;cursor:not-allowed}
+.ic-btn svg{width:15px;height:15px}
+
+/* ---------- Preset bar ---------- */
+.presets{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:7px 12px;
+  background:var(--panel);
+  border:1px solid var(--line);border-radius:var(--radius-lg);
+  border-left:3px solid var(--violet-500);
+}
+.presets-label{
+  display:inline-flex;align-items:center;gap:5px;flex:0 0 auto;
+  font-family:var(--font-mono);font-size:10px;letter-spacing:.07em;
+  color:var(--violet-300);text-transform:uppercase;font-weight:700;
+}
+.preset-chips{display:flex;flex-wrap:wrap;gap:5px;flex:1 1 auto;min-width:0}
+.preset-chip{
+  cursor:pointer;position:relative;
+  display:inline-flex;align-items:center;gap:7px;
+  padding:5px 11px 5px 7px;
+  background:rgba(255,255,255,.02);
+  border:1px solid var(--line);border-radius:999px;
+  font-family:var(--font-mono);font-size:11px;letter-spacing:.02em;
+  color:var(--text-dim);
+  transition:all var(--duration-fast) var(--ease-out);
+  white-space:nowrap;
+}
+.preset-chip:hover{border-color:var(--line-strong);color:var(--text);transform:translateY(-1px)}
+.preset-chip[data-active="true"]{
+  background:rgba(255,95,0,.10);
+  border-color:var(--sunset-500);color:var(--sunset-200);
+  box-shadow:0 0 0 1px rgba(255,95,0,.25), 0 0 14px rgba(255,95,0,.18);
+}
+.preset-chip .swatch{
+  width:14px;height:14px;border-radius:50%;flex:0 0 14px;
+  box-shadow:inset 0 0 5px rgba(0,0,0,.6), 0 0 0 1px rgba(255,255,255,.06);
+}
+.preset-chip .x{
+  display:none;width:14px;height:14px;border-radius:50%;
+  background:rgba(255,255,255,.06);color:var(--text-dim);
+  align-items:center;justify-content:center;font-size:10px;border:0;cursor:pointer;
+  margin-left:1px;padding:0;line-height:0;
+}
+.preset-chip[data-user="true"]:hover .x{display:inline-flex}
+.preset-chip .x:hover{background:var(--text-danger);color:#fff}
+.presets-actions{display:inline-flex;gap:6px;flex:0 0 auto}
+.presets-rand,.presets-save{padding:6px 11px;font-size:10px;letter-spacing:.07em}
+.presets-rand svg,.presets-save svg{width:12px;height:12px}
+
+/* ============================================================
+   Main grid
+   ============================================================ */
+.grid{display:grid;grid-template-columns:minmax(700px,1.35fr) minmax(420px,500px);gap:16px;align-items:start}
+@media (max-width:1080px){.grid{grid-template-columns:1fr}}
+
+/* ============================================================
+   Parameters column — 2-column groups via CSS columns
+   ============================================================ */
+.params{min-width:0}
+#crtControls{
+  column-count:2;column-gap:14px;
+}
+@media (max-width:780px){#crtControls{column-count:1}}
+
+.group{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:var(--radius-lg);
+  overflow:hidden;
+  margin:0 0 12px;
+  break-inside:avoid;
+  -webkit-column-break-inside:avoid;
+  page-break-inside:avoid;
+}
+.group-head{
+  display:flex;align-items:center;gap:9px;
+  padding:8px 12px;
+  background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,0));
+  border-bottom:1px solid var(--line);
+}
+.group-head .title{
+  font-family:var(--font-display);font-weight:700;letter-spacing:-.01em;font-size:13.5px;color:var(--text);
+}
+.group-head .meta{
+  margin-left:auto;font-family:var(--font-mono);font-size:9.5px;color:var(--text-faint);letter-spacing:.05em;text-transform:uppercase;
+}
+.group-body{padding:3px 12px 8px}
+
+/* parameter row */
+.row{
+  display:grid;grid-template-columns:20px minmax(80px,1.05fr) minmax(90px,1.6fr) auto;
+  align-items:center;gap:8px;
+  padding:5px 0;
+}
+.row + .row{border-top:1px dashed rgba(255,255,255,.03)}
+.row .ico{
+  width:18px;height:18px;display:flex;align-items:center;justify-content:center;
+  color:var(--sunset-200);opacity:.72;
+  transition:opacity var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out);
+}
+.row .ico svg{width:17px;height:17px;display:block;stroke-width:1.7}
+.row:hover .ico{opacity:1;color:var(--sunset-300);transform:scale(1.08)}
+.row label{
+  font-size:11.5px;color:var(--text-dim);font-weight:500;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:help;
+}
+.row:hover label{color:var(--text)}
+
+.stepper{display:inline-flex;align-items:center;gap:2px}
+.stepper .val{
+  font-family:var(--font-mono);font-size:10.5px;font-weight:500;
+  text-align:center;color:var(--text);
+  padding:3px 0;border-radius:var(--radius-sm);
+  background:rgba(255,255,255,.025);border:1px solid var(--line);
+  min-width:46px;display:inline-block;
+}
+.step{
+  width:22px;height:22px;padding:0;line-height:1;
+  display:inline-flex;align-items:center;justify-content:center;
+  background:rgba(255,255,255,.02);border:1px solid var(--line);border-radius:4px;
+  color:var(--text-dim);
+  font-family:var(--font-mono);font-size:12px;font-weight:700;
+  cursor:pointer;user-select:none;
+  transition:all var(--duration-fast) var(--ease-out);
+}
+.step:hover{border-color:var(--sunset-500);color:var(--sunset-200);background:rgba(255,95,0,.10)}
+.step:active{transform:scale(.9);background:rgba(255,95,0,.18);color:#fff}
+.step:focus-visible{outline:none;border-color:var(--sunset-500);box-shadow:0 0 0 3px var(--color-action-glow)}
+
+/* hue rails */
+.row.is-hue input[type=range]::-webkit-slider-runnable-track{
+  background:linear-gradient(to right,
+    hsl(0 90% 55%),hsl(30 95% 55%),hsl(60 95% 55%),hsl(120 70% 50%),
+    hsl(180 80% 50%),hsl(220 85% 60%),hsl(280 70% 60%),hsl(320 80% 60%),hsl(360 90% 55%));
+  box-shadow:inset 0 0 0 1px var(--line);
+}
+.row.is-hue input[type=range]::-moz-range-track{
+  background:linear-gradient(to right,
+    hsl(0 90% 55%),hsl(30 95% 55%),hsl(60 95% 55%),hsl(120 70% 50%),
+    hsl(180 80% 50%),hsl(220 85% 60%),hsl(280 70% 60%),hsl(320 80% 60%),hsl(360 90% 55%));
+  box-shadow:inset 0 0 0 1px var(--line);
+}
+
+/* ---------- Custom range ---------- */
+input[type=range]{
+  -webkit-appearance:none;appearance:none;background:transparent;
+  width:100%;height:18px;cursor:pointer;--p:0%;
+  min-width:0;
+}
+input[type=range]:disabled{opacity:.45;cursor:not-allowed}
+input[type=range]::-webkit-slider-runnable-track{
+  height:3px;border-radius:2px;
+  background:linear-gradient(to right,var(--sunset-500) var(--p),var(--night-800) var(--p));
+  box-shadow:inset 0 0 0 1px var(--line);
+}
+input[type=range]::-moz-range-track{
+  height:3px;border-radius:2px;
+  background:linear-gradient(to right,var(--sunset-500) var(--p),var(--night-800) var(--p));
+  box-shadow:inset 0 0 0 1px var(--line);
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;
+  width:13px;height:13px;border-radius:50%;background:#fff;border:0;
+  margin-top:-5px;
+  box-shadow:0 0 0 2px var(--sunset-500), 0 0 10px rgba(255,95,0,.55), 0 1px 3px rgba(0,0,0,.5);
+  transition:transform var(--duration-fast) var(--ease-out);
+}
+input[type=range]::-moz-range-thumb{
+  width:13px;height:13px;border-radius:50%;background:#fff;border:0;
+  box-shadow:0 0 0 2px var(--sunset-500), 0 0 10px rgba(255,95,0,.55);
+}
+input[type=range]:hover::-webkit-slider-thumb{transform:scale(1.15)}
+input[type=range]:active::-webkit-slider-thumb{transform:scale(1.25)}
+input[type=range]:focus{outline:none}
+
+/* ============================================================
+   Stage column
+   ============================================================ */
+.stage-col{position:sticky;top:14px;display:flex;flex-direction:column;gap:10px}
+.stage-frame{
+  position:relative;border-radius:var(--radius-lasso);padding:1px;
+  background:linear-gradient(135deg, rgba(255,95,0,.6) 0%, rgba(207,60,105,.5) 50%, rgba(74,30,90,.5) 100%);
+  box-shadow:0 18px 48px rgba(0,0,0,.5), 0 0 50px rgba(255,95,0,.10);
+}
+.stage{
+  position:relative;width:100%;aspect-ratio:1/1;
+  background:radial-gradient(circle at 50% 50%, #0e0a16 0%, #06050a 70%);
+  border-radius:17px 4px 17px 4px;overflow:hidden;
+}
+.stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.stage::before,.stage::after{
+  content:'';position:absolute;width:14px;height:14px;pointer-events:none;
+  border:1px solid rgba(255,158,51,.4);
+}
+.stage::before{top:9px;left:9px;border-right:0;border-bottom:0;border-top-left-radius:4px}
+.stage::after{bottom:9px;right:9px;border-left:0;border-top:0;border-bottom-right-radius:4px}
+.crt-fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:2rem;color:var(--text-dim);font-size:12px;font-family:var(--font-mono)}
+.crt-overlay{
+  position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;
+  background:rgba(6,5,10,.86);color:#eee;font-family:var(--font-mono);font-size:11px;letter-spacing:.04em;text-transform:uppercase;
+  backdrop-filter:blur(4px);
+}
+.crt-ov-bar{width:62%;max-width:240px;height:5px;background:rgba(255,255,255,.12);border-radius:3px;overflow:hidden}
+.crt-ov-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--sunset-400),var(--sunset-500));transition:width .12s linear;box-shadow:0 0 10px rgba(255,95,0,.6)}
+
+.hud{
+  position:absolute;left:9px;top:9px;right:9px;
+  display:flex;justify-content:space-between;align-items:flex-start;
+  pointer-events:none;font-family:var(--font-mono);
+  text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.55);font-size:9px;
+}
+.hud .l,.hud .r{display:flex;gap:8px;background:rgba(0,0,0,.32);backdrop-filter:blur(4px);padding:4px 7px;border-radius:5px;border:1px solid rgba(255,255,255,.06)}
+.hud .k{color:rgba(255,255,255,.4)} .hud .v{color:var(--sunset-200)}
+.hud-bot{
+  position:absolute;left:9px;right:9px;bottom:9px;
+  display:flex;justify-content:flex-end;align-items:flex-end;pointer-events:none;
+  font-family:var(--font-mono);font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.45);
+}
+.hud-bot .live{display:inline-flex;align-items:center;gap:5px;background:rgba(0,0,0,.32);backdrop-filter:blur(4px);padding:4px 7px;border-radius:5px;border:1px solid rgba(255,255,255,.06)}
+.hud-bot .live .pulse{width:5px;height:5px;border-radius:50%;background:var(--sunset-500);box-shadow:0 0 6px var(--sunset-500);animation:dotPulse 1.4s ease-in-out infinite}
+.hud-bot .live.is-paused .pulse{background:var(--text-faint);box-shadow:none;animation:none}
+.hud-bot .live.is-paused .v{color:var(--text-faint)}
+@keyframes dotPulse{0%,100%{opacity:1}50%{opacity:.55}}
+.hud-bot .v{color:var(--sunset-200)} .hud-bot .k{color:rgba(255,255,255,.4)}
+
+/* ============================================================
+   Action buttons
+   ============================================================ */
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.btn{
+  --bg:rgba(255,255,255,.03);--bd:var(--line);--fg:var(--text);
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  padding:8px 11px;
+  background:var(--bg);border:1px solid var(--bd);border-radius:var(--radius-md);
+  color:var(--fg);font-family:var(--font-mono);font-size:10.5px;font-weight:600;
+  letter-spacing:.06em;text-transform:uppercase;cursor:pointer;
+  transition:all var(--duration-fast) var(--ease-out);
+}
+.btn:hover{transform:translateY(-1px);border-color:var(--line-strong);background:rgba(255,255,255,.05)}
+.btn:active{transform:translateY(0)}
+.btn svg{width:13px;height:13px;flex:0 0 13px}
+.btn--primary{
+  --bg:linear-gradient(180deg,var(--sunset-400),var(--sunset-500));
+  --bd:var(--sunset-500);--fg:#fff;grid-column:1/-1;
+  box-shadow:0 4px 14px rgba(255,95,0,.32), 0 0 0 1px rgba(255,127,0,.4) inset;
+  padding:10px 14px;font-size:11px;
+}
+.btn--primary:hover{
+  --bg:linear-gradient(180deg,var(--sunset-300),var(--sunset-400));
+  box-shadow:0 8px 22px rgba(255,95,0,.45), 0 0 0 1px rgba(255,158,51,.6) inset;
+}
+.btn--ghost{--bg:transparent}
+.btn[disabled]{opacity:.5;pointer-events:none}
+
+/* ============================================================
+   Slide-down panels
+   ============================================================ */
+.panel{
+  background:var(--panel);border:1px solid var(--line);
+  border-radius:var(--radius-lg);overflow:hidden;display:none;
+}
+.panel.open{display:block;animation:panelIn .25s var(--ease-out)}
+@keyframes panelIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.panel-head{
+  display:flex;align-items:center;gap:8px;padding:8px 12px;
+  border-bottom:1px solid var(--line);
+  font-family:var(--font-mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--text-dim);
+}
+.panel-head .badge{color:var(--sunset-500);font-weight:700}
+.panel-body{padding:10px 12px}
+
+.field-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px}
+.field{display:flex;align-items:center;gap:8px;min-width:0}
+.field label{font-size:11px;color:var(--text-dim);flex:0 0 72px;font-weight:500;cursor:help}
+.field select,.field input[type=text]{
+  flex:1;min-width:0;
+  background:rgba(255,255,255,.02);border:1px solid var(--line);border-radius:var(--radius-sm);
+  padding:5px 7px;font-size:11px;color:var(--text);font-family:var(--font-mono);
+  transition:border-color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out);
+}
+.field select:focus,.field input:focus{outline:none;border-color:var(--sunset-500);box-shadow:0 0 0 3px var(--color-action-glow)}
+
+.check{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--text-dim);padding:5px 0;cursor:pointer}
+.check input[type=checkbox]{
+  appearance:none;-webkit-appearance:none;
+  width:14px;height:14px;border-radius:3px;border:1px solid var(--line-strong);
+  background:rgba(255,255,255,.02);cursor:pointer;position:relative;flex:0 0 14px;
+  transition:all var(--duration-fast) var(--ease-out);
+}
+.check input[type=checkbox]:checked{background:var(--sunset-500);border-color:var(--sunset-500)}
+.check input[type=checkbox]:checked::after{
+  content:'';position:absolute;left:3px;top:0;
+  width:5px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg);
+}
+
+.dur-row{display:grid;grid-template-columns:72px 1fr 56px;align-items:center;gap:8px;padding:4px 0 8px}
+.dur-row label{font-size:11px;color:var(--text-dim);cursor:help}
+.dur-row .val{font-family:var(--font-mono);font-size:10.5px;text-align:right;color:var(--text);padding:2px 6px;background:rgba(255,255,255,.025);border:1px solid var(--line);border-radius:var(--radius-sm)}
+
+.bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}
+.status{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.04em;min-height:13px;margin-top:6px;color:var(--text-faint)}
+.status.ok{color:var(--text-success)} .status.err{color:var(--text-danger)}
+.hint{font-family:var(--font-body);font-size:10.5px;color:var(--text-faint);margin:6px 0 0;line-height:1.5}
+
+.panel textarea{
+  width:100%;box-sizing:border-box;height:200px;
+  font-family:var(--font-mono);font-size:11px;line-height:1.55;resize:vertical;
+  background:#0c0b13;color:#ece9f3;
+  border:1px solid var(--line);border-radius:var(--radius-md);padding:10px 12px;
+}
+.panel textarea:focus{outline:none;border-color:var(--sunset-500);box-shadow:0 0 0 3px var(--color-action-glow)}
+
+/* ============================================================
+   Pinned bottom terminal (ECS / JSONL)
+   ============================================================ */
+.term{
+  position:fixed;left:0;right:0;bottom:0;z-index:50;
+  background:linear-gradient(180deg,#0c0b14,#08070d);
+  border-top:1px solid var(--line);
+  box-shadow:0 -8px 28px rgba(0,0,0,.5);
+  font-family:var(--font-mono);font-size:11px;
+}
+.term-head{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:5px 18px;border-bottom:1px solid var(--line);
+  background:rgba(255,255,255,.018);
+  max-width:1480px;margin:0 auto;width:100%;
+}
+.term-tag{color:var(--sunset-500);font-weight:700;letter-spacing:.08em;font-size:10.5px}
+.term-meta{color:var(--text-faint);font-size:9.5px;text-transform:uppercase;letter-spacing:.06em}
+.term-meta b{color:var(--violet-300);font-weight:500}
+.term-count{margin-left:auto;color:var(--text-dim);font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;display:inline-flex;align-items:center;gap:6px}
+.term-count .dot{width:6px;height:6px;border-radius:50%;background:var(--color-healthy);box-shadow:0 0 6px var(--color-healthy);animation:dotPulse 1.6s ease-in-out infinite}
+.term-btn{
+  background:transparent;border:1px solid var(--line);color:var(--text-dim);
+  padding:3px 8px;border-radius:4px;
+  font-family:var(--font-mono);font-size:9.5px;font-weight:600;cursor:pointer;
+  text-transform:uppercase;letter-spacing:.06em;
+  transition:all var(--duration-fast) var(--ease-out);
+  display:inline-flex;align-items:center;gap:4px;
+}
+.term-btn:hover{border-color:var(--sunset-500);color:var(--sunset-200);background:rgba(255,95,0,.06)}
+.term-btn svg{width:10px;height:10px}
+.term-body{
+  max-width:1480px;margin:0 auto;
+  height:128px;overflow-y:auto;padding:6px 18px 10px;
+  scrollbar-width:thin;scrollbar-color:var(--line-strong) transparent;
+  width:100%;
+}
+.term-body::-webkit-scrollbar{width:7px}
+.term-body::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:4px}
+.term.is-collapsed .term-body{display:none}
+.term.is-collapsed .term-chev{transform:rotate(180deg)}
+.term-chev{transition:transform var(--duration-fast) var(--ease-out)}
+
+.tline{
+  display:flex;align-items:baseline;gap:7px;
+  padding:1px 0;color:var(--text-dim);font-size:10.5px;line-height:1.5;
+  white-space:nowrap;
+}
+.tline .t{color:var(--text-faint);flex:0 0 auto;font-size:9.5px}
+.tline .lvl{flex:0 0 auto;font-weight:700;letter-spacing:.05em;text-transform:uppercase;font-size:9px;padding:1px 5px;border-radius:3px;background:rgba(255,255,255,.04);min-width:38px;text-align:center}
+.tline.lvl-info  .lvl{color:var(--sunset-300);background:rgba(255,95,0,.10)}
+.tline.lvl-ready .lvl{color:var(--color-healthy);background:rgba(93,140,97,.14)}
+.tline.lvl-warn  .lvl{color:var(--sunset-300);background:rgba(255,158,51,.14)}
+.tline.lvl-error .lvl{color:var(--text-danger);background:rgba(239,68,68,.14)}
+.tline .json{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;color:var(--text-dim);font-size:10.5px}
+.tline .k{color:var(--violet-300)}
+.tline .s{color:#dbcfa3}
+.tline .n{color:var(--sunset-300)}
+.tline .b{color:var(--color-healthy)}
+.tline .p{color:var(--text-faint)}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ============================================================
+       Topbar
+       ============================================================ -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-glyph" aria-hidden="true"></div>
+      <div>
+        <div class="brand-title">ORB<span class="accent">.</span>FORGE</div>
+        <div class="brand-sub">Agent Avatar Synthesizer</div>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button class="ic-btn" id="btnUndo" type="button" title="Undo last change (⌘/Ctrl+Z)" disabled aria-label="Undo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-4"/></svg>
+      </button>
+      <button class="ic-btn" id="btnRedo" type="button" title="Redo (⌘/Ctrl+Shift+Z)" disabled aria-label="Redo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14l5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h4"/></svg>
+      </button>
+      <span class="topbar-divider"></span>
+      <button class="btn presets-save" id="btnSavePreset" type="button" title="Save current parameters as a new preset">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        Save Preset
+      </button>
+    </div>
+  </header>
+
+  <!-- ============================================================
+       Preset bar
+       ============================================================ -->
+  <div class="presets">
+    <span class="presets-label" title="Saved parameter combinations">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v6m0 8v6M4.9 4.9l4.2 4.2m5.8 5.8l4.2 4.2M2 12h6m8 0h6M4.9 19.1l4.2-4.2m5.8-5.8l4.2-4.2"/></svg>
+      Presets
+    </span>
+    <div class="preset-chips" id="crtPresetChips"></div>
+    <div class="presets-actions">
+      <button class="btn presets-rand" id="crtRandomBtn" type="button" title="Randomize all parameters within sensible ranges">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1"/><circle cx="15.5" cy="15.5" r="1"/><circle cx="15.5" cy="8.5" r="1"/><circle cx="8.5" cy="15.5" r="1"/><circle cx="12" cy="12" r="1"/></svg>
+        Randomize
+      </button>
+    </div>
+    <select id="crtPreset" style="display:none" aria-hidden="true"><option value="">— custom —</option></select>
+  </div>
+
+  <!-- ============================================================
+       Main grid
+       ============================================================ -->
+  <div class="grid">
+    <!-- LEFT: parameters -->
+    <section class="params" aria-label="Parameters">
+      <div id="crtControls"></div>
+    </section>
+
+    <!-- RIGHT: live preview, sticky -->
+    <aside class="stage-col">
+      <div class="stage-frame">
+        <div class="stage">
+          <canvas id="crtCanvas"></canvas>
+          <div class="crt-fallback" id="crtFallback" style="display:none">WebGL is not available in this browser, so the effect cannot render.</div>
+          <div class="hud" aria-hidden="true">
+            <div class="l"><span class="k">PRESET</span><span class="v" id="hudPreset">custom</span></div>
+            <div class="r"><span class="k">RES</span><span class="v" id="hudRes">— · —</span></div>
+          </div>
+          <div class="hud-bot" aria-hidden="true">
+            <div class="live" id="hudLive"><span class="pulse"></span><span class="v">LIVE</span></div>
+          </div>
+          <div class="crt-overlay" id="crtOverlay">
+            <div id="crtOvText">Rendering…</div>
+            <div class="crt-ov-bar"><div class="crt-ov-fill" id="crtOvFill"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn--primary" id="crtWebpBtn" type="button" title="Open the Animated WebP exporter">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m6 11 6 6 6-6"/><path d="M5 21h14"/></svg>
+          Export Animated WebP
+        </button>
+        <button class="btn btn--ghost" id="crtJsonBtn" type="button" title="Import or export the current parameters as JSON">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/></svg>
+          JSON I/O
+        </button>
+        <button class="btn btn--ghost" id="crtResetBtn" type="button" title="Restore all parameters to their default values">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+          Reset
+        </button>
+        <button class="btn btn--ghost" id="crtPlayBtn" type="button" title="Pause or resume the animation (Space)" style="grid-column:1/-1">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+          Pause
+        </button>
+      </div>
+
+      <div class="panel" id="crtWebpPanel">
+        <div class="panel-head"><span class="badge">[EXPORT]</span> Animated WebP · transparent alpha</div>
+        <div class="panel-body">
+          <div class="field-grid">
+            <div class="field" title="Output canvas size in pixels"><label for="crtRes">Resolution</label>
+              <select id="crtRes" title="Output square pixel size">
+                <option value="192" title="192px — tiny, smallest file">192 px</option>
+                <option value="256" title="256px — small">256 px</option>
+                <option value="360" title="360px — medium">360 px</option>
+                <option value="480" title="480px — large">480 px</option>
+                <option value="512" selected title="512px — largest, best quality">512 px</option>
+              </select></div>
+            <div class="field" title="Animation frames per second"><label for="crtFps">Frame rate</label>
+              <select id="crtFps" title="Frames per second — higher = smoother but bigger file">
+                <option value="12" title="12 fps — cinematic, smaller">12 fps</option>
+                <option value="15" title="15 fps — efficient">15 fps</option>
+                <option value="24" title="24 fps — film standard">24 fps</option>
+                <option value="30" title="30 fps — broadcast">30 fps</option>
+                <option value="60" selected title="60 fps — silky smooth">60 fps</option>
+              </select></div>
+            <div class="field" title="WebP encoder quality — higher means less compression"><label for="crtQual">Quality</label>
+              <select id="crtQual" title="Encoder quality — higher = bigger file">
+                <option value="1" selected title="Maximum quality, lossless feel">Max</option>
+                <option value="0.8" title="High quality">High</option>
+                <option value="0.6" title="Medium quality">Medium</option>
+                <option value="0.4" title="Lower quality, smaller file">Low</option>
+                <option value="0.22" title="Minimum quality, smallest file">Min</option>
+              </select></div>
+            <div class="field" title="Cap total file size — auto-tunes resolution/fps/quality to fit"><label for="crtTarget">Target size</label>
+              <select id="crtTarget" title="Auto-tune output to fit a maximum file size">
+                <option value="0" title="Use the manual settings above">Off — manual</option>
+                <option value="1048576" title="Auto-fit under 1 MB">Under 1 MB</option>
+                <option value="2097152" selected title="Auto-fit under 2 MB">Under 2 MB</option>
+                <option value="5242880" title="Auto-fit under 5 MB">Under 5 MB</option>
+              </select></div>
+          </div>
+          <label class="check" title="Lock the loop length to a duration where motion seamlessly repeats"><input type="checkbox" id="crtAuto" checked>Auto seamless duration</label>
+          <div class="dur-row">
+            <label for="crtDur" title="Manual loop length in seconds (disable Auto to edit)">Duration</label>
+            <input type="range" id="crtDur" min="1.5" max="9" step="0.05" value="3" disabled title="Loop length in seconds">
+            <span class="val" id="crtDurVal">3.00 s</span>
+          </div>
+          <label class="check" title="Use alpha channel for transparent background — uncheck for solid black"><input type="checkbox" id="crtTransp" checked>Transparent background</label>
+          <div class="bar">
+            <button class="btn btn--primary" id="crtRenderBtn" type="button" title="Render every frame and download the animated WebP" style="grid-column:auto">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+              Render &amp; Download
+            </button>
+            <button class="btn" id="crtEstBtn" type="button" title="Quickly estimate the final file size without full rendering">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12 12 22 2 12 12 2z"/><path d="M6 12h4M14 12h4M12 6v4M12 14v4"/></svg>
+              Estimate
+            </button>
+            <span id="crtFrameInfo" style="font-family:var(--font-mono);font-size:10.5px;color:var(--text-faint);margin-left:auto"></span>
+          </div>
+          <div class="status" id="crtWebpStatus"></div>
+          <p class="hint">Target on: calibrates real frame sizes, then auto-tunes resolution / fps / quality to fit — keeping fps watchable and dropping resolution first. Browser-native WebP encoding (Chrome, Edge, recent Firefox).</p>
+        </div>
+      </div>
+
+      <div class="panel" id="crtJsonPanel">
+        <div class="panel-head"><span class="badge">[CONFIG]</span> Parameter state · import &amp; export</div>
+        <div class="panel-body">
+          <textarea id="crtJson" spellcheck="false" aria-label="JSON parameter state — editable for import"></textarea>
+          <div class="bar">
+            <button class="btn" id="crtApplyBtn" type="button" title="Parse the JSON above and apply matching parameters">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+              Apply
+            </button>
+            <button class="btn" id="crtRefreshBtn" type="button" title="Reload the current parameter state into the textarea">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+              Load current
+            </button>
+            <button class="btn" id="crtCopyBtn" type="button" title="Copy JSON to clipboard">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              Copy
+            </button>
+            <button class="btn" id="crtDownloadBtn" type="button" title="Download the JSON as a file">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+              .json
+            </button>
+            <button class="btn btn--ghost" id="crtCloseBtn" type="button" title="Close this panel" style="margin-left:auto">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+              Close
+            </button>
+          </div>
+          <div class="status" id="crtStatus"></div>
+          <p class="hint">Paste a config over this text and press Apply. Extra or missing keys are ignored; values are clamped to each slider's range.</p>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<!-- ============================================================
+     Pinned bottom event terminal — ECS / JSONL
+     ============================================================ -->
+<aside class="term" id="term" aria-label="Event log">
+  <div class="term-head">
+    <span class="term-tag">[LOG]</span>
+    <span class="term-meta"><b>orb_forge.app</b> · ECS · JSONL</span>
+    <span class="term-count" title="Events recorded this session"><span class="dot"></span><span id="termCount">0 events</span></span>
+    <button class="term-btn" id="termCopy" type="button" title="Copy all events to clipboard as JSONL">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+      Copy
+    </button>
+    <button class="term-btn" id="termDownload" type="button" title="Download the full event log as .jsonl">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+      .jsonl
+    </button>
+    <button class="term-btn" id="termClear" type="button" title="Clear all visible events">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+      Clear
+    </button>
+    <button class="term-btn" id="termToggle" type="button" title="Collapse or expand the log panel">
+      <svg class="term-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+      <span id="termToggleLabel">Hide</span>
+    </button>
+  </div>
+  <div class="term-body" id="logConsole" aria-live="polite"></div>
+</aside>
+
+<!-- ============================================================
+     ENGINE
+     ============================================================ -->
+<script src="/app.js" defer></script>
+</body>
+</html>
