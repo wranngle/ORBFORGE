@@ -76,8 +76,11 @@ async function main() {
     const client = await page.createCDPSession();
     await client.send('Browser.setDownloadBehavior', { behavior: 'allow', downloadPath: downloadDir, eventsEnabled: true });
 
-    await page.goto(base, { waitUntil: 'networkidle0', timeout: 30000 });
-    await new Promise(r => setTimeout(r, 1500)); // let the render loop spin
+    // 'domcontentloaded' (not networkidle): the deferred engine runs before
+    // DOMContentLoaded and the render loop needs no network. Waiting on network
+    // idle couples the test to external Google Fonts, which is flaky in CI.
+    await page.goto(base, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await new Promise(r => setTimeout(r, 2000)); // let the render loop spin
 
     const load = await page.evaluate(() => {
       const cv = document.getElementById('crtCanvas');
