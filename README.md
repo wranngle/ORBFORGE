@@ -9,17 +9,17 @@ chips, JSON import/export, and a pinned ECS/JSONL event terminal.
 
 ## What it does
 
-- **Live WebGL preview** — a fragment-shader orb with a noise-driven burning
+- **Live WebGL preview**: a fragment-shader orb with a noise-driven burning
   ring, configurable comets/tracers, glow, chromatic aberration, and color post.
 - **25 parameters** in four groups (Ring & motion, Burning texture,
   Comet / tracer, Color & post), each with a slider, ±steppers (click-and-hold
   repeat), and a value chip.
-- **Presets** — seven built-ins plus user presets saved to `localStorage`.
-- **Animated WebP export** — browser-native WebP encoding muxed into an animated
-  file, with seamless-loop duration solving and a target-file-size auto-tuner.
-- **JSON I/O** — copy, download, or paste a full parameter config.
-- **Undo / redo** — `⌘/Ctrl+Z`, `⌘/Ctrl+Shift+Z` (or `Y`); `Space` toggles play.
-- **Event terminal** — every action emits an ECS-shaped JSONL record you can
+- **Presets**: seven built-ins plus user presets saved to `localStorage`.
+- **Animated WebP export**: browser-native WebP encoding muxed into an animated
+  file, with loop-duration solving and a target-file-size auto-tuner.
+- **JSON I/O**: copy, download, or paste a full parameter config.
+- **Undo / redo**: `⌘/Ctrl+Z`, `⌘/Ctrl+Shift+Z` (or `Y`); `Space` toggles play.
+- **Event terminal**: every action emits an ECS-shaped JSONL record you can
   copy or download as `.jsonl`.
 
 ## Structure
@@ -49,4 +49,4 @@ Static host. Deployed to Cloudflare Pages; `_headers` is applied automatically.
 
 ## License
 
-MIT © Wranngle Systems LLC — see [LICENSE](LICENSE).
+MIT © Wranngle Systems LLC. See [LICENSE](LICENSE).
