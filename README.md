@@ -28,7 +28,9 @@ chips, JSON import/export, and a pinned ECS/JSONL event terminal.
 |--------------|------------------------------------------------------|
 | `index.html` | Markup + design-system styles (inline `<style>`).    |
 | `app.js`     | The engine: controls, WebGL render loop, WebP muxer. |
-| `_headers`   | Cloudflare Pages security headers (CSP, etc.).       |
+| `_headers`   | Cloudflare Pages security headers (CSP, caching).    |
+| `og.png`     | Social-unfurl card — regenerate with `npm run og`.   |
+| `tests/`     | Outcome-based e2e: renders in headless Chrome and validates the exported WebP bytes. |
 
 It is a static site with no build step. The engine is a single external script
 so the page ships a strict CSP (`script-src 'self'`, no inline script).
@@ -45,7 +47,9 @@ Firefox). WebGL is required for the preview.
 
 ## Deploy
 
-Static host. Deployed to Cloudflare Pages; `_headers` is applied automatically.
+Cloudflare Pages (direct upload). Pushes to `main` that touch the site files
+auto-deploy via `.github/workflows/deploy.yml`, which stages them into `dist/`
+and runs `wrangler pages deploy`; `_headers` is applied automatically.
 
 ## License
 
