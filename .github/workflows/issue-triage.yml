@@ -30,7 +30,7 @@ jobs:
           if [[ -z "$area" || "$area" == _No* ]]; then
             echo "no Area field; skipping"; exit 0
           fi
-          if gh label list --repo "$REPO" --json name -q '.[].name' | grep -qx "a/$area"; then
+          if gh label list --repo "$REPO" --json name -q '.[].name' | grep -qxF -- "a/$area"; then
             gh issue edit "$ISSUE_NUMBER" --repo "$REPO" --add-label "a/$area"
             echo "applied a/$area"
           else

@@ -24,7 +24,8 @@ jobs:
           export PUPPETEER_SKIP_DOWNLOAD=true
           export PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
-          if printf '%s' "$PR_BODY" | grep -qiE '(closes|fixes|resolves)[[:space:]]+#[0-9]+'; then
+          # all nine GitHub closing keywords: close/closed/closes, fix/fixed/fixes, resolve/resolved/resolves
+          if printf '%s' "$PR_BODY" | grep -qiE '(close[ds]?|fix(e[ds])?|resolve[ds]?)[[:space:]]+#[0-9]+'; then
             gh pr edit "$PR_NUMBER" --repo "$REPO" --remove-label pr-needs-issue 2>/dev/null || true
             echo "PR has issue link; cleared pr-needs-issue if present"
             exit 0

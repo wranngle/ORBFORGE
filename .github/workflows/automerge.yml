@@ -76,7 +76,9 @@ jobs:
           IS_DRAFT: ${{ steps.pr.outputs.is_draft }}
           LABELS: ${{ steps.pr.outputs.labels }}
           DEP_UPDATE_TYPE: ${{ steps.dependabot.outputs.update-type }}
-          REQUIRED_CHECKS: "shell-lint,yaml-lint,test,gitleaks,actionlint,zizmor,workflow-lint"
+          # orb-render-export is the real product e2e (test.yml); ci.yml's
+          # generic 'test' job is a deliberate no-op when test.yml exists.
+          REQUIRED_CHECKS: "shell-lint,yaml-lint,test,orb-render-export,gitleaks,actionlint,zizmor,workflow-lint"
         shell: bash
         run: |
           set -euo pipefail
@@ -164,9 +166,18 @@ jobs:
               stable_green=$((stable_green + 1))
               echo "green poll $stable_green/2 for PR #$PR_NUMBER ($reason)"
               if (( stable_green >= 2 )); then
-                gh pr merge "$PR_NUMBER" --repo "$REPO" --squash --delete-branch
-                echo "merged after all observed checks were green: $reason"
-                exit 0
+                # pin the merge to the commit the checks were observed on
+                if gh pr merge "$PR_NUMBER" --repo "$REPO" --squash --delete-branch --match-head-commit "$HEAD_OID"; then
+                  echo "merged after all observed checks were green: $reason"
+                  exit 0
+                fi
+                current_head=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json headRefOid --jq .headRefOid)
+                if [[ "$current_head" != "$HEAD_OID" ]]; then
+                  echo "head moved during merge; newer automerge run will decide"
+                  exit 0
+                fi
+                echo "merge failed for PR #$PR_NUMBER at $HEAD_OID"
+                exit 1
               fi
             else
               stable_green=0
