@@ -11,7 +11,12 @@
 <meta property="og:description" content="A WebGL orb avatar synthesizer with live preview and animated WebP export.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://orb-forge.wranngle.com/">
-<meta name="twitter:card" content="summary">
+<meta property="og:image" content="https://orb-forge.wranngle.com/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Orb Forge — a burning comet-ring orb rendered in WebGL">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://orb-forge.wranngle.com/og.png">
 <link rel="canonical" href="https://orb-forge.wranngle.com/">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Cdefs%3E%3CradialGradient%20id='g'%20cx='38%25'%20cy='32%25'%20r='75%25'%3E%3Cstop%20offset='0'%20stop-color='%23ffd5a8'/%3E%3Cstop%20offset='.38'%20stop-color='%23ff7f00'/%3E%3Cstop%20offset='.78'%20stop-color='%239f3000'/%3E%3Cstop%20offset='1'%20stop-color='%232d0914'/%3E%3C/radialGradient%3E%3C/defs%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%230a0910'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='10'%20fill='url(%23g)'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -172,7 +177,8 @@ button,select,input,textarea{font-family:inherit;color:inherit}
    Main grid
    ============================================================ */
 .grid{display:grid;grid-template-columns:minmax(700px,1.35fr) minmax(420px,500px);gap:16px;align-items:start}
-@media (max-width:1080px){.grid{grid-template-columns:1fr}}
+/* Breakpoint = grid min (700+16+420) + .app padding (36): below it the minmax floors overflow. */
+@media (max-width:1171px){.grid{grid-template-columns:1fr}}
 
 /* ============================================================
    Parameters column — 2-column groups via CSS columns
@@ -293,6 +299,13 @@ input[type=range]::-moz-range-thumb{
 input[type=range]:hover::-webkit-slider-thumb{transform:scale(1.15)}
 input[type=range]:active::-webkit-slider-thumb{transform:scale(1.25)}
 input[type=range]:focus{outline:none}
+/* Keyboard focus must stay visible (WCAG 2.4.7): ring + glow on the thumb. */
+input[type=range]:focus-visible::-webkit-slider-thumb{
+  box-shadow:0 0 0 2px var(--sunset-500), 0 0 0 5px rgba(255,158,51,.55), 0 0 14px rgba(255,95,0,.9);
+}
+input[type=range]:focus-visible::-moz-range-thumb{
+  box-shadow:0 0 0 2px var(--sunset-500), 0 0 0 5px rgba(255,158,51,.55), 0 0 14px rgba(255,95,0,.9);
+}
 
 /* ============================================================
    Stage column
@@ -340,7 +353,7 @@ input[type=range]:focus{outline:none}
 .hud-bot .live{display:inline-flex;align-items:center;gap:5px;background:rgba(0,0,0,.32);backdrop-filter:blur(4px);padding:4px 7px;border-radius:5px;border:1px solid rgba(255,255,255,.06)}
 .hud-bot .live .pulse{width:5px;height:5px;border-radius:50%;background:var(--sunset-500);box-shadow:0 0 6px var(--sunset-500);animation:dotPulse 1.4s ease-in-out infinite}
 .hud-bot .live.is-paused .pulse{background:var(--text-faint);box-shadow:none;animation:none}
-.hud-bot .live.is-paused .v{color:var(--text-faint)}
+.hud-bot .live.is-paused .v{color:var(--text-dim)}
 @keyframes dotPulse{0%,100%{opacity:1}50%{opacity:.55}}
 .hud-bot .v{color:var(--sunset-200)} .hud-bot .k{color:rgba(255,255,255,.4)}
 
@@ -421,9 +434,9 @@ input[type=range]:focus{outline:none}
 .dur-row .val{font-family:var(--font-mono);font-size:10.5px;text-align:right;color:var(--text);padding:2px 6px;background:rgba(255,255,255,.025);border:1px solid var(--line);border-radius:var(--radius-sm)}
 
 .bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}
-.status{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.04em;min-height:13px;margin-top:6px;color:var(--text-faint)}
+.status{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.04em;min-height:13px;margin-top:6px;color:var(--text-dim)}
 .status.ok{color:var(--text-success)} .status.err{color:var(--text-danger)}
-.hint{font-family:var(--font-body);font-size:10.5px;color:var(--text-faint);margin:6px 0 0;line-height:1.5}
+.hint{font-family:var(--font-body);font-size:10.5px;color:var(--text-dim);margin:6px 0 0;line-height:1.5}
 .manual-dl{
   display:inline-flex;align-items:center;gap:6px;margin-top:8px;
   font-family:var(--font-mono);font-size:10.5px;font-weight:600;letter-spacing:.04em;
@@ -460,7 +473,7 @@ input[type=range]:focus{outline:none}
   max-width:1480px;margin:0 auto;width:100%;
 }
 .term-tag{color:var(--sunset-500);font-weight:700;letter-spacing:.08em;font-size:10.5px}
-.term-meta{color:var(--text-faint);font-size:9.5px;text-transform:uppercase;letter-spacing:.06em}
+.term-meta{color:var(--text-dim);font-size:9.5px;text-transform:uppercase;letter-spacing:.06em}
 .term-meta b{color:var(--violet-300);font-weight:500}
 .term-count{margin-left:auto;color:var(--text-dim);font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;display:inline-flex;align-items:center;gap:6px}
 .term-count .dot{width:6px;height:6px;border-radius:50%;background:var(--color-healthy);box-shadow:0 0 6px var(--color-healthy);animation:dotPulse 1.6s ease-in-out infinite}
@@ -491,7 +504,7 @@ input[type=range]:focus{outline:none}
   padding:1px 0;color:var(--text-dim);font-size:10.5px;line-height:1.5;
   white-space:nowrap;
 }
-.tline .t{color:var(--text-faint);flex:0 0 auto;font-size:9.5px}
+.tline .t{color:var(--text-dim);flex:0 0 auto;font-size:9.5px}
 .tline .lvl{flex:0 0 auto;font-weight:700;letter-spacing:.05em;text-transform:uppercase;font-size:9px;padding:1px 5px;border-radius:3px;background:rgba(255,255,255,.04);min-width:38px;text-align:center}
 .tline.lvl-info  .lvl{color:var(--sunset-300);background:rgba(255,95,0,.10)}
 .tline.lvl-ready .lvl{color:var(--color-healthy);background:rgba(93,140,97,.14)}
@@ -635,7 +648,7 @@ input[type=range]:focus{outline:none}
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12 12 22 2 12 12 2z"/><path d="M6 12h4M14 12h4M12 6v4M12 14v4"/></svg>
               Estimate
             </button>
-            <span id="crtFrameInfo" style="font-family:var(--font-mono);font-size:10.5px;color:var(--text-faint);margin-left:auto"></span>
+            <span id="crtFrameInfo" style="font-family:var(--font-mono);font-size:10.5px;color:var(--text-dim);margin-left:auto"></span>
           </div>
           <div class="status" id="crtWebpStatus"></div>
           <a class="manual-dl" id="crtManualDl" download="orb-forge.webp" href="#" hidden>

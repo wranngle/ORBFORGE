@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url';
 import puppeteer from 'puppeteer';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.json': 'application/json' };
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.json': 'application/json', '.png': 'image/png', '.webp': 'image/webp', '.txt': 'text/plain; charset=utf-8' };
 
 function serve() {
   const server = http.createServer((req, res) => {
@@ -69,9 +69,12 @@ async function main() {
   try {
     const page = await browser.newPage();
     await page.setViewport({ width: 1480, height: 1000 });
-    page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
+    // Only failures from the product itself count; external-origin noise
+    // (Google Fonts on an egress-restricted runner) must not fail the run.
+    const external = t => /fonts\.(googleapis|gstatic)\.com/.test(t);
+    page.on('console', m => { if (m.type() === 'error' && !external(m.text())) errors.push(m.text()); });
     page.on('pageerror', e => errors.push('PAGEERROR: ' + e.message));
-    page.on('requestfailed', r => errors.push('REQFAIL: ' + r.url()));
+    page.on('requestfailed', r => { if (r.url().startsWith(base)) errors.push('REQFAIL: ' + r.url()); });
 
     const client = await page.createCDPSession();
     await client.send('Browser.setDownloadBehavior', { behavior: 'allow', downloadPath: downloadDir, eventsEnabled: true });
@@ -82,15 +85,25 @@ async function main() {
     await page.goto(base, { waitUntil: 'domcontentloaded', timeout: 30000 });
     await new Promise(r => setTimeout(r, 2000)); // let the render loop spin
 
-    const load = await page.evaluate(() => {
+    // SwiftShader may take several seconds to compile the shader and produce
+    // the first frame — poll for lit pixels instead of snapshotting one instant.
+    const countLit = () => page.evaluate(() => {
       const cv = document.getElementById('crtCanvas');
       const gl = cv && (cv.getContext('webgl') || cv.getContext('experimental-webgl'));
-      let lit = 0;
-      if (gl) {
-        const px = new Uint8Array(cv.width * cv.height * 4);
-        gl.readPixels(0, 0, cv.width, cv.height, gl.RGBA, gl.UNSIGNED_BYTE, px);
-        for (let i = 0; i < px.length; i += 4) if (px[i] + px[i + 1] + px[i + 2] > 12) lit++;
-      }
+      if (!gl) return -1;
+      const px = new Uint8Array(cv.width * cv.height * 4);
+      gl.readPixels(0, 0, cv.width, cv.height, gl.RGBA, gl.UNSIGNED_BYTE, px);
+      let n = 0;
+      for (let i = 0; i < px.length; i += 4) if (px[i] + px[i + 1] + px[i + 2] > 12) n++;
+      return n;
+    });
+    let lit = await countLit();
+    for (const deadline = Date.now() + 10000; lit >= 0 && lit <= 1000 && Date.now() < deadline;) {
+      await new Promise(r => setTimeout(r, 400));
+      lit = await countLit();
+    }
+
+    const load = await page.evaluate(() => {
       const grid = document.querySelector('.grid');
       const presetsEl = document.querySelector('.presets');
       // DOCUMENT_POSITION_FOLLOWING (4) => presets comes after grid in DOM order.
@@ -99,8 +112,6 @@ async function main() {
       const glyphBg = getComputedStyle(document.querySelector('.brand-glyph')).backgroundImage;
       const opt = document.querySelector('#crtWebpPanel select option');
       return {
-        glPresent: !!gl,
-        lit,
         controls: document.querySelectorAll('#crtControls .row').length,
         presets: document.querySelectorAll('#crtPresetChips .preset-chip').length,
         logLines: document.querySelectorAll('#logConsole .tline').length,
@@ -110,8 +121,8 @@ async function main() {
       };
     });
 
-    check('WebGL context initializes', load.glPresent);
-    check('orb renders non-empty pixels', load.lit > 1000, `${load.lit} lit px`);
+    check('WebGL context initializes', lit >= 0);
+    check('orb renders non-empty pixels', lit > 1000, `${lit} lit px`);
     check('all 25 parameter controls present', load.controls === 25, `${load.controls}`);
     check('built-in presets render', load.presets >= 7, `${load.presets}`);
     check('event terminal logs startup', load.logLines >= 2, `${load.logLines} lines`);
@@ -121,6 +132,17 @@ async function main() {
     check('brand glyph uses orb.webp', load.glyphUsesOrb);
     const orbOk = await page.evaluate(async () => (await fetch('/orb.webp')).ok);
     check('orb.webp asset is served', orbOk);
+    // Social unfurl surface: og/twitter meta must declare the card and the asset must exist.
+    const social = await page.evaluate(async () => ({
+      ogImage: document.querySelector('meta[property="og:image"]')?.content || '',
+      twCard: document.querySelector('meta[name="twitter:card"]')?.content || '',
+      ogPngOk: (await fetch('/og.png')).ok,
+      robotsOk: await fetch('/robots.txt').then(async r => r.ok && (await r.text()).includes('User-agent')),
+    }));
+    check('og:image meta points at og.png', /\/og\.png$/.test(social.ogImage), social.ogImage);
+    check('twitter card is summary_large_image', social.twCard === 'summary_large_image', social.twCard);
+    check('og.png social card is served', social.ogPngOk);
+    check('robots.txt is served', social.robotsOk);
     // F004: option popups must not be near-white-on-white (dark background forced).
     const obg = (load.optionBg || '').match(/\d+/g)?.map(Number) || [255, 255, 255];
     check('dropdown options have a dark background', obg[0] + obg[1] + obg[2] < 200, load.optionBg || 'n/a');
@@ -148,11 +170,16 @@ async function main() {
     // Wait for the .webp download to land.
     const exported = await new Promise((resolve, reject) => {
       const deadline = Date.now() + 90000;
+      let lastSize = -1;
       const tick = () => {
         const f = fs.readdirSync(downloadDir).find(n => n.endsWith('.webp'));
         if (f) {
           const fp = path.join(downloadDir, f);
-          if (fs.statSync(fp).size > 0) return resolve(fp);
+          const size = fs.statSync(fp).size;
+          // require a stable size across two polls so a mid-write file
+          // is never validated as truncated
+          if (size > 0 && size === lastSize) return resolve(fp);
+          lastSize = size;
         }
         if (Date.now() > deadline) return reject(new Error('export timed out (no .webp produced)'));
         setTimeout(tick, 400);

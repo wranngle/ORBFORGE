@@ -46,13 +46,15 @@
     'Whisper thread':{radius:0.34,thickness:0.015,rotSpeed:-1.4,pulseSpeed:0,pulseAmount:0,wobble:0.015,burn:0.35,noiseScale:50,flowSpeed:3.5,glow:0.3,chroma:0.008,tracerCount:1,tracerSpeed:-2.6,cometHead:0.05,tailLength:1.0,cometBulge:1.0,tracerGlow:0.8,sparkle:0.7,hue:0,tracerHue:18,saturation:0.92,exposure:1.45,contrast:1.05,gamma:1.0,vignette:0.75},
     'Supernova':{radius:0.30,thickness:0.12,rotSpeed:3.0,pulseSpeed:8.0,pulseAmount:0.30,wobble:0.18,burn:3.6,noiseScale:30,flowSpeed:3.5,glow:5.0,chroma:0.12,tracerCount:5,tracerSpeed:9.0,cometHead:0.50,tailLength:2.5,cometBulge:3.0,tracerGlow:5.0,sparkle:1.2,hue:45,tracerHue:55,saturation:1.4,exposure:1.8,contrast:1.4,gamma:0.9,vignette:0.4}
   };
-  var PRESETS={};
+  // Null-prototype maps: preset names come from users, so inherited keys like
+  // 'toString' or '__proto__' must not shadow or pollute lookups.
+  var PRESETS=Object.create(null);
   Object.keys(BUILTIN_PRESETS).forEach(function(k){ PRESETS[k]=BUILTIN_PRESETS[k]; });
-  var USER_PRESETS={};
+  var USER_PRESETS=Object.create(null);
   // load user presets from localStorage
   try{
     var raw=localStorage.getItem('orb_forge.presets');
-    if(raw){ var up=JSON.parse(raw); if(up&&typeof up==='object'){ USER_PRESETS=up; Object.keys(up).forEach(function(k){ PRESETS[k]=up[k]; }); } }
+    if(raw){ var up=JSON.parse(raw); if(up&&typeof up==='object'){ Object.keys(up).forEach(function(k){ USER_PRESETS[k]=up[k]; PRESETS[k]=up[k]; }); } }
   }catch(e){}
   function persistUserPresets(){
     try{ localStorage.setItem('orb_forge.presets',JSON.stringify(USER_PRESETS)); }catch(e){}
@@ -136,8 +138,9 @@
       message: msg||action
     };
     if(fields&&Object.keys(fields).length) entry.orb_forge=fields;
+    // BUFFER keeps the full session (copy/download export everything);
+    // only the DOM is capped at MAX_LINES, in renderLogLine.
     BUFFER.push(entry); COUNT++;
-    if(BUFFER.length>MAX_LINES) BUFFER.shift();
     renderLogLine(entry);
     if(TERM_COUNT) TERM_COUNT.textContent=COUNT+' event'+(COUNT===1?'':'s');
   }
@@ -176,7 +179,7 @@
       r.input.style.setProperty('--p',pct(c,v)+'%');
     }
     presetSel.value='';
-    syncPresetChips(); updateAuto();
+    syncPresetChips(); updateAuto(); refreshExport();
     return true;
   }
 
@@ -261,6 +264,15 @@
     btn.addEventListener('pointerleave',stop);
     btn.addEventListener('pointercancel',stop);
     btn.addEventListener('blur',stop);
+    // Keyboard path: Enter/Space on a focused stepper fires click with detail=0
+    // (no pointer sequence), so perform a single step + commit here.
+    btn.addEventListener('click',function(e){
+      if(e.detail!==0) return;
+      if(setParam(c,params[c.key]+dir*c.step)){
+        eclog('info','param.step',{key:c.key,dir:dir,value:params[c.key]},'Step '+(dir>0?'↑':'↓')+' '+c.key+' = '+fmt(c,params[c.key]));
+        commitHistory();
+      }
+    });
   }
 
   /* ---------- BUILD CONTROLS ---------- */
@@ -298,7 +310,7 @@
         val.textContent=fmt(c,v);
         inp.style.setProperty('--p',pct(c,v)+'%');
         presetSel.value='';
-        syncPresetChips(); updateAuto();
+        syncPresetChips(); updateAuto(); refreshExport();
       });
       // commit history + log on release
       inp.addEventListener('change',function(){
@@ -363,10 +375,13 @@
   function deletePreset(name){
     if(!USER_PRESETS[name]) return;
     if(!confirm('Delete preset "'+name+'"?')) return;
+    var cur=presetSel.value;
     delete USER_PRESETS[name]; delete PRESETS[name];
     persistUserPresets();
-    if(presetSel.value===name) presetSel.value='';
     buildPresetChips();
+    // rebuilding the options resets the select — restore the active preset
+    presetSel.value=(cur===name)?'':cur;
+    syncPresetChips();
     eclog('info','preset.delete',{name:name},'Deleted preset "'+name+'"');
   }
   presetSel.addEventListener('change',function(){
@@ -386,14 +401,16 @@
     if(name===null) return;
     name=name.trim();
     if(!name){ eclog('warn','preset.save_cancel',{},'Save cancelled — empty name'); return; }
-    if(BUILTIN_PRESETS[name]){ alert('"'+name+'" is a built-in preset name. Choose a different name.'); return; }
+    if(Object.prototype.hasOwnProperty.call(BUILTIN_PRESETS,name)){ alert('"'+name+'" is a built-in preset name. Choose a different name.'); return; }
     if(USER_PRESETS[name]&&!confirm('Replace existing preset "'+name+'"?')) return;
     var snap={};
     CONFIG.forEach(function(c){ snap[c.key]=c.step>=1?Math.round(params[c.key]):parseFloat(Number(params[c.key]).toFixed(decimals(c.step))); });
     USER_PRESETS[name]=snap; PRESETS[name]=snap;
     persistUserPresets();
-    presetSel.value=name;
     buildPresetChips();
+    // set the value after the rebuild — the new <option> only exists now
+    presetSel.value=name;
+    syncPresetChips(); refreshExport();
     eclog('info','preset.save',{name:name,params:Object.keys(snap).length},'Saved preset "'+name+'"');
   });
 
@@ -448,27 +465,33 @@
   ' float rotAng,headBase;',
   ' if(lp>0.5){',
   '  float combW=u_rotSpeed-u_tracerSpeed;',
+  // M=0 (a near-static comet) stays closest to the live preview for slow
+  // relative speeds; forcing a full revolution played up to ~22x too fast.
   '  float M=floor(combW*Td/TAU+0.5);',
-  '  if(abs(M)<0.5){ M=(abs(combW)>0.02)?((combW>=0.0)?1.0:-1.0):0.0; }',
   '  rotAng=TAU*M*ph; headBase=0.0;',
   ' } else {',
   '  rotAng=t*u_rotSpeed; headBase=t*u_tracerSpeed;',
   ' }',
   ' float spin=ang+rotAng;',
+  // The head moves at (tracerSpeed - rotSpeed); the tail must occupy the side
+  // the head just left. tdir flips the tail with the relative motion so it
+  // always TRAILS (sd>0 alone made it lead whenever tracerSpeed > rotSpeed).
+  ' float tdir=(u_rotSpeed-u_tracerSpeed>=0.0)?1.0:-1.0;',
   ' float comet=0.0;float nucleus=0.0;',
   ' for(int i=0;i<6;i++){',
   '  if(float(i)>=u_tracerCount)break;',
   '  float off=float(i)/max(u_tracerCount,1.0)*TAU;',
   '  float head=headBase+off;',
   '  float sd=mod(spin-head,TAU);if(sd>PI)sd-=TAU;',
+  '  float sdd=sd*tdir;',
   '  float nuc=exp(-sd*sd/(u_cometHead*u_cometHead*0.5+1e-4));',
   '  float tail=0.0;',
-  '  if(sd>0.0){',
-  '   tail=exp(-sd/max(u_tailLength,0.02));',
-  '   tail*=smoothstep(0.0,u_cometHead*0.9+0.02,sd);',
-  '   tail*=1.0-smoothstep(PI*0.55,PI*0.99,sd);',
-  '   float fl=fbm(vec2(sd*6.0+t*3.0,off*3.0+t*1.7));',
-  '   if(lp>0.5){ float fl2=fbm(vec2(sd*6.0+(t-Td)*3.0,off*3.0+(t-Td)*1.7)); fl=mix(fl,fl2,ph); }',
+  '  if(sdd>0.0){',
+  '   tail=exp(-sdd/max(u_tailLength,0.02));',
+  '   tail*=smoothstep(0.0,u_cometHead*0.9+0.02,sdd);',
+  '   tail*=1.0-smoothstep(PI*0.55,PI*0.99,sdd);',
+  '   float fl=fbm(vec2(sdd*6.0+t*3.0,off*3.0+t*1.7));',
+  '   if(lp>0.5){ float fl2=fbm(vec2(sdd*6.0+(t-Td)*3.0,off*3.0+(t-Td)*1.7)); fl=mix(fl,fl2,ph); }',
   '   tail*=mix(1.0,fl*1.7,clamp(u_sparkle,0.0,1.5));',
   '  }',
   '  nucleus=max(nucleus,nuc);',
@@ -566,13 +589,17 @@
 
   /* ---------- JSON IO panel ---------- */
   var jsonPanel=document.getElementById('crtJsonPanel'),jsonArea=document.getElementById('crtJson'),statusEl=document.getElementById('crtStatus');
+  // While the user is hand-editing the textarea (dirty), param changes must not
+  // clobber it; otherwise the open panel live-tracks the current state.
+  var jsonDirty=false;
+  jsonArea.addEventListener('input',function(){ jsonDirty=true; });
   function setStatus(msg,kind){ statusEl.textContent=msg; statusEl.className='status'+(kind?' '+kind:''); }
   function buildJSON(){
     var p={};
     CONFIG.forEach(function(c){ p[c.key]=c.step>=1?Math.round(params[c.key]):parseFloat(Number(params[c.key]).toFixed(decimals(c.step))); });
     return JSON.stringify({effect:'chromatic_burning_comet_ring',version:11,exportedAt:new Date().toISOString(),preset:presetSel.value||null,parameters:p},null,2);
   }
-  function refreshExport(){ if(jsonPanel.classList.contains('open')) jsonArea.value=buildJSON(); }
+  function refreshExport(){ if(jsonPanel.classList.contains('open')&&!jsonDirty) jsonArea.value=buildJSON(); }
   function importJSON(){
     var txt=jsonArea.value.trim();
     if(!txt){ setStatus('Paste a JSON config into the box first.','err'); return; }
@@ -593,17 +620,18 @@
     presetSel.value=(data&&data.preset&&PRESETS[data.preset])?data.preset:'';
     syncPresetChips();
     setStatus('Applied '+applied+' of '+CONFIG.length+' parameters'+(clamped?' ('+clamped+' clamped to range)':'')+'.','ok');
+    jsonArea.value=buildJSON(); jsonDirty=false; // canonicalize: panel now reflects applied state
     eclog('info','config.import',{applied:applied,clamped:clamped,preset:presetSel.value||null},'Imported '+applied+' parameters');
     commitHistory();
   }
   document.getElementById('crtJsonBtn').addEventListener('click',function(){
     jsonPanel.classList.toggle('open');
     var open=jsonPanel.classList.contains('open');
-    if(open){ jsonArea.value=buildJSON(); setStatus('Current state loaded. Edit or paste, then Apply.',''); }
+    if(open){ jsonArea.value=buildJSON(); jsonDirty=false; setStatus('Current state loaded. Edit or paste, then Apply.',''); }
     eclog('info','ui.panel.'+(open?'open':'close'),{panel:'json'},'JSON panel '+(open?'opened':'closed'));
   });
   document.getElementById('crtApplyBtn').addEventListener('click',importJSON);
-  document.getElementById('crtRefreshBtn').addEventListener('click',function(){ jsonArea.value=buildJSON(); setStatus('Reloaded current state.',''); });
+  document.getElementById('crtRefreshBtn').addEventListener('click',function(){ jsonArea.value=buildJSON(); jsonDirty=false; setStatus('Reloaded current state.',''); });
   document.getElementById('crtCloseBtn').addEventListener('click',function(){ jsonPanel.classList.remove('open'); });
   document.getElementById('crtCopyBtn').addEventListener('click',function(){
     jsonArea.select(); var btn=this;
@@ -614,8 +642,8 @@
       eclog('info','config.copy',{},'Copied parameter JSON to clipboard');
     }
     if(navigator.clipboard&&navigator.clipboard.writeText){
-      navigator.clipboard.writeText(jsonArea.value).then(done,function(){ try{document.execCommand('copy');done();}catch(e){} });
-    } else { try{document.execCommand('copy');done();}catch(e){} }
+      navigator.clipboard.writeText(jsonArea.value).then(done,function(){ try{ if(document.execCommand('copy'))done(); }catch(e){} });
+    } else { try{ if(document.execCommand('copy'))done(); }catch(e){} }
   });
   document.getElementById('crtDownloadBtn').addEventListener('click',function(){
     var blob=new Blob([jsonArea.value||buildJSON()],{type:'application/json'});
@@ -686,7 +714,8 @@
     var mod=e.ctrlKey||e.metaKey;
     if(mod&&!e.shiftKey&&(e.key==='z'||e.key==='Z')){ e.preventDefault(); undo(); }
     else if(mod&&(e.shiftKey&&(e.key==='z'||e.key==='Z')||e.key==='y'||e.key==='Y')){ e.preventDefault(); redo(); }
-    else if(e.key===' '||e.code==='Space'){ e.preventDefault(); playBtn.click(); }
+    // Space must not steal native activation from a focused button/link.
+    else if((e.key===' '||e.code==='Space')&&!(e.target&&/^(BUTTON|A)$/.test(e.target.tagName))){ e.preventDefault(); playBtn.click(); }
   });
 
   /* ---------- WEBP export ---------- */
@@ -837,7 +866,9 @@
   }
   function encodeBlob(cnv,q){
     return new Promise(function(res,rej){
-      cnv.toBlob(function(b){ b?res(b):rej(new Error('encode failed')); },'image/webp',q);
+      // Browsers without WebP encoding (e.g. Safari) silently fall back to
+      // image/png — treat that as failure so estimates never use PNG sizes.
+      cnv.toBlob(function(b){ (b&&b.type==='image/webp')?res(b):rej(new Error(b?'no_webp':'encode failed')); },'image/webp',q);
     });
   }
 
@@ -989,9 +1020,24 @@
     var termEl=document.getElementById('term');
     document.getElementById('termCopy').addEventListener('click',function(){
       var txt=bufferToJSONL(); var btn=this;
-      function done(){ var o=btn.innerHTML; btn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Copied'; setTimeout(function(){ btn.innerHTML=o; },1200); }
-      if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(done,done); }
-      else { try{document.execCommand('copy');done();}catch(e){} }
+      function flash(ok){
+        var o=btn.innerHTML;
+        btn.innerHTML=ok
+          ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Copied'
+          : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>Failed';
+        setTimeout(function(){ btn.innerHTML=o; },1200);
+      }
+      function fallback(){
+        var ta=document.createElement('textarea');
+        ta.value=txt; ta.setAttribute('readonly','');
+        ta.style.position='fixed'; ta.style.opacity='0';
+        document.body.appendChild(ta); ta.select();
+        var ok=false; try{ ok=document.execCommand('copy'); }catch(e){}
+        ta.remove();
+        flash(ok);
+      }
+      if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(function(){ flash(true); },fallback); }
+      else fallback();
     });
     document.getElementById('termDownload').addEventListener('click',function(){
       var blob=new Blob([bufferToJSONL()+'\n'],{type:'application/x-ndjson'});
