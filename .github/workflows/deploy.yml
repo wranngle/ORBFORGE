@@ -44,3 +44,16 @@ jobs:
           npx --yes wrangler@4.107.0 pages deploy dist \
             --project-name=orb-forge --branch=main \
             --commit-hash="$GITHUB_SHA" --commit-dirty=true
+      - name: Purge edge cache
+        # The zone's browser-cache TTL keeps assets hot at the edge for hours;
+        # a deploy must invalidate them or the live site serves stale code.
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ZONE_ID: 25620efbfe9c51d7addcdbf4886b86ab
+        run: |
+          curl -sf -X POST \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -H "Content-Type: application/json" \
+            "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/purge_cache" \
+            --data '{"files":["https://orb-forge.wranngle.com/","https://orb-forge.wranngle.com/index.html","https://orb-forge.wranngle.com/app.js","https://orb-forge.wranngle.com/og.png","https://orb-forge.wranngle.com/orb.webp","https://orb-forge.wranngle.com/robots.txt"]}' \
+            | grep -q '"success": *true' && echo "cache purged"
