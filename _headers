@@ -9,5 +9,11 @@
 /app.js
   Cache-Control: public, max-age=3600, must-revalidate
 
+/orb.webp
+  Cache-Control: public, max-age=86400
+
+/og.png
+  Cache-Control: public, max-age=86400
+
 /
   Cache-Control: public, max-age=0, must-revalidate
