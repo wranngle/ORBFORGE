@@ -3,9 +3,11 @@ node_modules/
 .wrangler/
 dist/
 
-# Generated orb exports — never commit (but orb.webp is the source brand asset)
+# Generated orb exports — never commit (but orb.webp is the source brand asset
+# and docs/hero.webp is the README demo loop)
 *.webp
 !orb.webp
+!docs/hero.webp
 orb-forge.json
 orb-forge.events.jsonl
 

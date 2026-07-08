@@ -5,6 +5,8 @@ parameters, then export it as a transparent **animated WebP** for use as an
 avatar or loader. Console-aesthetic Wranngle UI with a live preview, preset
 chips, JSON import/export, and a pinned ECS/JSONL event terminal.
 
+![A burning comet-ring orb rendering live in WebGL beside the 25-parameter control rig](docs/hero.webp)
+
 **Live:** https://orb-forge.wranngle.com
 
 ## What it does
