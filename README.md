@@ -2,7 +2,7 @@
 
 # Orb Forge
 
-> agent-avatar synthesizer: tune a burning comet-ring orb, 25 parameters in, animated WebP out
+> agent-avatar synthesizer: burning comet-ring orb, 25 parameters in, animated WebP out
 
 [![CI](https://github.com/wranngle/orb_forge/actions/workflows/ci.yml/badge.svg)](https://github.com/wranngle/orb_forge/actions/workflows/ci.yml) [![License](https://img.shields.io/github/license/wranngle/orb_forge?color=A371F7)](./LICENSE) ![Status](https://img.shields.io/badge/status-active-brightgreen.svg)
 
