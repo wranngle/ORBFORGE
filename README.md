@@ -1,3 +1,5 @@
+![A burning comet-ring orb rendering live in WebGL beside the 25-parameter control rig](docs/hero.webp)
+
 # Orb Forge
 
 A WebGL agent-avatar synthesizer. Tune a burning comet-ring orb across 25 live
@@ -5,9 +7,23 @@ parameters, then export it as a transparent **animated WebP** for use as an
 avatar or loader. Console-aesthetic Wranngle UI with a live preview, preset
 chips, JSON import/export, and a pinned ECS/JSONL event terminal.
 
-![A burning comet-ring orb rendering live in WebGL beside the 25-parameter control rig](docs/hero.webp)
+[![CI](https://github.com/wranngle/orb_forge/actions/workflows/ci.yml/badge.svg)](https://github.com/wranngle/orb_forge/actions/workflows/ci.yml) [![License](https://img.shields.io/github/license/wranngle/orb_forge?color=A371F7)](./LICENSE) ![Status](https://img.shields.io/badge/status-active-brightgreen.svg)
+
+> [!NOTE]
+> Active personal project. Used in my own workflow. Issues triaged on a personal-time cadence.
 
 **Live:** https://orb-forge.wranngle.com
+
+## Quick start
+
+```bash
+git clone https://github.com/wranngle/orb_forge && cd orb_forge
+python3 -m http.server 8080
+# open http://localhost:8080
+```
+
+WebP export needs browser-native WebP encoding (Chrome, Edge, or a recent
+Firefox). WebGL is required for the preview.
 
 ## What it does
 
@@ -31,21 +47,11 @@ chips, JSON import/export, and a pinned ECS/JSONL event terminal.
 | `index.html` | Markup + design-system styles (inline `<style>`).    |
 | `app.js`     | The engine: controls, WebGL render loop, WebP muxer. |
 | `_headers`   | Cloudflare Pages security headers (CSP, caching).    |
-| `og.png`     | Social-unfurl card — regenerate with `npm run og`.   |
+| `og.png`     | Social-unfurl card. Regenerate with `npm run og`.    |
 | `tests/`     | Outcome-based e2e: renders in headless Chrome and validates the exported WebP bytes. |
 
 It is a static site with no build step. The engine is a single external script
 so the page ships a strict CSP (`script-src 'self'`, no inline script).
-
-## Run locally
-
-```bash
-python3 -m http.server 8080
-# open http://localhost:8080
-```
-
-WebP export needs browser-native WebP encoding (Chrome, Edge, or a recent
-Firefox). WebGL is required for the preview.
 
 ## Deploy
 
