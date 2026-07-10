@@ -2,10 +2,7 @@
 
 # Orb Forge
 
-A WebGL agent-avatar synthesizer. Tune a burning comet-ring orb across 25 live
-parameters, then export it as a transparent **animated WebP** for use as an
-avatar or loader. Console-aesthetic Wranngle UI with a live preview, preset
-chips, JSON import/export, and a pinned ECS/JSONL event terminal.
+> agent-avatar synthesizer: tune a burning comet-ring orb, 25 parameters in, animated WebP out
 
 [![CI](https://github.com/wranngle/orb_forge/actions/workflows/ci.yml/badge.svg)](https://github.com/wranngle/orb_forge/actions/workflows/ci.yml) [![License](https://img.shields.io/github/license/wranngle/orb_forge?color=A371F7)](./LICENSE) ![Status](https://img.shields.io/badge/status-active-brightgreen.svg)
 
@@ -31,14 +28,15 @@ Firefox). WebGL is required for the preview.
   ring, configurable comets/tracers, glow, chromatic aberration, and color post.
 - **25 parameters** in four groups (Ring & motion, Burning texture,
   Comet / tracer, Color & post), each with a slider, ±steppers (click-and-hold
-  repeat), and a value chip.
+  repeat), and a value chip, all in a console-aesthetic Wranngle UI.
 - **Presets**: seven built-ins plus user presets saved to `localStorage`.
-- **Animated WebP export**: browser-native WebP encoding muxed into an animated
-  file, with loop-duration solving and a target-file-size auto-tuner.
+- **Animated WebP export**: browser-native WebP encoding muxed into a
+  transparent animated file for use as an avatar or loader, with loop-duration
+  solving and a target-file-size auto-tuner.
 - **JSON I/O**: copy, download, or paste a full parameter config.
 - **Undo / redo**: `⌘/Ctrl+Z`, `⌘/Ctrl+Shift+Z` (or `Y`); `Space` toggles play.
-- **Event terminal**: every action emits an ECS-shaped JSONL record you can
-  copy or download as `.jsonl`.
+- **Pinned event terminal**: every action emits an ECS-shaped JSONL record you
+  can copy or download as `.jsonl`.
 
 ## Structure
 
