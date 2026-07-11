@@ -25,25 +25,29 @@ Firefox). WebGL is required for the preview.
 
 ## What it does
 
-- **Live WebGL preview**: a fragment-shader orb with five surface texture
-  styles (smoke, ridged filaments, plasma cells, banded rings, woven threads),
-  3D torus/sphere lighting with adjustable light angle and gloss, a volumetric
-  core (solid lit body + radial plasma filaments), orbiting tracers, glow,
-  chromatic aberration, time jitter (in-loop surge/reverse motion), and color
-  post — with a video-player transport (play/pause, scrubbing, fullscreen)
-  overlaid on the preview.
+- **Live WebGL preview**: a fragment-shader orb with seven surface texture
+  styles (smoke, ridged filaments, plasma cells, banded rings, woven threads,
+  stipple dots, wire lattice), 3D torus/sphere lighting with adjustable light
+  angle and gloss, a volumetric core (solid lit body + radial plasma
+  filaments), orbiting tracers, glow, chromatic aberration, time jitter
+  (in-loop surge/reverse motion), and color post — with a video-player
+  transport (play/pause, scrubbing, fullscreen) overlaid on the preview.
 - **34 parameters** in six aligned groups, each with a slider, ±steppers
   (hold to repeat), and a typeable value field. Hovering or adjusting a
   parameter pink-highlights the exact region of the render it controls,
   tracked in real time by the shader.
-- **Seeded randomize**: every roll gets a human-readable seed (`plasma-4f2a`)
-  that deterministically rebuilds the same orb — re-enter it via the seed
-  dialog, share it, or find it stamped in the export JSON.
+- **Seeded, archetype-weighted randomize**: each roll first picks a coherent
+  archetype (comet ring, plasma ball, glassy sphere, wire mesh, lit sculpture,
+  thick aura) with correlated parameter ranges, so distinct species emerge
+  instead of uniform noise. Every roll gets a human-readable seed
+  (`plasma-4f2a`) that deterministically rebuilds the same orb — re-enter it
+  via the seed dialog, share it, or find it stamped in the export JSON.
 - **Preset overlays**: stack up to 3 presets additively above the base orb
   for composite looks; overlays export with the animation and the JSON.
 - **Background**: transparent by default (true alpha), or bake in a solid /
   gradient backdrop with hex-precise colors.
-- **Presets**: seven built-ins plus user presets saved to `localStorage`,
+- **Presets**: twelve built-ins (including engine showcases like Glass moon,
+  Dot matrix, and Obsidian sculpt) plus user presets saved to `localStorage`,
   with undoable delete.
 - **Animated WebP + GIF export**: WebP (recommended) via browser-native
   encoding muxed into a transparent animated file; GIF via a built-in

@@ -16,7 +16,7 @@
     {name:'Surface & texture', items:[
       {key:'burn',       label:'Burn intensity',  min:0,   max:4,   step:0.05, def:1,   rmin:0.2,rmax:2.0, desc:'Strength of the noise-driven surface texture on the ring'},
       {key:'noiseScale', label:'Texture scale',   min:0.5, max:50,  step:0.5,  def:8,   rmin:2,rmax:28, desc:'How fine vs coarse the surface pattern is'},
-      {key:'texStyle',   label:'Texture style',   min:0,   max:4,   step:1,    def:0,   desc:'Surface material: 0 smoke · 1 ridged filaments · 2 plasma cells · 3 banded rings · 4 woven threads'},
+      {key:'texStyle',   label:'Texture style',   min:0,   max:6,   step:1,    def:0,   desc:'Surface material: 0 smoke · 1 ridged filaments · 2 plasma cells · 3 banded rings · 4 woven threads · 5 stipple dots · 6 wire lattice'},
       {key:'flowSpeed',  label:'Flow speed',      min:0,   max:5,   step:0.1,  def:1,   rmin:0,rmax:3, desc:'How fast the surface texture drifts'},
       {key:'glow',       label:'Glow intensity',  min:0,   max:6,   step:0.1,  def:1.3, rmin:0.4,rmax:2.2, desc:'Brightness of the soft halo around the ring'},
       {key:'chroma',     label:'Chromatic aberration',min:0,max:0.16,step:0.002,def:0.014,rmin:0.002,rmax:0.05, desc:'RGB channel separation — bigger = more rainbow fringing'},
@@ -82,7 +82,14 @@
     'Plasma ring':{radius:0.42,thickness:0.02,rotSpeed:-1.8,pulseSpeed:5.0,pulseAmount:0.10,wobble:0.06,burn:0.4,noiseScale:18,flowSpeed:2.5,glow:3.2,chroma:0.06,tracerCount:3,tracerSpeed:6.5,cometHead:0.16,tailLength:0.9,cometBulge:1.0,tracerGlow:3.0,sparkle:0.7,hue:265,tracerHue:300,saturation:1.3,exposure:1.4,contrast:1.3,gamma:0.95,vignette:0.6},
     'Ghost trail':{radius:0.46,thickness:0.014,rotSpeed:0.25,pulseSpeed:1.0,pulseAmount:0.05,wobble:0.03,burn:0.15,noiseScale:12,flowSpeed:0.6,glow:1.6,chroma:0.03,tracerCount:1,tracerSpeed:-1.6,cometHead:0.14,tailLength:3.2,cometBulge:0.7,tracerGlow:1.8,sparkle:0.3,hue:175,tracerHue:190,saturation:0.8,exposure:1.1,contrast:1.0,gamma:1.1,vignette:0.9},
     'Whisper thread':{radius:0.34,thickness:0.015,rotSpeed:-1.4,pulseSpeed:0,pulseAmount:0,wobble:0.015,burn:0.35,noiseScale:50,flowSpeed:3.5,glow:0.3,chroma:0.008,tracerCount:1,tracerSpeed:-2.6,cometHead:0.05,tailLength:1.0,cometBulge:1.0,tracerGlow:0.8,sparkle:0.7,hue:0,tracerHue:18,saturation:0.92,exposure:1.45,contrast:1.05,gamma:1.0,vignette:0.75},
-    'Supernova':{radius:0.30,thickness:0.12,rotSpeed:3.0,pulseSpeed:8.0,pulseAmount:0.30,wobble:0.18,burn:3.6,noiseScale:30,flowSpeed:3.5,glow:5.0,chroma:0.12,tracerCount:5,tracerSpeed:9.0,cometHead:0.50,tailLength:2.5,cometBulge:3.0,tracerGlow:5.0,sparkle:1.2,hue:45,tracerHue:55,saturation:1.4,exposure:1.8,contrast:1.4,gamma:0.9,vignette:0.4}
+    'Supernova':{radius:0.30,thickness:0.12,rotSpeed:3.0,pulseSpeed:8.0,pulseAmount:0.30,wobble:0.18,burn:3.6,noiseScale:30,flowSpeed:3.5,glow:5.0,chroma:0.12,tracerCount:5,tracerSpeed:9.0,cometHead:0.50,tailLength:2.5,cometBulge:3.0,tracerGlow:5.0,sparkle:1.2,hue:45,tracerHue:55,saturation:1.4,exposure:1.8,contrast:1.4,gamma:0.9,vignette:0.4},
+    // Engine showcase — these exercise texture styles, 3D lighting, and the
+    // volumetric core so the range of the forge is visible from the dropdown.
+    'Glass moon':{radius:0.38,thickness:0.012,rotSpeed:0.2,pulseSpeed:1.2,pulseAmount:0.02,wobble:0.02,timeJitter:0,jitterRate:2,burn:0.3,noiseScale:9,texStyle:2,flowSpeed:0.5,glow:0.7,chroma:0.006,depth3d:1.2,lightAngle:60,gloss:2.4,fill:1,filaments:0,coreHue:190,tracerCount:0,tracerSpeed:1,cometHead:0.2,tailLength:1,cometBulge:0.5,tracerGlow:1,sparkle:0.2,hue:200,tracerHue:190,saturation:0.9,exposure:1.25,contrast:1.15,gamma:1,vignette:0.6},
+    'Plasma core':{radius:0.4,thickness:0.014,rotSpeed:0.6,pulseSpeed:3,pulseAmount:0.06,wobble:0.03,timeJitter:0.1,jitterRate:3,burn:0.6,noiseScale:12,texStyle:0,flowSpeed:1.4,glow:2.2,chroma:0.02,depth3d:0.2,lightAngle:132,gloss:1,fill:0.3,filaments:1.6,coreHue:275,tracerCount:0,tracerSpeed:2,cometHead:0.2,tailLength:1,cometBulge:0.8,tracerGlow:1.5,sparkle:0.4,hue:285,tracerHue:290,saturation:1.15,exposure:1.35,contrast:1.2,gamma:0.95,vignette:0.5},
+    'Dot matrix':{radius:0.4,thickness:0.012,rotSpeed:0.3,pulseSpeed:1.6,pulseAmount:0.03,wobble:0.02,timeJitter:0,jitterRate:2,burn:1.2,noiseScale:16,texStyle:5,flowSpeed:0.8,glow:1,chroma:0.004,depth3d:0.5,lightAngle:100,gloss:0.8,fill:1,filaments:0,coreHue:165,tracerCount:0,tracerSpeed:1,cometHead:0.2,tailLength:1,cometBulge:0.6,tracerGlow:1.2,sparkle:0.3,hue:170,tracerHue:170,saturation:1.1,exposure:1.3,contrast:1.2,gamma:1,vignette:0.8},
+    'Woven aura':{radius:0.36,thickness:0.05,rotSpeed:0.5,pulseSpeed:2,pulseAmount:0.08,wobble:0.06,timeJitter:0.12,jitterRate:2.5,burn:1.6,noiseScale:10,texStyle:4,flowSpeed:1.2,glow:1.8,chroma:0.012,depth3d:0.3,lightAngle:132,gloss:1.2,fill:0.15,filaments:0.3,coreHue:30,tracerCount:2,tracerSpeed:1.2,cometHead:0.18,tailLength:1.4,cometBulge:1,tracerGlow:1.8,sparkle:0.8,hue:45,tracerHue:35,saturation:1.1,exposure:1.3,contrast:1.15,gamma:1,vignette:0.6},
+    'Obsidian sculpt':{radius:0.36,thickness:0.035,rotSpeed:0.15,pulseSpeed:0.8,pulseAmount:0.03,wobble:0.08,timeJitter:0,jitterRate:2,burn:0.5,noiseScale:7,texStyle:1,flowSpeed:0.4,glow:0.6,chroma:0.008,depth3d:1.4,lightAngle:210,gloss:2.8,fill:0.9,filaments:0,coreHue:260,tracerCount:0,tracerSpeed:1,cometHead:0.2,tailLength:1,cometBulge:0.5,tracerGlow:1,sparkle:0.2,hue:250,tracerHue:250,saturation:0.7,exposure:1.1,contrast:1.3,gamma:1.05,vignette:1}
   };
   // Null-prototype maps: preset names come from users, so inherited keys like
   // 'toString' or '__proto__' must not shadow or pollute lookups.
@@ -445,7 +452,7 @@
   };
   var HL={mode:0,cur:0,target:0,pulse:0};
   function hlHover(mode,on){
-    if(on){ HL.mode=mode; HL.target=0.55; }
+    if(on){ HL.mode=mode; HL.target=0.72; }
     else if(HL.mode===mode||mode===0){ HL.target=0; }
   }
   function hlKick(mode){ HL.mode=mode; HL.pulse=1; }
@@ -777,16 +784,19 @@
       bar.appendChild(chip);
     });
   }
-  function addOverlay(name){
+  function pushOverlay(name,src){
     if(OVERLAYS.length>=3){ showToast('Overlays are capped at 3 layers'); return; }
-    var p=PRESETS[name]; if(!p) return;
     var q={};
-    CONFIG.forEach(function(c){ q[c.key]=(p[c.key]!==undefined)?p[c.key]:c.def; });
+    CONFIG.forEach(function(c){ q[c.key]=(src[c.key]!==undefined)?src[c.key]:c.def; });
     OVERLAYS.push({name:name,params:q});
     renderOverlayBar(); refreshExport();
-    eclog('info','overlay.add',{name:name,count:OVERLAYS.length},'Overlaid preset "'+name+'"');
+    eclog('info','overlay.add',{name:name,count:OVERLAYS.length},'Overlaid "'+name+'"');
     commitHistory();
     if(dlgOverlay) dlgOverlay.close();
+  }
+  function addOverlay(name){
+    var p=PRESETS[name]; if(!p) return;
+    pushOverlay(name,p);
   }
   (function(){
     var btn=document.getElementById('btnOverlay');
@@ -794,6 +804,13 @@
     btn.addEventListener('click',function(){
       var list=document.getElementById('overlayList');
       list.innerHTML='';
+      // The current orb itself can become a layer — snapshot, then keep editing
+      // the base underneath it.
+      var cur=document.createElement('button'); cur.type='button'; cur.className='btn';
+      cur.textContent='⧉ current orb';
+      cur.title='Freeze the current orb as a layer and keep sculpting beneath it';
+      cur.addEventListener('click',function(){ pushOverlay(SEED.current||'current',params); });
+      list.appendChild(cur);
       Object.keys(PRESETS).forEach(function(name){
         var b=document.createElement('button'); b.type='button'; b.className='btn btn--ghost';
         b.textContent=name;
@@ -877,7 +894,14 @@
   '   vec2 o=vec2(hash(ip+g),hash(ip+g+19.7)); float d=length(g+o-fp); md=min(md,d); }',
   '  return pow(clamp(1.0-md,0.0,1.0),2.0); }',
   ' if(style<3.5){ float w=fbm(p); return pow(0.5+0.5*sin(p.y*2.2+w*5.0),1.6); }',
-  ' float w2=fbm(p*0.7); return pow(0.5+0.5*sin(p.x*3.0+w2*7.0),1.4)*mix(0.6,1.3,fbm(p+7.3));',
+  ' if(style<4.5){ float w2=fbm(p*0.7); return pow(0.5+0.5*sin(p.x*3.0+w2*7.0),1.4)*mix(0.6,1.3,fbm(p+7.3)); }',
+  // 5: stipple — dotted data-sphere rows; 6: wire lattice — thin glowing grid.
+  ' if(style<5.5){ vec2 gp=fract(p*1.15)-0.5; float dd=length(gp);',
+  '  float dot2=1.0-smoothstep(0.10,0.26,dd);',
+  '  return dot2*(0.35+0.85*noise(floor(p*1.15)+3.7)); }',
+  ' vec2 lq=abs(fract(p*0.85)-0.5);',
+  ' float ln=1.0-smoothstep(0.02,0.10,min(lq.x,lq.y));',
+  ' return clamp(ln*(0.45+0.75*fbm(p*0.5)),0.0,1.0);',
   '}',
   'vec3 hsv2rgb(vec3 c){vec4 K=vec4(1.,0.6666667,0.3333333,3.);',
   ' vec3 p=abs(fract(c.xxx+K.xyz)*6.-K.www);return c.z*mix(K.xxx,clamp(p-K.xxx,0.,1.),c.y);}',
@@ -1030,7 +1054,7 @@
   '  else hm=1.0-smoothstep(inR*0.85,inR,dist);',
   '  float rim=smoothstep(0.03,0.16,hm)*(1.0-smoothstep(0.3,0.6,hm));',
   // Hot-pink edit indicator: soft translucent in-fill + a stronger pink rim.
-  '  col+=(vec3(1.0,0.45,0.80)*hm*(0.10+0.08*u_hlPulse)+vec3(1.0,0.25,0.70)*rim*(0.45+0.5*u_hlPulse))*u_hlStrength;',
+  '  col+=(vec3(1.0,0.45,0.80)*hm*(0.15+0.10*u_hlPulse)+vec3(1.0,0.22,0.68)*rim*(0.62+0.55*u_hlPulse))*u_hlStrength;',
   ' }',
   ' float oa=clamp(max(col.r,max(col.g,col.b)),0.0,1.0);',
   ' vec3 oc=col/max(oa,0.0025);',
@@ -1330,13 +1354,36 @@
   function newSeed(){
     return SEED_WORDS[(Math.random()*SEED_WORDS.length)|0]+'-'+Math.random().toString(16).slice(2,6);
   }
+  /* Archetype-weighted rolls: sampling 34 independent uniforms mostly yields
+     mud. Each roll first picks a coherent archetype — a recipe with correlated
+     ranges — so distinct species (comet rings, plasma balls, glassy spheres,
+     dotted data-orbs, lit sculptures, thick auras) emerge from the dice.
+     Keys not named by the archetype fall back to their global rmin/rmax. */
+  var ARCHETYPES=[
+    {name:'ring',   w:3,   set:{fill:[0,0.1],   filaments:[0,0.15], texStyle:[0,1],  depth3d:[0,0.6]}},
+    {name:'plasma', w:2,   set:{fill:[0.15,0.5],filaments:[0.9,1.8],texStyle:[0,2],  depth3d:[0,0.5],  thickness:[0.008,0.03], glow:[1.2,2.4], tracerCount:[0,1], radius:[0.3,0.48]}},
+    {name:'glass',  w:2,   set:{fill:[0.85,1],  filaments:[0,0.1],  texStyle:[0,4],  depth3d:[0.7,1.4],gloss:[1.4,2.8], burn:[0.1,0.8], glow:[0.4,1.2], tracerCount:[0,2], radius:[0.3,0.48]}},
+    {name:'mesh',   w:2,   set:{fill:[0.8,1],   filaments:[0,0.1],  texStyle:[5,6],  depth3d:[0.2,0.9],burn:[0.6,1.6], noiseScale:[8,26], tracerCount:[0,1], glow:[0.5,1.4], radius:[0.3,0.48]}},
+    {name:'sculpt', w:1.5, set:{fill:[0.6,1],   filaments:[0,0.1],  texStyle:[1,3],  depth3d:[1.0,1.5],gloss:[1.6,3], saturation:[0.6,1.1], vignette:[0.6,1.3], burn:[0.3,1.2], tracerCount:[0,1], radius:[0.3,0.48]}},
+    {name:'aura',   w:1.5, set:{fill:[0,0.3],   filaments:[0.2,0.8],texStyle:[0,4],  thickness:[0.03,0.09], glow:[1.6,2.6], wobble:[0.04,0.12], burn:[1.2,2.2], radius:[0.26,0.44]}}
+  ];
   function seededRandomize(seed){
     var rng=mulberry32(xmur3(String(seed))());
+    // weighted archetype pick — part of the seed, so it reproduces too
+    var totalW=0; ARCHETYPES.forEach(function(a){ totalW+=a.w; });
+    var roll=rng()*totalW, arch=ARCHETYPES[0];
+    for(var ai=0;ai<ARCHETYPES.length;ai++){ roll-=ARCHETYPES[ai].w; if(roll<=0){ arch=ARCHETYPES[ai]; break; } }
     CONFIG.forEach(function(c){
-      var lo=c.rmin!==undefined?c.rmin:c.min, hi=c.rmax!==undefined?c.rmax:c.max;
+      var r=arch.set[c.key];
+      var lo=r?r[0]:(c.rmin!==undefined?c.rmin:c.min);
+      var hi=r?r[1]:(c.rmax!==undefined?c.rmax:c.max);
       var steps=Math.max(1,Math.round((hi-lo)/c.step));
       params[c.key]=snap(c,lo+Math.round(rng()*steps)*c.step);
     });
+    // Solid-body archetypes read best when the core tones with the ring.
+    if(refs.coreHue&&/glass|mesh|sculpt/.test(arch.name)){
+      params.coreHue=snap(refs.coreHue.cfg,(params.hue+rng()*60-30+360)%360);
+    }
     tameBrightness();
     CONFIG.forEach(function(c){ params[c.key]=snap(c,params[c.key]); });
     // Backdrop colors ride along only when they're visible; the Transparent
@@ -1349,7 +1396,7 @@
     SEED.current=String(seed);
     syncUI(); syncBgUI(); presetSel.value=''; refreshExport(); updateAuto(); syncPresetUI();
     HL.mode=5; HL.pulse=1;
-    eclog('info','params.randomize',{seed:SEED.current},'Randomized — seed "'+SEED.current+'"');
+    eclog('info','params.randomize',{seed:SEED.current,archetype:arch.name},'Randomized — '+arch.name+' · seed "'+SEED.current+'"');
     commitHistory();
   }
   document.getElementById('crtRandomBtn').addEventListener('click',function(){
