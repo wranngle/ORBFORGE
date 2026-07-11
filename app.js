@@ -953,10 +953,12 @@
   scrub.addEventListener('pointerup',endScrub);
   scrub.addEventListener('pointercancel',endScrub);
 
-  var stageFrame=document.getElementById('stageFrame');
+  // Fullscreen the whole stage column, not just the frame — the transport
+  // (play / scrub / exit) must stay reachable while fullscreen.
+  var fsRoot=document.querySelector('.stage-col')||document.getElementById('stageFrame');
   function toggleFullscreen(){
     if(document.fullscreenElement){ document.exitFullscreen(); }
-    else if(stageFrame.requestFullscreen){ stageFrame.requestFullscreen(); }
+    else if(fsRoot.requestFullscreen){ fsRoot.requestFullscreen(); }
     eclog('info','ui.fullscreen',{on:!document.fullscreenElement},'Fullscreen toggled');
   }
   document.getElementById('btnFull').addEventListener('click',toggleFullscreen);

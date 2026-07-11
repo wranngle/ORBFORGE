@@ -199,6 +199,13 @@ async function main() {
       ogPngOk: (await fetch('/og.png')).ok,
       robotsOk: await fetch('/robots.txt').then(async r => r.ok && (await r.text()).includes('User-agent')),
     }));
+    // Doctrine drift: the cache-bust sentinel must exist in index.html AND be
+    // the exact string deploy.yml rewrites — a mismatch ships an unstamped
+    // page, and a stale cached engine against fresh markup kills every control.
+    const idxSrc = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    const deploySrc = fs.readFileSync(path.join(ROOT, '.github/workflows/deploy.yml'), 'utf8');
+    check('index.html script tag carries the ?v=dev cache-bust sentinel', /src="\/app\.js\?v=dev"/.test(idxSrc));
+    check('deploy.yml stamps that same sentinel with the commit SHA', deploySrc.includes('s|/app.js?v=dev|/app.js?v=${GITHUB_SHA::7}|'));
     check('og:image meta points at og.png', /\/og\.png$/.test(social.ogImage), social.ogImage);
     check('twitter card is summary_large_image', social.twCard === 'summary_large_image', social.twCard);
     check('og.png social card is served', social.ogPngOk);
