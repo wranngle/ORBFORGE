@@ -176,6 +176,7 @@ async function main() {
       };
     });
 
+    check('boot screen clears after load', await page.evaluate(() => !document.getElementById('boot') || document.getElementById('boot').classList.contains('gone')));
     check('WebGL context initializes', lit >= 0);
     check('orb renders non-empty pixels', lit > 1000, `${lit} lit px`);
     check('all 40 parameter sliders present', load.sliders === 40, `${load.sliders}`);

@@ -931,6 +931,7 @@
   if(!gl){
     document.getElementById('crtFallback').style.display='flex';
     disableEngineUI();
+    var bEl=document.getElementById('boot'); if(bEl&&bEl.parentNode) bEl.parentNode.removeChild(bEl);
     setTimeout(function(){ eclog('error','gl.unavailable',{},'WebGL not available'); },0);
     return;
   }
@@ -1180,30 +1181,51 @@
   ].join('\n');
 
   function compile(type,src){
+    // No synchronous getShaderParameter(COMPILE_STATUS) here — querying compile
+    // status forces the driver to finish compiling on the main thread and is
+    // exactly what froze the page. Errors surface via the linked-program check.
     var s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);
-    if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)){console.error(gl.getShaderInfoLog(s));}
     return s;
   }
   var prog=gl.createProgram();
   gl.attachShader(prog,compile(gl.VERTEX_SHADER,VERT));
   gl.attachShader(prog,compile(gl.FRAGMENT_SHADER,FRAG));
   gl.linkProgram(prog);
-  if(!gl.getProgramParameter(prog,gl.LINK_STATUS)){ document.getElementById('crtFallback').style.display='flex'; disableEngineUI(); return; }
-  gl.useProgram(prog);
-
-  var buf=gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER,buf);
-  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
-  var loc=gl.getAttribLocation(prog,'a_pos');
-  gl.enableVertexAttribArray(loc);
-  gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
-
-  var U={res:gl.getUniformLocation(prog,'u_resolution'),time:gl.getUniformLocation(prog,'u_time'),
-         alphaMode:gl.getUniformLocation(prog,'u_alphaMode'),loop:gl.getUniformLocation(prog,'u_loop'),
-         phase:gl.getUniformLocation(prog,'u_phase'),loopDur:gl.getUniformLocation(prog,'u_loopDur'),
-         bgOn:gl.getUniformLocation(prog,'u_bgOn'),bgA:gl.getUniformLocation(prog,'u_bgA'),bgB:gl.getUniformLocation(prog,'u_bgB'),
-         hlMode:gl.getUniformLocation(prog,'u_hlMode'),hlStrength:gl.getUniformLocation(prog,'u_hlStrength'),hlPulse:gl.getUniformLocation(prog,'u_hlPulse'),hlAnts:gl.getUniformLocation(prog,'u_hlAnts')};
-  CONFIG.forEach(function(c){ U[c.key]=gl.getUniformLocation(prog,'u_'+c.key); });
+  // KHR_parallel_shader_compile lets the driver compile off-thread; we poll
+  // COMPLETION_STATUS instead of blocking on LINK_STATUS. U/buffer setup and the
+  // render loop are gated behind completion (finishGL) so the boot screen paints.
+  var pcExt=gl.getExtension('KHR_parallel_shader_compile');
+  var U={},glReady=false;
+  function bootDone(){ var b=document.getElementById('boot'); if(b){ b.classList.add('gone'); setTimeout(function(){ if(b.parentNode) b.parentNode.removeChild(b); },600); } }
+  function finishGL(){
+    if(!gl.getProgramParameter(prog,gl.LINK_STATUS)){
+      console.error(gl.getProgramInfoLog(prog));
+      document.getElementById('crtFallback').style.display='flex'; disableEngineUI(); bootDone(); return;
+    }
+    gl.useProgram(prog);
+    var buf=gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER,buf);
+    gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
+    var loc=gl.getAttribLocation(prog,'a_pos');
+    gl.enableVertexAttribArray(loc);
+    gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
+    U.res=gl.getUniformLocation(prog,'u_resolution'); U.time=gl.getUniformLocation(prog,'u_time');
+    U.alphaMode=gl.getUniformLocation(prog,'u_alphaMode'); U.loop=gl.getUniformLocation(prog,'u_loop');
+    U.phase=gl.getUniformLocation(prog,'u_phase'); U.loopDur=gl.getUniformLocation(prog,'u_loopDur');
+    U.bgOn=gl.getUniformLocation(prog,'u_bgOn'); U.bgA=gl.getUniformLocation(prog,'u_bgA'); U.bgB=gl.getUniformLocation(prog,'u_bgB');
+    U.hlMode=gl.getUniformLocation(prog,'u_hlMode'); U.hlStrength=gl.getUniformLocation(prog,'u_hlStrength');
+    U.hlPulse=gl.getUniformLocation(prog,'u_hlPulse'); U.hlAnts=gl.getUniformLocation(prog,'u_hlAnts');
+    CONFIG.forEach(function(c){ U[c.key]=gl.getUniformLocation(prog,'u_'+c.key); });
+    glReady=true;
+    requestAnimationFrame(frame);
+  }
+  // Yield one paint so the boot screen shows, then wait for the parallel
+  // compile to finish (or run immediately if the extension is unavailable).
+  function waitGL(){
+    if(pcExt && !gl.getProgramParameter(prog,pcExt.COMPLETION_STATUS_KHR)){ setTimeout(waitGL,24); return; }
+    finishGL();
+  }
+  requestAnimationFrame(function(){ setTimeout(waitGL,0); });
 
   function setBgUniforms(on){
     gl.uniform1f(U.bgOn,on?1.0:0.0);
@@ -1289,7 +1311,9 @@
   }
   document.getElementById('btnFull').addEventListener('click',toggleFullscreen);
 
+  var bootHidden=false;
   function frame(now){
+    if(!glReady){ requestAnimationFrame(frame); return; }
     var dt=Math.min((now-last)/1000,0.05);
     if(playing&&!exporting&&!estimating){ elapsed+=dt; }
     last=now;
@@ -1325,10 +1349,11 @@
       var T=currentDur(),sp=playSpeed(),played=T/sp;
       if(playing&&!scrubActive) scrub.value=String((((elapsed%played)/played)).toFixed(3));
       if(timeEl) timeEl.textContent=(elapsed%played).toFixed(2)+' / '+played.toFixed(2)+' s';
+      if(!bootHidden){ bootHidden=true; bootDone(); } // first real frame is up — clear the boot screen
     }
     requestAnimationFrame(frame);
   }
-  requestAnimationFrame(frame);
+  // Render loop is started by finishGL() once the shader program is ready.
 
   /* ---------- JSON export / import (separate dialogs) ---------- */
   var dlgImport=document.getElementById('dlgImport'),dlgJson=document.getElementById('dlgJson');
