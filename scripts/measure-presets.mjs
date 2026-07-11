@@ -17,7 +17,7 @@ const args = Object.fromEntries(
     return pairs;
   }, [])
 );
-const REPO = args.repo || 'wranngle/orb_forge';
+const REPO = args.repo || 'wranngle/ORBFORGE';
 const TAG = args.tag || 'v1.0.0';
 const OUT = path.resolve(ROOT, args.out || '.artifacts/measure-presets/table');
 

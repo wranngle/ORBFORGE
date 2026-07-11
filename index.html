@@ -2,34 +2,34 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Orb Forge — create a distinctive AI agent avatar | Wranngle</title>
+<title>ORBFORGE — create a distinctive AI agent avatar | Wranngle</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="Create a distinctive AI agent avatar with Orb Forge. Shape a burning comet-ring orb with live WebGL controls and export it as an animated WebP or GIF — free, in-browser, no login.">
+<meta name="description" content="Create a distinctive AI agent avatar with ORBFORGE. Shape a burning comet-ring orb with live WebGL controls and export it as an animated WebP or GIF — free, in-browser, no login.">
 <meta name="theme-color" content="#ff5f00">
 <meta name="color-scheme" content="dark">
-<meta property="og:title" content="Orb Forge — create a distinctive AI agent avatar | Wranngle">
-<meta property="og:description" content="Create a distinctive AI agent avatar with Orb Forge. Shape a burning comet-ring orb with live WebGL controls and export it as an animated WebP or GIF — free, in-browser, no login.">
+<meta property="og:title" content="ORBFORGE — create a distinctive AI agent avatar | Wranngle">
+<meta property="og:description" content="Create a distinctive AI agent avatar with ORBFORGE. Shape a burning comet-ring orb with live WebGL controls and export it as an animated WebP or GIF — free, in-browser, no login.">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://orb-forge.wranngle.com/">
-<meta property="og:image" content="https://orb-forge.wranngle.com/og.png">
+<meta property="og:url" content="https://orbforge.wranngle.com/">
+<meta property="og:image" content="https://orbforge.wranngle.com/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Orb Forge — a burning comet-ring orb rendered in WebGL">
+<meta property="og:image:alt" content="ORBFORGE — a burning comet-ring orb rendered in WebGL">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:image" content="https://orb-forge.wranngle.com/og.png">
-<link rel="canonical" href="https://orb-forge.wranngle.com/">
+<meta name="twitter:image" content="https://orbforge.wranngle.com/og.png">
+<link rel="canonical" href="https://orbforge.wranngle.com/">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "WebApplication",
-  "name": "Orb Forge",
+  "name": "ORBFORGE",
   "alternateName": "Wranngle Agent Avatar Maker",
-  "url": "https://orb-forge.wranngle.com/",
-  "description": "Create a distinctive AI agent avatar with Orb Forge. Shape a burning comet-ring orb with live WebGL controls and export it as an animated WebP or GIF — free, in-browser, no login.",
+  "url": "https://orbforge.wranngle.com/",
+  "description": "Create a distinctive AI agent avatar with ORBFORGE. Shape a burning comet-ring orb with live WebGL controls and export it as an animated WebP or GIF — free, in-browser, no login.",
   "applicationCategory": "DesignApplication",
   "operatingSystem": "Any",
   "browserRequirements": "Requires WebGL",
-  "image": "https://orb-forge.wranngle.com/og.png",
+  "image": "https://orbforge.wranngle.com/og.png",
   "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
   "creator": {
     "@type": "Organization",
@@ -88,7 +88,7 @@ body{
   min-height:100vh;font-size:13px;line-height:1.5;
   -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
   text-wrap:pretty;
-  padding-bottom:44px; /* room for the collapsed event log */
+  padding-bottom:78px; /* collapsed log shows a 2-line peek */
   transition:padding-bottom var(--duration-normal) var(--ease-out);
 }
 body.term-open{padding-bottom:176px}
@@ -106,14 +106,14 @@ button,select,input,textarea{font-family:inherit;color:inherit}
 .app{
   position:relative;z-index:1;
   max-width:1480px;margin:0 auto;
-  padding:14px 18px 24px;
-  display:flex;flex-direction:column;gap:12px;
+  padding:8px 16px 16px;
+  display:flex;flex-direction:column;gap:8px;
 }
 
 /* ---------- Topbar ---------- */
 .topbar{
-  display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
-  padding:8px 12px 8px 10px;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  padding:5px 12px 5px 9px;
   border:1px solid var(--line);
   border-radius:var(--radius-lasso);
   background:linear-gradient(180deg,rgba(255,95,0,.05),rgba(255,255,255,0) 60%),var(--panel);
@@ -122,14 +122,14 @@ button,select,input,textarea{font-family:inherit;color:inherit}
 }
 .brand{display:flex;align-items:center;gap:11px;min-width:0}
 .brand-glyph{
-  width:38px;height:38px;flex:0 0 38px;border-radius:50%;
+  width:32px;height:32px;flex:0 0 32px;border-radius:50%;
   background:#1a0808 url("/orb.webp") center/cover no-repeat;
   box-shadow:0 0 0 1px rgba(255,158,51,.5), 0 0 18px rgba(255,95,0,.45);
   position:relative;animation:brandPulse 3.4s ease-in-out infinite;
 }
 @keyframes brandPulse{0%,100%{box-shadow:0 0 0 1px rgba(255,158,51,.5),0 0 18px rgba(255,95,0,.45)}50%{box-shadow:0 0 0 1px rgba(255,158,51,.7),0 0 28px rgba(255,95,0,.65)}}
 .brand-title{
-  font-family:var(--font-display);font-weight:800;letter-spacing:.015em;font-size:19px;line-height:1.05;
+  font-family:var(--font-display);font-weight:800;letter-spacing:.015em;font-size:17px;line-height:1.02;
   background:linear-gradient(94deg,#ffe9d2 0%,var(--sunset-300) 32%,var(--sunset-500) 60%,var(--violet-400) 100%);
   background-size:180% 100%;
   -webkit-background-clip:text;background-clip:text;color:transparent;
@@ -169,17 +169,35 @@ button,select,input,textarea{font-family:inherit;color:inherit}
 /* Native option popups otherwise render near-white text on a light system background — force dark. */
 select option,select optgroup{background-color:#16151f;color:var(--text)}
 
-.star-widget{
-  display:inline-flex;align-items:center;gap:6px;
-  padding:6px 11px;border:1px solid var(--line);border-radius:999px;
-  color:var(--text-dim);text-decoration:none;
-  font-family:var(--font-mono);font-size:10.5px;font-weight:600;letter-spacing:.04em;
+/* Split star pill (GitHub mark | ★ count), after PinchGrab's g-pill. */
+.star-pill{
+  display:inline-flex;align-items:stretch;height:30px;
+  border:1px solid var(--line);border-radius:var(--radius-md);overflow:hidden;
+  text-decoration:none;font-family:var(--font-mono);font-size:11px;font-weight:700;
   transition:all var(--duration-fast) var(--ease-out);
 }
-.star-widget:hover{border-color:var(--sunset-500);color:var(--sunset-200);background:rgba(255,95,0,.06);transform:translateY(-1px)}
-.star-widget svg{width:12px;height:12px;color:var(--sunset-300)}
-.star-widget .cnt{color:var(--sunset-300);font-weight:700}
-.star-widget .cnt:empty{display:none}
+.star-pill:hover{border-color:var(--sunset-500);transform:translateY(-1px)}
+.star-pill:focus-visible{outline:none;border-color:var(--sunset-500);box-shadow:0 0 0 3px var(--color-action-glow)}
+.star-pill .star-repo{
+  display:inline-flex;align-items:center;padding:0 8px;
+  background:rgba(255,255,255,.03);color:var(--text-dim);border-right:1px solid var(--line);
+}
+.star-pill:hover .star-repo{color:var(--text)}
+.star-pill .star-side{
+  display:inline-flex;align-items:center;gap:5px;padding:0 10px;
+  background:linear-gradient(180deg,rgba(255,95,0,.10),rgba(255,95,0,.04));
+  color:var(--sunset-200);
+}
+.star-pill .star-repo svg{width:14px;height:14px}
+.star-pill .star-side svg{width:12px;height:12px;color:var(--sunset-300)}
+.star-pill .star-count{color:var(--sunset-200);min-width:8px}
+/* Dirty (unsaved) indicator — the disk button glows warning-yellow. */
+#btnSavePreset.is-dirty{
+  border-color:var(--sunset-300);color:#0a0910;
+  background:linear-gradient(180deg,var(--sunset-200),var(--sunset-300));
+  box-shadow:0 0 0 1px var(--sunset-300),0 0 12px rgba(255,158,51,.4);
+}
+#btnSavePreset.is-dirty:hover{background:linear-gradient(180deg,var(--sunset-100),var(--sunset-200))}
 
 /* ============================================================
    Buttons
@@ -233,7 +251,7 @@ select option,select optgroup{background-color:#16151f;color:var(--text)}
    align cleanly instead of ragged masonry. */
 #crtControls{
   display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:12px;align-items:stretch;
+  gap:9px;align-items:stretch;
 }
 @media (max-width:780px){#crtControls{grid-template-columns:1fr}}
 
@@ -252,20 +270,20 @@ select option,select optgroup{background-color:#16151f;color:var(--text)}
 .group--wide .row + .row{border-top:none}
 .group-head{
   display:flex;align-items:center;gap:9px;
-  padding:8px 12px;
+  padding:6px 12px;
   background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,0));
   border-bottom:1px solid var(--line);
 }
 .group-head .title{
-  font-family:var(--font-display);font-weight:700;letter-spacing:-.01em;font-size:13.5px;color:var(--text);
+  font-family:var(--font-display);font-weight:700;letter-spacing:-.01em;font-size:13px;color:var(--text);
 }
-.group-body{padding:3px 12px 8px}
+.group-body{padding:2px 12px 6px}
 
 /* parameter row */
 .row{
   display:grid;grid-template-columns:20px minmax(80px,1.05fr) minmax(90px,1.6fr) auto;
   align-items:center;gap:8px;
-  padding:5px 0;
+  padding:3.5px 0;
 }
 .row + .row{border-top:1px dashed rgba(255,255,255,.03)}
 .row .ico{
@@ -391,7 +409,7 @@ input[type=range]:focus-visible::-moz-range-thumb{
 /* ============================================================
    Stage column
    ============================================================ */
-.stage-col{position:sticky;top:14px;display:flex;flex-direction:column;gap:10px}
+.stage-col{position:sticky;top:8px;display:flex;flex-direction:column;gap:8px}
 
 /* Video-player transport: overlaid along the bottom of the preview, calm
    until the pointer is over the stage (always visible on touch). */
@@ -411,6 +429,12 @@ input[type=range]:focus-visible::-moz-range-thumb{
   font-family:var(--font-mono);font-size:10px;color:var(--text-dim);
   min-width:88px;text-align:right;white-space:nowrap;letter-spacing:.02em;
 }
+.transport-speed{
+  flex:0 0 auto;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);
+  border-radius:var(--radius-sm);color:var(--text);font-family:var(--font-mono);font-size:10px;
+  padding:2px 4px;cursor:pointer;
+}
+.transport-speed:focus-visible{outline:none;border-color:var(--sunset-500);box-shadow:0 0 0 2px var(--color-action-glow)}
 
 .stage-frame{
   position:relative;border-radius:var(--radius-lasso);padding:1px;
@@ -557,6 +581,47 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
    Toast (undo delete, etc.)
    ============================================================ */
 /* ============================================================
+   Import dropzone + Preset Manager rows
+   ============================================================ */
+.dropzone{
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  padding:20px 14px;text-align:center;cursor:pointer;
+  border:1.5px dashed var(--line-strong);border-radius:var(--radius-md);
+  color:var(--text-dim);font-size:12px;
+  transition:all var(--duration-fast) var(--ease-out);
+}
+.dropzone:hover,.dropzone.drag{border-color:var(--sunset-500);color:var(--sunset-200);background:rgba(255,95,0,.05)}
+.dropzone svg{width:26px;height:26px;color:var(--sunset-300)}
+.dropzone b{color:var(--text)}
+.or-line{display:flex;align-items:center;gap:10px;margin:12px 0 8px;color:var(--text-faint);font-size:10.5px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em}
+.or-line::before,.or-line::after{content:'';flex:1;height:1px;background:var(--line)}
+.mgr-list{display:flex;flex-direction:column;gap:5px;max-height:46vh;overflow-y:auto;scrollbar-width:thin}
+.mgr-group{font-family:var(--font-mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--text-faint);margin:8px 2px 2px}
+.mgr-group:first-child{margin-top:0}
+.mgr-row{
+  display:flex;align-items:center;gap:8px;padding:6px 8px;
+  border:1px solid var(--line);border-radius:var(--radius-sm);background:rgba(255,255,255,.015);
+}
+.mgr-row.is-active{border-color:var(--sunset-500);background:rgba(255,95,0,.06)}
+.mgr-row input[type=checkbox]{
+  appearance:none;-webkit-appearance:none;flex:0 0 15px;width:15px;height:15px;border-radius:3px;
+  border:1px solid var(--line-strong);background:rgba(255,255,255,.02);cursor:pointer;position:relative;
+}
+.mgr-row input[type=checkbox]:checked{background:var(--violet-500);border-color:var(--violet-500)}
+.mgr-row input[type=checkbox]:checked::after{content:'';position:absolute;left:4px;top:1px;width:5px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+.mgr-row input[type=checkbox]:disabled{opacity:.35;cursor:not-allowed}
+.mgr-name{flex:1;min-width:0;text-align:left;background:none;border:0;color:var(--text);cursor:pointer;
+  font-family:var(--font-mono);font-size:11.5px;padding:2px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mgr-name:hover{color:var(--sunset-200)}
+.mgr-name.editing{background:#0c0b13;border:1px solid var(--sunset-500);border-radius:3px;padding:2px 6px;cursor:text}
+.mgr-row .mgr-act{width:24px;height:24px;padding:0;flex:0 0 24px;border:1px solid var(--line);border-radius:4px;
+  background:rgba(255,255,255,.02);color:var(--text-dim);cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.mgr-row .mgr-act:hover{border-color:var(--sunset-500);color:var(--sunset-200)}
+.mgr-row .mgr-act.danger:hover{border-color:var(--text-danger);color:var(--text-danger)}
+.mgr-row .mgr-act svg{width:13px;height:13px}
+.mgr-row .mgr-act[hidden]{display:none}
+
+/* ============================================================
    Overlay layer chips
    ============================================================ */
 .overlay-bar{
@@ -649,7 +714,9 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
 }
 .term-body::-webkit-scrollbar{width:7px}
 .term-body::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:4px}
-.term.is-collapsed .term-body{display:none}
+/* Collapsed: a 2-line peek of the most recent events (not fully hidden), so
+   the log stays glanceable without expanding it. */
+.term.is-collapsed .term-body{height:32px;overflow:hidden;opacity:.62;padding-top:2px;padding-bottom:4px;-webkit-mask-image:linear-gradient(180deg,transparent,#000 40%)}
 .term.is-collapsed .term-chev{transform:rotate(180deg)}
 .term-chev{transition:transform var(--duration-fast) var(--ease-out)}
 
@@ -683,8 +750,8 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
     <div class="brand">
       <div class="brand-glyph" aria-hidden="true"></div>
       <div>
-        <div class="brand-title">ORB&hairsp;FORGE</div>
-        <div class="brand-sub">Agent avatar synthesizer · <a class="brand-home" href="https://wranngle.com" title="Wranngle Systems — AI call coverage, automation, and websites">wranngle.com</a></div>
+        <div class="brand-title">ORBFORGE</div>
+        <div class="brand-sub">AI Agent Avatar Synthesizer · <a class="brand-home" href="https://wranngle.com" title="Wranngle Systems — AI call coverage, automation, and websites">wranngle.com</a></div>
       </div>
     </div>
     <div class="topbar-actions">
@@ -694,18 +761,12 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
       </button>
       <div class="preset-ctl">
         <label class="sr-only" for="crtPreset">Preset</label>
-        <select id="crtPreset" title="Load a preset — built-ins plus any you save"></select>
-        <button class="ic-btn" id="btnSavePreset" type="button" title="Save the current look as a preset" aria-label="Save preset">
+        <select id="crtPreset" title="Load a preset — built-ins plus any you save. The first row shows the current seed."></select>
+        <button class="ic-btn" id="btnSavePreset" type="button" title="Save the current orb as a preset (named by its seed)" aria-label="Save current orb as a preset">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
         </button>
-        <button class="ic-btn" id="btnDeletePreset" type="button" title="Delete this preset (undoable)" aria-label="Delete preset" hidden>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-        </button>
-        <button class="ic-btn" id="btnOverlay" type="button" title="Overlay a preset — stack up to 3 layers additively above the current orb" aria-label="Overlay a preset">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 9 5-9 5-9-5z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/></svg>
-        </button>
-        <button class="ic-btn" id="btnSeed" type="button" title="Enter a seed (reproduces an exact roll) or paste a config JSON" aria-label="Seed or import">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-7"/><path d="M5 8c4 0 7 3 7 7-4 0-7-3-7-7z"/><path d="M19 4c-4 0-7 3-7 7 4 0 7-3 7-7z"/></svg>
+        <button class="ic-btn" id="btnManager" type="button" title="Preset manager — apply, overlay, rename, delete" aria-label="Preset manager">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
         </button>
       </div>
       <button class="ic-btn" id="crtResetBtn" type="button" title="Reset every parameter to its default value" aria-label="Reset to defaults">
@@ -719,11 +780,11 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14l5-5-5-5"/><path d="M20 9H9a5 5 0 0 0 0 10h4"/></svg>
       </button>
       <span class="topbar-divider"></span>
-      <a class="star-widget" id="ghStar" href="https://github.com/wranngle/orb_forge" target="_blank" rel="noopener" title="Orb Forge is free and open source — a star helps other people find it">
-        <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 2l2.9 6.26L21.5 9.27l-4.75 4.37L18.18 20 12 16.56 5.82 20l1.43-6.36L2.5 9.27l6.6-1.01z"/></svg>
-        Star<span class="cnt" id="ghStarCount"></span>
+      <a class="star-pill" id="ghStar" href="https://github.com/wranngle/ORBFORGE" target="_blank" rel="noopener" title="Star ORBFORGE on GitHub — it is how other people find it">
+        <span class="star-repo"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 2C6.5 2 2 6.6 2 12.3c0 4.5 2.9 8.3 6.8 9.7.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.4-3.4-1.4-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.6 2.4 1.1 3 .8.1-.6.3-1.1.6-1.4-2.2-.3-4.6-1.1-4.6-5 0-1.1.4-2 1-2.7-.1-.3-.4-1.3.1-2.7 0 0 .8-.3 2.7 1a9.3 9.3 0 0 1 5 0c1.9-1.3 2.7-1 2.7-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.6 1 2.7 0 3.9-2.3 4.7-4.6 5 .4.3.7.9.7 1.9v2.8c0 .3.2.6.7.5A10.05 10.05 0 0 0 22 12.3C22 6.6 17.5 2 12 2z"/></svg></span>
+        <span class="star-side"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M12 2l2.9 6.26L21.5 9.27l-4.75 4.37L18.18 20 12 16.56 5.82 20l1.43-6.36L2.5 9.27l6.6-1.01z"/></svg><span class="star-count" id="ghStarCount">★</span></span>
       </a>
-      <button class="ic-btn" id="btnHelp" type="button" title="What is Orb Forge?" aria-label="Help">
+      <button class="ic-btn" id="btnHelp" type="button" title="What is ORBFORGE?" aria-label="Help">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.2 9a2.8 2.8 0 0 1 5.6.3c0 1.8-2.8 2.4-2.8 3.9"/><circle cx="12" cy="17" r=".5" fill="currentColor"/></svg>
       </button>
     </div>
@@ -741,7 +802,7 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
         <div class="stage">
           <canvas id="crtCanvas"></canvas>
           <div class="crt-fallback" id="crtFallback" style="display:none">
-            <img class="crt-fallback-orb" src="orb.webp" alt="Sample animated orb exported from Orb Forge" width="220" height="220" loading="lazy" decoding="async">
+            <img class="crt-fallback-orb" src="orb.webp" alt="Sample animated orb exported from ORBFORGE" width="220" height="220" loading="lazy" decoding="async">
             <p>WebGL is unavailable in this browser, so the live preview cannot render. This orb is a real export — the controls shape one just like it.</p>
           </div>
         </div>
@@ -752,6 +813,15 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
           <label class="sr-only" for="crtScrub">Scrub through the loop</label>
           <input type="range" id="crtScrub" min="0" max="1" step="0.001" value="0" title="Scrub through the loop — drag to any point in time">
           <span class="transport-time" id="crtTime">0.00 / 0.00 s</span>
+          <label class="sr-only" for="crtSpeed">Playback speed</label>
+          <select id="crtSpeed" class="transport-speed" title="Playback speed — also the Playback speed parameter; it bakes into the export">
+            <option value="0.25">0.25×</option>
+            <option value="0.5">0.5×</option>
+            <option value="1" selected>1×</option>
+            <option value="1.5">1.5×</option>
+            <option value="2">2×</option>
+            <option value="3">3×</option>
+          </select>
           <button class="ic-btn" id="btnFull" type="button" title="Fullscreen preview (F)" aria-label="Fullscreen preview">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
           </button>
@@ -759,17 +829,17 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
       </div>
 
       <div class="actions">
-        <button class="btn btn--primary" id="crtWebpBtn" type="button" title="Export the animation as WebP (recommended) or GIF">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m6 11 6 6 6-6"/><path d="M5 21h14"/></svg>
-          Export Animation
+        <button class="btn btn--primary" id="crtWebpBtn" type="button" title="Download the animation as WebP (recommended) or GIF — the seed and full recipe are baked into the file">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+          Download
         </button>
-        <button class="btn btn--ghost" id="btnImportJson" type="button" title="Paste a saved JSON config and apply it">
+        <button class="btn btn--ghost" id="btnImportJson" type="button" title="Import a config — drop a .json / .webp / .gif, or paste JSON or a seed">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 8l5-5 5 5"/><path d="M12 3v12"/></svg>
-          Import JSON
+          Import
         </button>
-        <button class="btn btn--ghost" id="btnExportJson" type="button" title="Copy or download the current parameters as JSON">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/></svg>
-          Export JSON
+        <button class="btn btn--ghost" id="btnExportJson" type="button" title="Copy or download the current config as JSON">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"/><path d="M7 9l5-5 5 5"/><path d="M12 4v12"/></svg>
+          Export
         </button>
       </div>
     </aside>
@@ -785,15 +855,14 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
        ============================================================ -->
   <footer class="footer">
     <div class="foot-row">
-      <span><b>Orb Forge</b> — a free, in-browser avatar forge for AI agents. No login, no account; nothing you make ever leaves your browser.</span>
+      <span><b>ORBFORGE</b> gives your agent a face. Free, in your browser, nothing leaves the tab.</span>
       <nav class="foot-links" aria-label="Footer">
-        <a href="https://github.com/wranngle/orb_forge" target="_blank" rel="noopener">GitHub</a>
-        <a href="https://github.com/wranngle/orb_forge" target="_blank" rel="noopener">★ Star the repo</a>
+        <a href="https://github.com/wranngle/ORBFORGE" target="_blank" rel="noopener">★ Star on GitHub</a>
         <a href="https://wranngle.com" title="Wranngle Systems — AI call coverage, automation, and websites">wranngle.com</a>
         <span>MIT © Wranngle Systems</span>
       </nav>
     </div>
-    <p class="foot-beg">Forged something good? A GitHub star is the whole tip jar — it’s how other people find this.</p>
+    <p class="foot-beg">One star is the whole tip jar — it’s how the next person finds this.</p>
   </footer>
 </div>
 
@@ -833,9 +902,9 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
           <option value="60" selected title="60 fps — silky, biggest file">60 fps</option>
         </select>
       </div>
-      <div class="field" title="WebP encoder quality. Max is near-lossless; High is usually indistinguishable at roughly half the size. GIF ignores this — its size is driven by resolution and frame rate.">
-        <label for="crtQual">Quality</label>
-        <select id="crtQual">
+      <div class="field" title="WebP compression quality. Max is near-lossless and largest; each step down compresses harder — softer glow edges, smaller file. High is usually indistinguishable from Max at about half the size. GIF ignores this (its size is driven by resolution and frame rate).">
+        <label for="crtQual" title="WebP compression quality — Max is near-lossless and largest; lower settings compress harder for a smaller file. GIF ignores it.">Quality</label>
+        <select id="crtQual" title="WebP compression quality — Max is near-lossless and largest; lower settings compress harder for a smaller file. GIF ignores it.">
           <option value="1" selected title="Near-lossless — biggest file">Max</option>
           <option value="0.8" title="Usually indistinguishable from Max at ~half the size">High</option>
           <option value="0.6" title="Light softness on glow edges">Medium</option>
@@ -853,7 +922,7 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
         </select>
       </div>
     </div>
-    <label class="check" title="Solves a loop length where rotation, pulse, and comet motion all return to their start — the animation repeats without a visible jump."><input type="checkbox" id="crtAuto" checked>Seamless loop (auto duration)</label>
+    <label class="check" title="Solves a loop length where rotation, pulse, and tracer motion all return to their start — the animation repeats without a visible jump. Turn off to set the duration by hand."><input type="checkbox" id="crtAuto" checked>Seamless loop</label>
     <div class="dur-row">
       <label for="crtDur" title="Loop length in seconds. Turn off Seamless loop to set it by hand.">Duration</label>
       <input type="range" id="crtDur" min="1.5" max="9" step="0.05" value="3" disabled title="Loop length in seconds">
@@ -881,7 +950,7 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
         </a>
       </div>
     </div>
-    <p class="hint" id="crtExportHint">The estimate updates live. Setting a target size hands resolution, frame rate, and quality to the auto-tuner. WebP needs Chrome, Edge, or recent Firefox; GIF plays everywhere.</p>
+    <p class="hint" id="crtExportHint">WebP needs Chrome, Edge, or recent Firefox; GIF plays everywhere. The seed and full recipe are baked into every downloaded file.</p>
   </div>
 </dialog>
 
@@ -889,19 +958,29 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
      Import JSON dialog
      ============================================================ -->
 <dialog id="dlgImport" aria-labelledby="dlgImportTitle">
-  <div class="dlg-head" id="dlgImportTitle">Import JSON
+  <div class="dlg-head" id="dlgImportTitle">Import
     <button class="ic-btn dlg-x" type="button" data-close title="Close" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
   </div>
   <div class="dlg-body">
-    <textarea id="crtJson" spellcheck="false" aria-label="Paste a JSON parameter config here" placeholder='Paste an Orb Forge config, e.g. {"parameters":{"radius":0.4, …}}'></textarea>
+    <label class="dropzone" id="importDrop" for="importFile" title="Upload or drop a .json, .webp, or .gif — ORBFORGE exports carry their full recipe in the file, and even plain files are parsed from their filename seed">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 8l5-5 5 5"/><path d="M12 3v12"/></svg>
+      <span><b>Drop a file or browse</b> — .json, .webp, or .gif</span>
+      <input type="file" id="importFile" accept=".json,.webp,.gif,application/json,image/webp,image/gif" hidden>
+    </label>
+    <div class="or-line"><span>or paste a config / seed</span></div>
+    <textarea id="crtJson" spellcheck="false" aria-label="Paste a JSON parameter config or a seed" placeholder='Paste an ORBFORGE config JSON, or just a seed like "plasma-4f2a"'></textarea>
     <div class="bar">
-      <button class="btn btn--primary" id="crtApplyBtn" type="button" title="Parse the JSON above and apply matching parameters">
+      <button class="btn btn--primary" id="crtApplyBtn" type="button" title="Parse the box above (JSON or seed) and apply it">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-        Apply parameters
+        Apply
+      </button>
+      <button class="btn" id="crtSchemaBtn" type="button" title="Download the JSON Schema for an ORBFORGE config" style="margin-left:auto">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="m9 15 2 2 4-4"/></svg>
+        Schema
       </button>
     </div>
     <div class="status" id="crtStatus" aria-live="polite"></div>
-    <p class="hint">Unknown keys are ignored; values are clamped to each parameter’s range. Exports from any Orb Forge version work.</p>
+    <p class="hint">A seed rebuilds the exact orb it was rolled from. Dropped WebP/GIF exports carry their full recipe in the file; a plain file falls back to its filename seed. Unknown keys are ignored and values clamp to range.</p>
   </div>
 </dialog>
 
@@ -909,7 +988,7 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
      Export JSON dialog
      ============================================================ -->
 <dialog id="dlgJson" aria-labelledby="dlgJsonTitle">
-  <div class="dlg-head" id="dlgJsonTitle">Export JSON
+  <div class="dlg-head" id="dlgJsonTitle">Export
     <button class="ic-btn dlg-x" type="button" data-close title="Close" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
   </div>
   <div class="dlg-body">
@@ -919,65 +998,31 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
         Copy
       </button>
-      <button class="btn" id="crtDownloadBtn" type="button" title="Download as orb-forge.json">
+      <button class="btn" id="crtDownloadBtn" type="button" title="Download the config as JSON (filename carries the seed and timestamp)">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
         Download .json
       </button>
     </div>
-    <p class="hint">This snapshot recreates the exact orb — parameters, background, and preset name. Import it here or keep it in your repo.</p>
+    <p class="hint">This snapshot recreates the exact orb — seed, parameters, background, and overlays. Import it here or keep it in your repo.</p>
   </div>
 </dialog>
 
 <!-- ============================================================
-     Save preset dialog
+     Preset Manager modal
      ============================================================ -->
-<dialog id="dlgSave" aria-labelledby="dlgSaveTitle">
-  <div class="dlg-head" id="dlgSaveTitle">Save preset
+<dialog id="dlgManager" aria-labelledby="dlgManagerTitle">
+  <div class="dlg-head" id="dlgManagerTitle">Preset manager
     <button class="ic-btn dlg-x" type="button" data-close title="Close" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
   </div>
   <div class="dlg-body">
-    <input type="text" class="wide" id="presetName" maxlength="40" placeholder="Preset name" aria-label="Preset name">
-    <div class="bar">
-      <button class="btn btn--primary" id="presetSaveBtn" type="button">
+    <div class="bar" style="margin:0 0 10px">
+      <button class="btn btn--primary" id="mgrSaveCurrent" type="button" title="Save the current orb as a new preset">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-        Save preset
+        Save current orb
       </button>
     </div>
-    <div class="status" id="presetSaveStatus" aria-live="polite"></div>
-    <p class="hint">Presets live in this browser’s localStorage — private to you, no account involved.</p>
-  </div>
-</dialog>
-
-<!-- ============================================================
-     Overlay preset dialog
-     ============================================================ -->
-<dialog id="dlgOverlay" aria-labelledby="dlgOverlayTitle">
-  <div class="dlg-head" id="dlgOverlayTitle">Overlay a preset
-    <button class="ic-btn dlg-x" type="button" data-close title="Close" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
-  </div>
-  <div class="dlg-body">
-    <div class="bar" id="overlayList" style="margin-top:0"></div>
-    <p class="hint">Overlays render additively above your current orb — stack up to 3 layers. They follow the base loop length, export with the animation, and can be removed from the chips under the top bar.</p>
-  </div>
-</dialog>
-
-<!-- ============================================================
-     Seed / quick import dialog
-     ============================================================ -->
-<dialog id="dlgSeed" aria-labelledby="dlgSeedTitle">
-  <div class="dlg-head" id="dlgSeedTitle">Seed or import
-    <button class="ic-btn dlg-x" type="button" data-close title="Close" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
-  </div>
-  <div class="dlg-body">
-    <input type="text" class="wide" id="seedInput" maxlength="4096" spellcheck="false" placeholder="Seed (e.g. plasma-4f2a) — or paste a full config JSON" aria-label="Seed or config JSON">
-    <div class="bar">
-      <button class="btn btn--primary" id="seedApplyBtn" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-        Apply
-      </button>
-    </div>
-    <div class="status" id="seedStatus" aria-live="polite"></div>
-    <p class="hint">Every Randomize roll has a seed — the same seed always rebuilds the same orb. Find it in the export JSON, or share just the seed.</p>
+    <div class="mgr-list" id="mgrList" aria-label="Presets"></div>
+    <p class="hint">Click a name to load it. The checkbox <b>overlays</b> that preset above your base orb (up to 3, additive). Your presets can be renamed and deleted; built-ins are read-only.</p>
   </div>
 </dialog>
 
@@ -985,35 +1030,31 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
      Help dialog
      ============================================================ -->
 <dialog id="dlgHelp" aria-labelledby="dlgHelpTitle">
-  <div class="dlg-head" id="dlgHelpTitle">What is Orb Forge?
+  <div class="dlg-head" id="dlgHelpTitle">What is ORBFORGE?
     <button class="ic-btn dlg-x" type="button" data-close title="Close" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
   </div>
   <div class="dlg-body">
-    <p>Orb Forge forges a <b>signature animated orb</b> — a living avatar for your AI agent, bot, app, or profile. Rings, glassy spheres, plasma cores, woven auras — shaped by you, exported as a looping animation.</p>
-    <h3>Forge</h3>
+    <p>Your agent should have a face. ORBFORGE forges a <b>living animated orb</b> — a burning ring, a glassy globe, a plasma core, a wireframe sculpture — and hands you a looping file you can drop into a bot, an app, or a profile in seconds.</p>
+    <h3>Shape it</h3>
     <ul>
-      <li>Drag any slider — or click its value and type. Every change renders live, and the region you’re editing glows pink in the preview.</li>
-      <li><b>Randomize</b> rolls a new orb from curated ranges. Every roll has a <b>seed</b> — re-enter it (seedling icon) to rebuild the exact same orb.</li>
-      <li><b>Overlay</b> (layers icon) stacks up to 3 presets additively for composite orbs.</li>
-      <li>Save looks you like as presets; they stay in this browser.</li>
-      <li>Scrub the timeline at the preview’s foot, or go fullscreen to inspect it.</li>
+      <li>Drag a slider or type an exact value. It renders live, and a pink marquee traces the exact part of the orb you’re changing.</li>
+      <li><b>Randomize</b> rolls a whole new species — ring, plasma, glass, mesh, sculpture, aura. Each roll gets a <b>seed</b> that rebuilds it exactly; the seed rides along in every save, export, and downloaded file.</li>
+      <li>The <b>preset manager</b> loads, renames, and stacks presets — tick up to three to layer them into one composite orb.</li>
     </ul>
-    <h3>Export</h3>
+    <h3>Take it with you</h3>
     <ul>
-      <li><b>WebP</b> (recommended): small, smooth, true soft transparency.</li>
-      <li><b>GIF</b>: plays everywhere, bigger files, hard-edged transparency.</li>
-      <li>Set a target size and the auto-tuner takes over resolution, fps, and quality.</li>
-      <li>JSON export captures the exact recipe — seed, overlays, and all. Re-import it any time.</li>
+      <li><b>WebP</b> — small, smooth, true soft transparency. <b>GIF</b> — plays anywhere.</li>
+      <li>Every downloaded file carries its full recipe inside it. Drop it back into <b>Import</b> to keep editing — no separate config to keep track of.</li>
+      <li>Set a target size and the exporter fits it for you.</li>
     </ul>
-    <h3>Private by construction</h3>
-    <p>Everything renders and encodes in your browser. No login, no upload, no tracking — the page can’t even phone home; its security policy forbids it.</p>
-    <h3>Shortcuts</h3>
-    <p><kbd>Space</kbd> play / pause · <kbd>F</kbd> fullscreen · <kbd>⌘/Ctrl+Z</kbd> undo · <kbd>⌘/Ctrl+⇧Z</kbd> redo</p>
-    <p>Free &amp; open source — <a href="https://github.com/wranngle/orb_forge" target="_blank" rel="noopener">star it on GitHub</a> if it earned it. Built by <a href="https://wranngle.com" target="_blank" rel="noopener">Wranngle Systems</a>.</p>
+    <h3>It never leaves your browser</h3>
+    <p>No login, no upload, no tracking. Everything renders and encodes on your machine — the page’s own security policy forbids it from phoning home.</p>
+    <p class="help-shortcuts"><kbd>Space</kbd> play/pause · <kbd>F</kbd> fullscreen · <kbd>⌘/Ctrl+Z</kbd> undo · <kbd>⌘/Ctrl+⇧Z</kbd> redo</p>
+    <p>Free and open source. If it earned it, <a href="https://github.com/wranngle/ORBFORGE" target="_blank" rel="noopener">leave a star</a> — built by <a href="https://wranngle.com" target="_blank" rel="noopener">Wranngle Systems</a>.</p>
   </div>
 </dialog>
 
-<!-- Toast (undo delete preset) -->
+<!-- Toast (undo delete preset). popover=manual → top layer, above modals. -->
 <div class="toast" id="toast" role="status" aria-live="polite" hidden>
   <span id="toastMsg"></span>
   <button type="button" id="toastAction">Undo</button>

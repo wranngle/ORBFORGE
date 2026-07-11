@@ -171,15 +171,15 @@ async function main() {
         logLines: document.querySelectorAll('#logConsole .tline').length,
         glyphUsesOrb: /orb\.webp/.test(glyphBg),
         optionBg: opt ? getComputedStyle(opt).backgroundColor : null,
-        footerStarCta: !!document.querySelector('.footer a[href*="github.com/wranngle/orb_forge"]'),
+        footerStarCta: !!document.querySelector('.footer a[href*="github.com/wranngle/ORBFORGE"]'),
         helpDialog: !!document.getElementById('dlgHelp'),
       };
     });
 
     check('WebGL context initializes', lit >= 0);
     check('orb renders non-empty pixels', lit > 1000, `${lit} lit px`);
-    check('all 34 parameter sliders present', load.sliders === 34, `${load.sliders}`);
-    check('preset dropdown lists built-ins', load.presetOptions >= 8, `${load.presetOptions} options`);
+    check('all 40 parameter sliders present', load.sliders === 40, `${load.sliders}`);
+    check('preset dropdown lists built-ins + seed row', load.presetOptions >= 13, `${load.presetOptions} options`);
     // F006: presets moved to a dropdown in the topbar.
     check('preset dropdown lives in the topbar', load.presetInTopbar);
     check('transparent background is the default', load.transparentDefault);

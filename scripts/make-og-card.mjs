@@ -89,13 +89,13 @@ try {
     <div class="orbwrap"><div class="orbstage"><img src="${orbDataUrl}"><span class="ct"></span><span class="cb"></span></div></div>
     <div class="left">
       <div>
-        <div class="title">ORB<span class="accent">.</span>FORGE</div>
+        <div class="title">ORBFORGE</div>
         <div style="height:14px"></div>
         <div class="sub">Agent Avatar Synthesizer</div>
       </div>
       <div class="desc">Forge a burning comet-ring orb in WebGL — <b>25 live parameters</b>, seamless-loop solving, and transparent <b>animated WebP</b> export.</div>
     </div>
-    <div class="domain"><span>&gt;_</span>&nbsp; orb-forge.wranngle.com</div>
+    <div class="domain"><span>&gt;_</span>&nbsp; orbforge.wranngle.com</div>
   </body></html>`, { waitUntil: 'networkidle0' });
   await compose.evaluate(() => document.fonts.ready);
   await new Promise(r => setTimeout(r, 300));

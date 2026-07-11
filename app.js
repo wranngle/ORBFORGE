@@ -11,7 +11,8 @@
       {key:'pulseAmount',label:'Pulse amount',    min:0,   max:0.45,step:0.01, def:0.07,rmin:0,rmax:0.15, desc:'How much the radius pulses (0 = none)'},
       {key:'wobble',     label:'Wobble / warp',   min:0,   max:0.25,step:0.01, def:0.04, rmin:0,rmax:0.12, desc:'How much the ring distorts into non-circular shapes'},
       {key:'timeJitter', label:'Time jitter',     min:0,   max:0.8, step:0.01, def:0,   rmin:0,rmax:0.3, desc:'Warps time back and forth within the loop — motion surges forward and briefly reverses. 0 = steady time.'},
-      {key:'jitterRate', label:'Jitter rate',     min:0.2, max:10,  step:0.1,  def:2,   rmin:0.5,rmax:6, desc:'How fast the time warp oscillates (only matters when Time jitter > 0)'}
+      {key:'jitterRate', label:'Jitter rate',     min:0.2, max:10,  step:0.1,  def:2,   rmin:0.5,rmax:6, desc:'How fast the time warp oscillates (only matters when Time jitter > 0)'},
+      {key:'playSpeed',  label:'Playback speed',  min:0.1, max:3,   step:0.05, def:1,   rmin:0.6,rmax:1.6, desc:'Time multiplier for the whole animation — 0.5 = half speed, 2 = double. Bakes into the export and can be overridden live from the scrubber.'}
     ]},
     {name:'Surface & texture', items:[
       {key:'burn',       label:'Burn intensity',  min:0,   max:4,   step:0.05, def:1,   rmin:0.2,rmax:2.0, desc:'Strength of the noise-driven surface texture on the ring'},
@@ -45,6 +46,11 @@
     // Last so it tiles beside the Background group in the 2-column grid.
     {name:'Core & volume', items:[
       {key:'fill',      label:'Core fill',        min:0,   max:1,   step:0.05, def:0,   rmin:0,rmax:1, desc:'Fills the ring with a volumetric, lit 3D body textured by the Texture style — 0 = hollow ring, 1 = solid orb'},
+      {key:'surface3d', label:'3D surface',       min:0,   max:1,   step:0.05, def:0,   rmin:0,rmax:1, desc:'Maps the texture onto a true sphere via longitude/latitude, so dot, line, and ring matrices wrap a 3D globe instead of a flat disc'},
+      {key:'spin3d',    label:'Globe spin',       min:-4,  max:4,   step:0.05, def:0.6, rmin:-1.5,rmax:1.5, desc:'Longitude rotation of the 3D surface — the globe turns on its axis (loop-safe). Negative reverses.'},
+      {key:'tiltLat',   label:'Axis tilt',        min:-1.2,max:1.2, step:0.05, def:0.35,rmin:-0.7,rmax:0.7, desc:'Tilts the 3D globe’s pole toward or away from you'},
+      {key:'matrix',    label:'Surface matrix',   min:0,   max:3,   step:1,    def:0,   desc:'3D surface lattice: 0 off · 1 dot grid · 2 wire mesh · 3 stacked rings — vector matrices that ride the globe’s longitude/latitude'},
+      {key:'matrixDensity',label:'Matrix density',min:4,   max:48,  step:1,    def:18,  rmin:8,rmax:34, desc:'Cells around the 3D surface matrix (only matters when Surface matrix is on)'},
       {key:'filaments', label:'Filaments',        min:0,   max:2,   step:0.05, def:0,   rmin:0,rmax:1.4, desc:'Radial plasma strands arcing from a hot nucleus to the shell — the plasma-ball look'},
       {key:'coreHue',   label:'Core hue',         min:0,   max:360, step:1,    def:200, hue:true, desc:'Hue of the core body and filaments (0–360°)'}
     ]}
@@ -109,6 +115,8 @@
   }
 
   var params={}; CONFIG.forEach(function(c){ params[c.key]=c.def; });
+  // Declared early: buildPresetOptions() (run at init) reads SEED.current.
+  var SEED={current:null};
 
   /* ---------- per-param glyphs ---------- */
   var ICONS={
@@ -120,6 +128,12 @@
     wobble:      '<path d="M3 12c2-4 4-4 6 0s4 4 6 0 4-4 6 0"/><path d="M3 18c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/>',
     timeJitter:  '<path d="M16 4h5v5"/><path d="M4 20L21 4"/><path d="M21 15v5h-5"/><path d="m14 14 7 6"/><path d="M4 4l6 6"/>',
     jitterRate:  '<circle cx="12" cy="13" r="8"/><path d="M12 13l3.5-3.5"/><path d="M12 5V3M5 6l1.5 1.5M19 6l-1.5 1.5"/>',
+    playSpeed:   '<path d="M6 4l12 8-12 8z" fill="currentColor" stroke="none" opacity=".55"/><path d="M13 8l5 4-5 4"/>',
+    surface3d:   '<circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="9" ry="3.5"/><path d="M12 3a9 4 0 0 0 0 18"/>',
+    spin3d:      '<circle cx="12" cy="12" r="8"/><ellipse cx="12" cy="12" rx="8" ry="3"/><path d="M4 12a8 3 0 0 0 16 0"/><path d="M18 6l2-1M20 8l-1-2"/>',
+    tiltLat:     '<circle cx="12" cy="12" r="8"/><path d="M5 9l14-3M6 15l12 3" opacity=".8"/>',
+    matrix:      '<circle cx="7" cy="7" r="1.3" fill="currentColor" stroke="none"/><circle cx="12" cy="6" r="1.3" fill="currentColor" stroke="none"/><circle cx="17" cy="7" r="1.3" fill="currentColor" stroke="none"/><circle cx="6" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.3" fill="currentColor" stroke="none"/><circle cx="7" cy="17" r="1.3" fill="currentColor" stroke="none"/><circle cx="12" cy="18" r="1.3" fill="currentColor" stroke="none"/><circle cx="17" cy="17" r="1.3" fill="currentColor" stroke="none"/>',
+    matrixDensity:'<path d="M3 8h18M3 12h18M3 16h18M8 3v18M12 3v18M16 3v18" opacity=".85"/>',
     burn:        '<path d="M12 3c0 4-4 5-4 10a4 4 0 0 0 8 0c0-2-1-3-2-5 0 2-1 3-2 3 0-3 1-5 0-8z"/>',
     noiseScale:  '<circle cx="6" cy="6" r="1.2" fill="currentColor" stroke="none"/><circle cx="12" cy="6" r="1.2" fill="currentColor" stroke="none"/><circle cx="18" cy="6" r="1.2" fill="currentColor" stroke="none"/><circle cx="6" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="6" cy="18" r="1.2" fill="currentColor" stroke="none"/><circle cx="12" cy="18" r="1.2" fill="currentColor" stroke="none"/><circle cx="18" cy="18" r="1.2" fill="currentColor" stroke="none"/>',
     texStyle:    '<rect x="3" y="3" width="8" height="8" rx="2"/><circle cx="17" cy="7" r="4"/><path d="M3 15l4 6 4-6z"/><path d="M14 15h7M14 18h7M14 21h5"/>',
@@ -256,7 +270,7 @@
     dlg.addEventListener('pointerdown',function(e){ downOnBackdrop=(e.target===dlg); });
     dlg.addEventListener('click',function(e){ if(e.target===dlg&&downOnBackdrop){ downOnBackdrop=false; dlg.close(); } });
   }
-  ['dlgExport','dlgImport','dlgJson','dlgSave','dlgHelp','dlgOverlay','dlgSeed'].forEach(function(id){ wireDialog(document.getElementById(id)); });
+  ['dlgExport','dlgImport','dlgJson','dlgHelp','dlgManager'].forEach(function(id){ wireDialog(document.getElementById(id)); });
   function openDialog(dlg){ if(dlg&&!dlg.open){ try{ dlg.showModal(); }catch(e){} } }
 
   /* ---------- Toast (undoable actions) ---------- */
@@ -265,6 +279,11 @@
     document.getElementById('toastMsg').textContent=msg;
     document.getElementById('toastAction').hidden=!undoFn;
     toastUndo=undoFn||null;
+    // Reparent into the topmost open modal so the toast (and its Undo) paints
+    // in that dialog's top layer — otherwise deleting a preset inside the
+    // Preset Manager leaves its undo trapped behind the modal.
+    var host=document.querySelector('dialog[open]')||document.body;
+    if(toastEl.parentNode!==host) host.appendChild(toastEl);
     toastEl.hidden=false;
     clearTimeout(toastTimer);
     toastTimer=setTimeout(function(){ toastEl.hidden=true; toastUndo=null; },6000);
@@ -286,13 +305,13 @@
     function fmtStars(n){ return n>=1000?(n/1000).toFixed(1).replace(/\.0$/,'')+'k':String(n); }
     try{
       var c=JSON.parse(sessionStorage.getItem('orb_forge.stars')||'null');
-      if(c&&Date.now()-c.t<3600000){ el.textContent=' '+fmtStars(c.n); return; }
+      if(c&&Date.now()-c.t<3600000){ el.textContent=fmtStars(c.n); return; }
     }catch(e){}
-    fetch('https://api.github.com/repos/wranngle/orb_forge',{headers:{Accept:'application/vnd.github+json'}})
+    fetch('https://api.github.com/repos/wranngle/ORBFORGE',{headers:{Accept:'application/vnd.github+json'}})
       .then(function(r){ if(!r.ok) throw new Error('http '+r.status); return r.json(); })
       .then(function(d){
         if(d&&typeof d.stargazers_count==='number'){
-          el.textContent=' '+fmtStars(d.stargazers_count);
+          el.textContent=fmtStars(d.stargazers_count);
           try{ sessionStorage.setItem('orb_forge.stars',JSON.stringify({t:Date.now(),n:d.stargazers_count})); }catch(e){}
         }
       })
@@ -355,8 +374,8 @@
       if(document.activeElement!==r.val) r.val.value=fmt(c,v);
       r.input.style.setProperty('--p',pct(c,v)+'%');
     }
-    presetSel.value='';
-    syncPresetUI(); updateAuto(); refreshExport();
+    markDirty();
+    updateAuto(); refreshExport();
     return true;
   }
 
@@ -443,14 +462,14 @@
     radius:1,thickness:1,rotSpeed:1,pulseSpeed:1,pulseAmount:1,wobble:1,
     burn:1,noiseScale:1,flowSpeed:1,hue:1,chroma:1,
     texStyle:1,depth3d:1,lightAngle:1,gloss:1,
-    fill:8,filaments:8,coreHue:8,
+    fill:8,filaments:8,coreHue:8,surface3d:8,spin3d:8,tiltLat:8,matrix:8,matrixDensity:8,
     glow:2,
     tracerCount:3,tracerSpeed:3,cometHead:3,tailLength:3,cometBulge:3,tracerGlow:3,sparkle:3,tracerHue:3,
     vignette:4,
     exposure:5,contrast:5,gamma:5,saturation:5,
-    timeJitter:7,jitterRate:7
+    timeJitter:7,jitterRate:7,playSpeed:5
   };
-  var HL={mode:0,cur:0,target:0,pulse:0};
+  var HL={mode:0,cur:0,target:0,pulse:0,ants:0};
   function hlHover(mode,on){
     if(on){ HL.mode=mode; HL.target=0.72; }
     else if(HL.mode===mode||mode===0){ HL.target=0; }
@@ -535,9 +554,9 @@
         var v=parseFloat(inp.value); params[c.key]=v;
         val.value=fmt(c,v);
         inp.style.setProperty('--p',pct(c,v)+'%');
-        presetSel.value='';
+        markDirty();
         hlKick(HL_MODE[c.key]||1);
-        syncPresetUI(); updateAuto(); refreshExport();
+        updateAuto(); refreshExport();
       });
       // commit history + log on release
       inp.addEventListener('change',function(){
@@ -612,7 +631,7 @@
       ctl.appendChild(col); ctl.appendChild(hex);
       row.appendChild(ctl); row.appendChild(document.createElement('span'));
       col.addEventListener('input',function(){
-        BG[key]=col.value; hex.value=col.value; hlKick(6); refreshExport();
+        BG[key]=col.value; hex.value=col.value; hlKick(6); markDirty(); refreshExport();
       });
       col.addEventListener('change',function(){
         eclog('info','background.color',{which:key,value:BG[key]},'Background '+key+' = '+BG[key]);
@@ -622,7 +641,7 @@
         var v=hex.value.trim();
         if(v&&v[0]!=='#') v='#'+v;
         if(hexOk(v)){
-          BG[key]=v.toLowerCase(); col.value=BG[key]; hex.value=BG[key]; hlKick(6); refreshExport();
+          BG[key]=v.toLowerCase(); col.value=BG[key]; hex.value=BG[key]; hlKick(6); markDirty(); refreshExport();
           eclog('info','background.color',{which:key,value:BG[key]},'Background '+key+' = '+BG[key]);
           commitHistory();
         } else hex.value=BG[key];
@@ -641,7 +660,7 @@
 
     chk.addEventListener('change',function(){
       BG.transparent=chk.checked;
-      syncBgUI(); hlKick(6); refreshExport();
+      syncBgUI(); hlKick(6); markDirty(); refreshExport();
       eclog('info','background.transparent',{transparent:BG.transparent},'Transparent background '+(BG.transparent?'on':'off'));
       commitHistory();
     });
@@ -662,14 +681,35 @@
       if(document.activeElement!==r.val) r.val.value=fmt(c,params[c.key]);
       r.input.style.setProperty('--p',pct(c,params[c.key])+'%');
     });
+    syncSpeedSel();
   }
+  // The transport speed selector mirrors the Playback speed parameter (one
+  // source of truth); it snaps to the nearest listed option.
+  var speedSel=document.getElementById('crtSpeed');
+  function syncSpeedSel(){
+    if(!speedSel) return;
+    var v=params.playSpeed||1, best=speedSel.options[0];
+    for(var i=0;i<speedSel.options.length;i++){ if(Math.abs(parseFloat(speedSel.options[i].value)-v)<Math.abs(parseFloat(best.value)-v)) best=speedSel.options[i]; }
+    speedSel.value=best.value;
+  }
+  if(speedSel) speedSel.addEventListener('change',function(){
+    var c=refs.playSpeed&&refs.playSpeed.cfg; if(!c) return;
+    setParam(c,parseFloat(speedSel.value));
+    eclog('info','playback.speed',{speed:params.playSpeed},'Playback speed '+params.playSpeed+'×');
+    commitHistory();
+  });
 
   /* ---------- PRESET DROPDOWN ---------- */
   var presetSel=document.getElementById('crtPreset');
-  var btnDeletePreset=document.getElementById('btnDeletePreset');
+  var btnSave=document.getElementById('btnSavePreset');
+  // activePreset = the saved preset the current state exactly represents, or
+  // null. null ⇒ unsaved ("dirty"): the disk button glows and the dropdown's
+  // first row shows the seed name with an asterisk.
+  var activePreset=null;
   function buildPresetOptions(){
     presetSel.innerHTML='';
-    var o0=document.createElement('option'); o0.value=''; o0.textContent='— custom —';
+    var neutral=(SEED.current||'custom')+(activePreset===null?' *':'');
+    var o0=document.createElement('option'); o0.value=''; o0.textContent=neutral;
     presetSel.appendChild(o0);
     var ogB=document.createElement('optgroup'); ogB.label='Built-in';
     Object.keys(BUILTIN_PRESETS).forEach(function(name){
@@ -684,86 +724,79 @@
       });
       presetSel.appendChild(ogU);
     }
+    presetSel.value=activePreset||'';
   }
   function syncPresetUI(){
-    var cur=presetSel.value||'';
-    btnDeletePreset.hidden=!(cur&&USER_PRESETS[cur]);
+    btnSave.classList.toggle('is-dirty',activePreset===null);
+    btnSave.title=activePreset===null
+      ? 'Unsaved — click to save this orb as a preset ("'+(SEED.current||'custom')+'")'
+      : 'Saved as "'+activePreset+'"';
   }
-  presetSel.addEventListener('change',function(){
-    var p=PRESETS[presetSel.value]; if(!p){ syncPresetUI(); return; }
-    // Missing keys fall back to defaults so presets saved before a parameter
-    // existed still land on a deterministic look.
+  // Mark the current state as diverged from any saved preset.
+  function markDirty(){
+    if(activePreset!==null){ activePreset=null; buildPresetOptions(); syncPresetUI(); }
+    else { presetSel.value=''; }
+  }
+  function applyPresetData(p){
     CONFIG.forEach(function(c){ params[c.key]=(p[c.key]!==undefined)?p[c.key]:c.def; });
     if(p._bg){
       BG.transparent=!!p._bg.transparent;
       if(hexOk(p._bg.top)) BG.top=p._bg.top;
       if(hexOk(p._bg.bottom)) BG.bottom=p._bg.bottom;
     }
-    syncUI(); syncBgUI(); refreshExport(); updateAuto(); syncPresetUI();
+  }
+  function applyPreset(name){
+    var p=PRESETS[name]; if(!p) return;
+    // Missing keys fall back to defaults so presets saved before a parameter
+    // existed still land on a deterministic look.
+    applyPresetData(p);
+    activePreset=name; SEED.current=(p._seed||null);
+    syncUI(); syncBgUI(); buildPresetOptions(); syncPresetUI(); refreshExport(); updateAuto();
     if(!hist_lock){
-      eclog('info','preset.apply',{name:presetSel.value},'Applied preset "'+presetSel.value+'"');
+      eclog('info','preset.apply',{name:name},'Applied preset "'+name+'"');
       commitHistory();
     }
+  }
+  presetSel.addEventListener('change',function(){
+    if(!presetSel.value){ activePreset=null; buildPresetOptions(); syncPresetUI(); return; }
+    applyPreset(presetSel.value);
   });
   buildPresetOptions(); syncPresetUI();
 
-  /* ---------- Save preset (dialog) ---------- */
-  var dlgSave=document.getElementById('dlgSave');
-  var presetNameInp=document.getElementById('presetName');
-  var presetSaveStatus=document.getElementById('presetSaveStatus');
-  document.getElementById('btnSavePreset').addEventListener('click',function(){
-    presetNameInp.value=(presetSel.value&&USER_PRESETS[presetSel.value])?presetSel.value:(SEED.current||'');
-    presetSaveStatus.textContent=''; presetSaveStatus.className='status';
-    openDialog(dlgSave);
-    presetNameInp.focus();
-  });
-  presetNameInp.addEventListener('keydown',function(e){
-    if(e.key==='Enter'){ e.preventDefault(); document.getElementById('presetSaveBtn').click(); }
-  });
-  document.getElementById('presetSaveBtn').addEventListener('click',function(){
-    var name=presetNameInp.value.trim();
-    if(!name){ presetSaveStatus.textContent='Give it a name first.'; presetSaveStatus.className='status err'; return; }
-    if(Object.prototype.hasOwnProperty.call(BUILTIN_PRESETS,name)){
-      presetSaveStatus.textContent='"'+name+'" is a built-in preset name — pick another.'; presetSaveStatus.className='status err'; return;
-    }
-    if(USER_PRESETS[name]&&!confirm('Replace existing preset "'+name+'"?')) return;
+  /* ---------- Save (silent — no dialog; named by seed) ---------- */
+  function uniquePresetName(base){
+    base=(base||'custom').slice(0,40);
+    if(!PRESETS[base]&&!Object.prototype.hasOwnProperty.call(BUILTIN_PRESETS,base)) return base;
+    for(var i=2;i<999;i++){ var n=base+'-'+i; if(!PRESETS[n]) return n; }
+    return base+'-'+Date.now();
+  }
+  function snapshotPreset(){
     var snapP={};
     CONFIG.forEach(function(c){ snapP[c.key]=c.step>=1?Math.round(params[c.key]):parseFloat(Number(params[c.key]).toFixed(Math.max(decimals(c.step),3))); });
     snapP._bg={transparent:BG.transparent,top:BG.top,bottom:BG.bottom};
+    snapP._seed=SEED.current||null;
+    return snapP;
+  }
+  function savePreset(name){
+    // Overwrite in place when saving over your own preset; otherwise mint a new
+    // seed-named entry. Built-ins are never overwritten.
+    if(Object.prototype.hasOwnProperty.call(BUILTIN_PRESETS,name)) name=uniquePresetName(name);
+    var snapP=snapshotPreset();
     USER_PRESETS[name]=snapP; PRESETS[name]=snapP;
     var persisted=persistUserPresets();
-    buildPresetOptions();
-    presetSel.value=name;
-    syncPresetUI(); refreshExport();
+    activePreset=name;
+    buildPresetOptions(); syncPresetUI(); refreshExport();
     eclog('info','preset.save',{name:name,persisted:persisted},'Saved preset "'+name+'"');
-    if(persisted){ dlgSave.close(); }
-    else{
-      presetSaveStatus.textContent='Saved for this session, but the browser is blocking storage (private mode or quota) — it will vanish on reload.';
-      presetSaveStatus.className='status err';
-    }
+    showToast(persisted?('Saved preset “'+name+'”'):('Saved “'+name+'” for this session — browser storage is blocked, it will vanish on reload'));
+    return name;
+  }
+  btnSave.addEventListener('click',function(){
+    // Save over the active user preset if there is one and it's dirty; else new.
+    var name=(activePreset&&USER_PRESETS[activePreset])?activePreset:uniquePresetName(SEED.current||'custom');
+    savePreset(name);
   });
 
-  /* ---------- Delete preset (undoable — no confirm dialog) ---------- */
-  btnDeletePreset.addEventListener('click',function(){
-    var name=presetSel.value;
-    if(!name||!USER_PRESETS[name]) return;
-    var saved=USER_PRESETS[name];
-    delete USER_PRESETS[name]; delete PRESETS[name];
-    persistUserPresets();
-    buildPresetOptions();
-    presetSel.value=''; syncPresetUI();
-    eclog('info','preset.delete',{name:name},'Deleted preset "'+name+'"');
-    showToast('Deleted preset “'+name+'”',function(){
-      USER_PRESETS[name]=saved; PRESETS[name]=saved;
-      persistUserPresets();
-      buildPresetOptions();
-      presetSel.value=name; syncPresetUI();
-      eclog('info','preset.restore',{name:name},'Restored preset "'+name+'"');
-    });
-  });
-
-  /* ---------- Overlay presets (stack up to 3 layers) ---------- */
-  var dlgOverlay=document.getElementById('dlgOverlay');
+  /* ---------- Overlay layers (rendered additively) ---------- */
   function renderOverlayBar(){
     var bar=document.getElementById('overlayBar'); if(!bar) return;
     bar.innerHTML='';
@@ -774,81 +807,120 @@
       var nm=document.createElement('span'); nm.textContent=o.name||('layer '+(i+1));
       var x=document.createElement('button'); x.type='button'; x.className='ov-x'; x.textContent='×';
       x.title='Remove this overlay'; x.setAttribute('aria-label','Remove overlay '+(o.name||('layer '+(i+1))));
-      x.addEventListener('click',function(){
-        OVERLAYS.splice(i,1);
-        renderOverlayBar(); refreshExport();
-        eclog('info','overlay.remove',{name:o.name,count:OVERLAYS.length},'Removed overlay "'+(o.name||'layer')+'"');
-        commitHistory();
-      });
+      x.addEventListener('click',function(){ removeOverlay(i); });
       chip.appendChild(nm); chip.appendChild(x);
       bar.appendChild(chip);
     });
   }
+  function overlayIndexByName(name){
+    for(var i=0;i<OVERLAYS.length;i++) if(OVERLAYS[i].name===name) return i;
+    return -1;
+  }
   function pushOverlay(name,src){
-    if(OVERLAYS.length>=3){ showToast('Overlays are capped at 3 layers'); return; }
+    // Idempotent by name: toggling an already-stacked preset is a no-op add.
+    if(overlayIndexByName(name)>=0) return true;
+    if(OVERLAYS.length>=3){ showToast('Overlays are capped at 3 layers'); return false; }
     var q={};
     CONFIG.forEach(function(c){ q[c.key]=(src[c.key]!==undefined)?src[c.key]:c.def; });
     OVERLAYS.push({name:name,params:q});
     renderOverlayBar(); refreshExport();
     eclog('info','overlay.add',{name:name,count:OVERLAYS.length},'Overlaid "'+name+'"');
     commitHistory();
-    if(dlgOverlay) dlgOverlay.close();
+    return true;
   }
-  function addOverlay(name){
-    var p=PRESETS[name]; if(!p) return;
-    pushOverlay(name,p);
+  function removeOverlay(i){
+    if(i<0||i>=OVERLAYS.length) return;
+    var o=OVERLAYS[i];
+    OVERLAYS.splice(i,1);
+    renderOverlayBar(); refreshExport();
+    eclog('info','overlay.remove',{name:o.name,count:OVERLAYS.length},'Removed overlay "'+(o.name||'layer')+'"');
+    commitHistory();
   }
-  (function(){
-    var btn=document.getElementById('btnOverlay');
-    if(!btn||!dlgOverlay) return;
-    btn.addEventListener('click',function(){
-      var list=document.getElementById('overlayList');
-      list.innerHTML='';
-      // The current orb itself can become a layer — snapshot, then keep editing
-      // the base underneath it.
-      var cur=document.createElement('button'); cur.type='button'; cur.className='btn';
-      cur.textContent='⧉ current orb';
-      cur.title='Freeze the current orb as a layer and keep sculpting beneath it';
-      cur.addEventListener('click',function(){ pushOverlay(SEED.current||'current',params); });
-      list.appendChild(cur);
-      Object.keys(PRESETS).forEach(function(name){
-        var b=document.createElement('button'); b.type='button'; b.className='btn btn--ghost';
-        b.textContent=name;
-        b.title='Stack "'+name+'" above the current orb';
-        b.addEventListener('click',function(){ addOverlay(name); });
-        list.appendChild(b);
-      });
-      openDialog(dlgOverlay);
-      eclog('info','ui.dialog.open',{dialog:'overlay'},'Overlay dialog opened');
-    });
-  })();
 
-  /* ---------- Seed entry / quick import ---------- */
-  (function(){
-    var btn=document.getElementById('btnSeed'),dlg=document.getElementById('dlgSeed');
-    if(!btn||!dlg) return;
-    var inp=document.getElementById('seedInput'),st=document.getElementById('seedStatus');
-    function setSt(msg,kind){ st.textContent=msg; st.className='status'+(kind?' '+kind:''); }
-    btn.addEventListener('click',function(){
-      inp.value='';
-      setSt(SEED.current?('Current seed: '+SEED.current):'','');
-      openDialog(dlg);
-      inp.focus();
-      eclog('info','ui.dialog.open',{dialog:'seed'},'Seed dialog opened');
-    });
-    function apply(){
-      var v=inp.value.trim();
-      if(!v){ setSt('Enter a seed, or paste a full config JSON.','err'); return; }
-      if(v[0]==='{'){
-        if(importJSONText(v,setSt)) dlg.close();
-        return;
+  /* ---------- Preset Manager modal ---------- */
+  var dlgManager=document.getElementById('dlgManager');
+  function renderManager(){
+    var list=document.getElementById('mgrList'); if(!list) return;
+    list.innerHTML='';
+    function group(label){ var g=document.createElement('div'); g.className='mgr-group'; g.textContent=label; list.appendChild(g); }
+    function row(name,editable){
+      var r=document.createElement('div'); r.className='mgr-row'+(activePreset===name?' is-active':'');
+      var cb=document.createElement('input'); cb.type='checkbox';
+      cb.checked=overlayIndexByName(name)>=0;
+      cb.disabled=(!cb.checked&&OVERLAYS.length>=3);
+      cb.title='Overlay this preset above the base orb';
+      cb.setAttribute('aria-label','Overlay '+name);
+      cb.addEventListener('change',function(){
+        if(cb.checked){ if(!pushOverlay(name,PRESETS[name])) cb.checked=false; }
+        else { var idx=overlayIndexByName(name); if(idx>=0) removeOverlay(idx); }
+        renderManager();
+      });
+      var nm=document.createElement('button'); nm.type='button'; nm.className='mgr-name'; nm.textContent=name;
+      nm.title='Load "'+name+'" as the base orb';
+      nm.addEventListener('click',function(){ if(nm.classList.contains('editing')) return; applyPreset(name); renderManager(); });
+      r.appendChild(cb); r.appendChild(nm);
+      if(editable){
+        var ren=document.createElement('button'); ren.type='button'; ren.className='mgr-act'; ren.title='Rename';
+        ren.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
+        ren.addEventListener('click',function(){ beginRename(nm,name); });
+        var del=document.createElement('button'); del.type='button'; del.className='mgr-act danger'; del.title='Delete (undoable)';
+        del.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>';
+        del.addEventListener('click',function(){ deletePreset(name); renderManager(); });
+        r.appendChild(ren); r.appendChild(del);
       }
-      if(!/^[\w.-]{1,64}$/.test(v)){ setSt('Seeds are short — letters, numbers, dots, dashes.','err'); return; }
-      seededRandomize(v);
-      dlg.close();
+      list.appendChild(r);
     }
-    document.getElementById('seedApplyBtn').addEventListener('click',apply);
-    inp.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); apply(); } });
+    group('Built-in');
+    Object.keys(BUILTIN_PRESETS).forEach(function(n){ row(n,false); });
+    var mine=Object.keys(USER_PRESETS);
+    if(mine.length){ group('Yours'); mine.forEach(function(n){ row(n,true); }); }
+  }
+  function beginRename(nmEl,name){
+    var inp=document.createElement('input'); inp.type='text'; inp.value=name; inp.maxLength=40;
+    inp.className='mgr-name editing';
+    nmEl.replaceWith(inp); inp.focus(); inp.select();
+    function commit(apply){
+      var nv=inp.value.trim();
+      if(apply&&nv&&nv!==name&&!PRESETS[nv]&&!Object.prototype.hasOwnProperty.call(BUILTIN_PRESETS,nv)){
+        USER_PRESETS[nv]=USER_PRESETS[name]; PRESETS[nv]=PRESETS[name];
+        delete USER_PRESETS[name]; delete PRESETS[name];
+        if(activePreset===name) activePreset=nv;
+        var oi=overlayIndexByName(name); if(oi>=0) OVERLAYS[oi].name=nv;
+        persistUserPresets();
+        eclog('info','preset.rename',{from:name,to:nv},'Renamed preset to "'+nv+'"');
+        buildPresetOptions(); syncPresetUI(); renderOverlayBar();
+      }
+      renderManager();
+    }
+    inp.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); commit(true); } else if(e.key==='Escape'){ commit(false); } });
+    inp.addEventListener('blur',function(){ commit(true); });
+  }
+  function deletePreset(name){
+    if(!USER_PRESETS[name]) return;
+    var saved=USER_PRESETS[name];
+    var oi=overlayIndexByName(name); if(oi>=0) removeOverlay(oi);
+    delete USER_PRESETS[name]; delete PRESETS[name];
+    if(activePreset===name){ activePreset=null; }
+    persistUserPresets();
+    buildPresetOptions(); syncPresetUI();
+    eclog('info','preset.delete',{name:name},'Deleted preset "'+name+'"');
+    showToast('Deleted preset “'+name+'”',function(){
+      USER_PRESETS[name]=saved; PRESETS[name]=saved;
+      persistUserPresets();
+      buildPresetOptions(); syncPresetUI(); renderManager();
+      eclog('info','preset.restore',{name:name},'Restored preset "'+name+'"');
+    });
+  }
+  (function(){
+    var btn=document.getElementById('btnManager');
+    if(!btn||!dlgManager) return;
+    btn.addEventListener('click',function(){
+      renderManager(); openDialog(dlgManager);
+      eclog('info','ui.dialog.open',{dialog:'manager'},'Preset manager opened');
+    });
+    document.getElementById('mgrSaveCurrent').addEventListener('click',function(){
+      savePreset(uniquePresetName(SEED.current||'custom')); renderManager();
+    });
   })();
   renderOverlayBar();
 
@@ -872,11 +944,12 @@
   'uniform float u_burn,u_noiseScale,u_flowSpeed,u_glow,u_chroma;',
   'uniform float u_texStyle,u_depth3d,u_lightAngle,u_gloss;',
   'uniform float u_fill,u_filaments,u_coreHue;',
+  'uniform float u_surface3d,u_spin3d,u_tiltLat,u_matrix,u_matrixDensity;',
   'uniform float u_tracerCount,u_tracerSpeed,u_cometHead,u_tailLength,u_cometBulge,u_tracerGlow,u_sparkle;',
   'uniform float u_hue,u_tracerHue,u_saturation,u_exposure,u_contrast,u_gamma,u_vignette,u_alphaMode;',
   'uniform float u_loop,u_phase,u_loopDur;',
   'uniform float u_bgOn;uniform vec3 u_bgA,u_bgB;',
-  'uniform float u_hlMode,u_hlStrength,u_hlPulse;',
+  'uniform float u_hlMode,u_hlStrength,u_hlPulse,u_hlAnts;',
   'const float TAU=6.28318530718;const float PI=3.14159265359;',
   'float hash(vec2 p){p=fract(p*vec2(123.34,456.21));p+=dot(p,p+45.32);return fract(p.x*p.y);}',
   'float noise(vec2 p){vec2 i=floor(p),f=fract(p);vec2 u=f*f*(3.0-2.0*f);',
@@ -1009,16 +1082,43 @@
   ' vec3 coreCol=hsv2rgb(vec3(u_coreHue/360.0,0.8,1.0));',
   ' if(u_fill>0.001){',
   '  float body=1.0-smoothstep(inR*0.82,inR,dist);',
-  '  float ct=texv(pol*0.8+fv*t*0.7,u_texStyle);',
-  '  if(lp>0.5){ float ct2=texv(pol*0.8+fv*(t-Td)*0.7,u_texStyle); ct=mix(ct,ct2,ph); }',
   '  vec2 sxy=uv/max(inR,1e-3);',
   '  float z2=1.0-clamp(dot(sxy,sxy),0.0,1.0);',
-  '  vec3 nS=normalize(vec3(sxy,sqrt(z2)+0.02));',
+  '  float zc=sqrt(max(z2,0.0));',
+  '  vec3 nS=normalize(vec3(sxy,zc+0.02));',
+  // True 3D surface: turn the flat disc point into a point ON a sphere, then
+  // read texture/matrix in longitude/latitude so dots, lines and rings wrap a
+  // rotating globe. spinLon is loop-locked (integer revolutions per cycle).
+  '  vec3 sp=vec3(sxy,zc);',
+  '  float ct;',
+  '  float mtx=0.0;',
+  '  if(u_surface3d>0.001){',
+  '   float ca=cos(u_tiltLat),sa=sin(u_tiltLat);',
+  '   vec3 rp=vec3(sp.x, ca*sp.y - sa*sp.z, sa*sp.y + ca*sp.z);',
+  '   float spinLon; if(lp>0.5){ float sN=floor(u_spin3d*Td/TAU+0.5); spinLon=TAU*sN*phw; } else spinLon=u_spin3d*t;',
+  '   float lon=atan(rp.z,rp.x)+spinLon;',
+  '   float lat=asin(clamp(rp.y,-1.0,1.0));',
+  '   vec2 sph=vec2(lon,lat*2.0)*(u_noiseScale*0.5);',
+  '   float ct3=texv(sph,u_texStyle);',
+  '   ct=mix(texv(pol*0.8+fv*t*0.7,u_texStyle),ct3,u_surface3d);',
+  '   if(u_matrix>0.5){',
+  '    float md=max(u_matrixDensity,3.0);',
+  '    vec2 g=vec2(lon/TAU*md, (lat/PI+0.5)*md);',
+  '    if(u_matrix<1.5){ vec2 f=fract(g)-0.5; mtx=1.0-smoothstep(0.12,0.30,length(f)); }',
+  '    else if(u_matrix<2.5){ vec2 f=abs(fract(g)-0.5); mtx=1.0-smoothstep(0.03,0.12,min(f.x,f.y)); }',
+  '    else { float f=abs(fract(g.y)-0.5); mtx=1.0-smoothstep(0.03,0.13,f); }',
+  '    mtx*=smoothstep(0.0,0.25,zc);',
+  '   }',
+  '  } else {',
+  '   ct=texv(pol*0.8+fv*t*0.7,u_texStyle);',
+  '   if(lp>0.5){ float ct2=texv(pol*0.8+fv*(t-Td)*0.7,u_texStyle); ct=mix(ct,ct2,ph); }',
+  '  }',
   '  float ndlS=max(dot(nS,L),0.0);',
   '  float shS=mix(0.55,0.20+1.35*ndlS,clamp(u_depth3d,0.0,1.5));',
   '  float fres=pow(1.0-clamp(nS.z,0.0,1.0),2.0);',
   '  float specS=pow(ndlS,8.0+14.0*u_gloss)*u_gloss;',
-  '  col+=body*u_fill*(coreCol*(0.22+0.85*ct)*shS+coreCol*fres*0.55+specS*vec3(1.0,0.97,0.9)*0.8);',
+  '  vec3 mtxCol=mix(coreCol,vec3(1.0),0.5);',
+  '  col+=body*u_fill*(coreCol*(0.22+0.85*ct)*shS+coreCol*fres*0.55+specS*vec3(1.0,0.97,0.9)*0.8+mtxCol*mtx*(0.9+0.6*ndlS));',
   ' }',
   ' if(u_filaments>0.001){',
   '  vec2 fq=vec2(cos(ang),sin(ang))*3.5+vec2(0.0,dist*5.0);',
@@ -1042,19 +1142,32 @@
   // Param highlight overlay (live preview only — exports force u_hlStrength=0):
   // a translucent in-fill plus a faint rim on the region the hovered/adjusted
   // parameter controls. Computed from the same fields, so it tracks motion.
+  // Marching-ants selection marquee (live preview only — exports force
+  // u_hlStrength=0). hm is a soft 0..1 mask of the region the parameter
+  // controls; we trace its contour with a crisp, OPAQUE animated dashed
+  // outline (like an image editor's marquee) and dim everything outside it.
   ' if(u_hlMode>0.5&&u_hlStrength>0.004){',
   '  float hm=0.0;',
-  '  if(u_hlMode<1.5) hm=bMax;',
-  '  else if(u_hlMode<2.5) hm=clamp(gG*0.85,0.0,1.0);',
-  '  else if(u_hlMode<3.5) hm=clamp(comet*(bMax+gG),0.0,1.0);',
-  '  else if(u_hlMode<4.5) hm=smoothstep(0.5,1.05,dist);',
-  '  else if(u_hlMode<5.5) hm=0.45;',
-  '  else if(u_hlMode<6.5) hm=clamp(1.0-(bMax+gG)-smoothstep(pr,pr-0.3,dist),0.0,1.0);',
-  '  else if(u_hlMode<7.5) hm=clamp(max(bMax,comet*(bMax+gG)),0.0,1.0);',
-  '  else hm=1.0-smoothstep(inR*0.85,inR,dist);',
-  '  float rim=smoothstep(0.03,0.16,hm)*(1.0-smoothstep(0.3,0.6,hm));',
-  // Hot-pink edit indicator: soft translucent in-fill + a stronger pink rim.
-  '  col+=(vec3(1.0,0.45,0.80)*hm*(0.15+0.10*u_hlPulse)+vec3(1.0,0.22,0.68)*rim*(0.62+0.55*u_hlPulse))*u_hlStrength;',
+  '  if(u_hlMode<1.5) hm=clamp((bMax+gG*0.5),0.0,1.0);',
+  '  else if(u_hlMode<2.5) hm=clamp(gG,0.0,1.0);',
+  '  else if(u_hlMode<3.5) hm=clamp(comet*(bMax+gG)*1.4,0.0,1.0);',
+  '  else if(u_hlMode<4.5) hm=smoothstep(0.55,0.9,dist);',
+  '  else if(u_hlMode<5.5) hm=1.0-smoothstep(0.9,1.1,dist);',
+  '  else if(u_hlMode<6.5) hm=clamp(1.0-(bMax+gG)*1.5,0.0,1.0)*(1.0-smoothstep(0.95,1.15,dist));',
+  '  else if(u_hlMode<7.5) hm=clamp(max(bMax,comet*(bMax+gG))*1.3,0.0,1.0);',
+  '  else hm=1.0-smoothstep(inR*0.9,inR*1.02,dist);',
+  '  float inside=smoothstep(0.35,0.55,hm);',
+  // Contour = a narrow band where the mask crosses ~0.45; dash it by arc angle
+  // plus a marching phase so the ants crawl along the boundary.
+  '  float band=1.0-smoothstep(0.0,0.14,abs(hm-0.45));',
+  '  float ants=step(0.5,fract(ang/TAU*26.0 + u_hlAnts));',
+  '  vec3 antA=vec3(1.0,0.28,0.72), antB=vec3(1.0,0.96,1.0);',
+  '  vec3 antCol=mix(antA,antB,ants);',
+  '  float pop=0.55+0.45*u_hlPulse;',
+  // Dim the unselected area a touch for editor-style contrast, then lay the
+  // opaque marquee over the contour.
+  '  col*=1.0-0.28*u_hlStrength*(1.0-inside);',
+  '  col=mix(col,antCol,clamp(band*pop*u_hlStrength,0.0,0.92));',
   ' }',
   ' float oa=clamp(max(col.r,max(col.g,col.b)),0.0,1.0);',
   ' vec3 oc=col/max(oa,0.0025);',
@@ -1089,7 +1202,7 @@
          alphaMode:gl.getUniformLocation(prog,'u_alphaMode'),loop:gl.getUniformLocation(prog,'u_loop'),
          phase:gl.getUniformLocation(prog,'u_phase'),loopDur:gl.getUniformLocation(prog,'u_loopDur'),
          bgOn:gl.getUniformLocation(prog,'u_bgOn'),bgA:gl.getUniformLocation(prog,'u_bgA'),bgB:gl.getUniformLocation(prog,'u_bgB'),
-         hlMode:gl.getUniformLocation(prog,'u_hlMode'),hlStrength:gl.getUniformLocation(prog,'u_hlStrength'),hlPulse:gl.getUniformLocation(prog,'u_hlPulse')};
+         hlMode:gl.getUniformLocation(prog,'u_hlMode'),hlStrength:gl.getUniformLocation(prog,'u_hlStrength'),hlPulse:gl.getUniformLocation(prog,'u_hlPulse'),hlAnts:gl.getUniformLocation(prog,'u_hlAnts')};
   CONFIG.forEach(function(c){ U[c.key]=gl.getUniformLocation(prog,'u_'+c.key); });
 
   function setBgUniforms(on){
@@ -1147,15 +1260,20 @@
     scrubActive=true; scrubWasPlaying=playing;
     if(playing) setPlayingQuiet(false);
   });
+  // speed = the Playback speed param; the transport selector edits it too.
+  // elapsed is wall-time; animation time = elapsed*speed; the motion loop is
+  // currentDur() animation-seconds, so it plays in currentDur()/speed wall-sec.
+  function playSpeed(){ return params.playSpeed||1; }
   scrub.addEventListener('input',function(){
     if(!scrubActive&&playing) setPlayingQuiet(false); // keyboard scrubbing
-    var T=currentDur();
-    elapsed=parseFloat(scrub.value)*T;
+    // scrub is a fraction of the motion loop; map back through speed.
+    elapsed=parseFloat(scrub.value)*currentDur()/playSpeed();
   });
   function endScrub(){
     if(!scrubActive) return;
     scrubActive=false;
-    eclog('info','playback.scrub',{t:+(elapsed%currentDur()).toFixed(3)},'Scrubbed to '+(elapsed%currentDur()).toFixed(2)+' s');
+    var animT=(elapsed*playSpeed())%currentDur();
+    eclog('info','playback.scrub',{t:+animT.toFixed(3)},'Scrubbed to '+animT.toFixed(2)+' s');
     if(scrubWasPlaying) setPlayingQuiet(true);
   }
   scrub.addEventListener('pointerup',endScrub);
@@ -1178,16 +1296,18 @@
     // highlight envelope: ease toward hover target, decay the adjust pulse
     HL.cur+=(HL.target-HL.cur)*Math.min(1,dt*10);
     HL.pulse*=Math.exp(-dt*5);
+    HL.ants=(HL.ants+dt*0.9)%1; // marching-ants phase advances regardless of playback
     if(!exporting&&!estimating){
       resize();
       gl.uniform2f(U.res,canvas.width,canvas.height);
-      gl.uniform1f(U.time,elapsed);
+      gl.uniform1f(U.time,elapsed*playSpeed());
       gl.uniform1f(U.alphaMode,0.0);
       gl.uniform1f(U.loop,0.0); gl.uniform1f(U.phase,0.0); gl.uniform1f(U.loopDur,1.0);
       setBgUniforms(!BG.transparent);
       gl.uniform1f(U.hlMode,HL.mode);
       gl.uniform1f(U.hlStrength,Math.min(1,HL.cur+HL.pulse*0.7));
       gl.uniform1f(U.hlPulse,HL.pulse);
+      gl.uniform1f(U.hlAnts,HL.ants);
       setPassUniforms(params);
       gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
       // Overlay layers: additive light above the base pass. The highlight and
@@ -1202,9 +1322,9 @@
         }
         gl.disable(gl.BLEND);
       }
-      var T=currentDur();
-      if(playing&&!scrubActive) scrub.value=String(((elapsed%T)/T).toFixed(3));
-      if(timeEl) timeEl.textContent=(elapsed%T).toFixed(2)+' / '+T.toFixed(2)+' s';
+      var T=currentDur(),sp=playSpeed(),played=T/sp;
+      if(playing&&!scrubActive) scrub.value=String((((elapsed%played)/played)).toFixed(3));
+      if(timeEl) timeEl.textContent=(elapsed%played).toFixed(2)+' / '+played.toFixed(2)+' s';
     }
     requestAnimationFrame(frame);
   }
@@ -1222,31 +1342,36 @@
     });
     return p;
   }
-  function buildJSON(){
+  function buildDoc(){
     var doc={
-      effect:'chromatic_burning_comet_ring',
-      version:13,
+      effect:'orbforge_orb',
+      version:14,
       exportedAt:new Date().toISOString(),
       seed:SEED.current,
-      preset:presetSel.value||null,
+      preset:activePreset||null,
       background:{transparent:BG.transparent,top:BG.top,bottom:BG.bottom},
       parameters:roundParams(params)
     };
     if(OVERLAYS.length) doc.overlays=OVERLAYS.map(function(o){ return {name:o.name,parameters:roundParams(o.params)}; });
-    return JSON.stringify(doc,null,2);
+    return doc;
+  }
+  function buildJSON(){ return JSON.stringify(buildDoc(),null,2); }
+  // Filenames + embedded metadata carry the seed and a timestamp so an export
+  // is self-describing and re-importable. Stamped at export time.
+  function stampBase(ext){
+    var seed=(SEED.current||activePreset||'orb').replace(/[^\w.-]/g,'').slice(0,32)||'orb';
+    var ts=new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d+Z$/,'Z');
+    return 'orbforge-'+seed+'-'+ts+'.'+ext;
   }
   function refreshExport(){
     if(dlgJson&&dlgJson.open) jsonOut.value=buildJSON();
     scheduleEstimate();
   }
-  // Shared by the Import dialog and the seed dialog (which accepts pasted
-  // JSON too). Returns true when something was applied.
-  function importJSONText(txt,setSt){
-    txt=String(txt||'').trim();
-    if(!txt){ setSt('Paste a JSON config into the box first.','err'); return false; }
-    var data; try{ data=JSON.parse(txt); }catch(e){ setSt('Invalid JSON — '+e.message,'err'); eclog('error','config.import_error',{reason:e.message},'Invalid JSON'); return false; }
+  // Apply a parsed config DOC (object, not text). Returns applied-count; the
+  // clamp count is stashed on applyDoc._clamped for the caller's message.
+  function applyDoc(data){
     var src=(data&&typeof data.parameters==='object'&&data.parameters)?data.parameters:data;
-    if(!src||typeof src!=='object'){ setSt('No parameters object found.','err'); return false; }
+    if(!src||typeof src!=='object') return 0;
     var applied=0,clamped=0;
     CONFIG.forEach(function(c){
       var v=src[c.key];
@@ -1256,37 +1381,130 @@
         params[c.key]=s; applied++;
       }
     });
-    if(applied===0){ setSt('No matching parameter keys found in that JSON.','err'); return false; }
+    if(applied===0) return 0;
     var bgIn=data&&data.background;
     if(bgIn&&typeof bgIn==='object'){
       if(typeof bgIn.transparent==='boolean') BG.transparent=bgIn.transparent;
       if(hexOk(bgIn.top)) BG.top=bgIn.top.toLowerCase();
       if(hexOk(bgIn.bottom)) BG.bottom=bgIn.bottom.toLowerCase();
     }
-    if(Array.isArray(data.overlays)){ OVERLAYS=sanitizeOverlays(data.overlays); renderOverlayBar(); }
-    if(typeof data.seed==='string'&&data.seed) SEED.current=data.seed.slice(0,64);
-    syncUI(); syncBgUI(); updateAuto();
-    presetSel.value=(data&&data.preset&&PRESETS[data.preset])?data.preset:'';
-    syncPresetUI();
-    setSt('Applied '+applied+' of '+CONFIG.length+' parameters'+(clamped?' ('+clamped+' clamped to range)':'')+(OVERLAYS.length?' + '+OVERLAYS.length+' overlay'+(OVERLAYS.length===1?'':'s'):'')+'.','ok');
-    eclog('info','config.import',{applied:applied,clamped:clamped,overlays:OVERLAYS.length,preset:presetSel.value||null},'Imported '+applied+' parameters');
+    OVERLAYS=Array.isArray(data.overlays)?sanitizeOverlays(data.overlays):[];
+    renderOverlayBar();
+    SEED.current=(typeof data.seed==='string'&&data.seed)?data.seed.slice(0,64):null;
+    activePreset=(data&&data.preset&&PRESETS[data.preset])?data.preset:null;
+    syncUI(); syncBgUI(); updateAuto(); buildPresetOptions(); syncPresetUI();
+    applyDoc._clamped=clamped;
     commitHistory();
     refreshExport();
+    return applied;
+  }
+  // Import box accepts JSON or a bare seed word.
+  function importJSONText(txt,setSt){
+    txt=String(txt||'').trim();
+    if(!txt){ setSt('Paste a config JSON or a seed, or drop a file.','err'); return false; }
+    if(txt[0]!=='{'){
+      if(!/^[\w.-]{1,64}$/.test(txt)){ setSt('That is neither JSON nor a valid seed (letters, numbers, dots, dashes).','err'); return false; }
+      seededRandomize(txt);
+      setSt('Rebuilt orb from seed "'+txt+'".','ok');
+      return true;
+    }
+    var data; try{ data=JSON.parse(txt); }catch(e){ setSt('Invalid JSON — '+e.message,'err'); eclog('error','config.import_error',{reason:e.message},'Invalid JSON'); return false; }
+    var applied=applyDoc(data);
+    if(!applied){ setSt('No matching parameter keys found.','err'); return false; }
+    var cl=applyDoc._clamped||0;
+    setSt('Applied '+applied+' of '+CONFIG.length+' parameters'+(cl?' ('+cl+' clamped)':'')+(OVERLAYS.length?' + '+OVERLAYS.length+' overlay'+(OVERLAYS.length===1?'':'s'):'')+'.','ok');
+    eclog('info','config.import',{applied:applied,clamped:cl,overlays:OVERLAYS.length,preset:activePreset},'Imported '+applied+' parameters');
     return true;
   }
-  function importJSON(){ importJSONText(jsonArea.value,setStatus); }
+  // Recover an embedded config from an exported file: the "ORBFORGE:{...}"
+  // marker we bake into WebP (XMP) and GIF (comment). Falls back to filename.
+  function bytesToStr(b,s,e){ var o=''; for(var i=s;i<e;i++) o+=String.fromCharCode(b[i]); return o; }
+  function scanEmbeddedJSON(bytes){
+    var hay=bytesToStr(bytes,0,bytes.length);
+    var m=hay.indexOf('ORBFORGE:'); if(m<0) return null;
+    var start=hay.indexOf('{',m); if(start<0) return null;
+    var depth=0;
+    for(var i=start;i<hay.length;i++){
+      var ch=hay[i];
+      if(ch==='{') depth++;
+      else if(ch==='}'){ depth--; if(depth===0){ try{ return JSON.parse(hay.slice(start,i+1)); }catch(e){ return null; } } }
+    }
+    return null;
+  }
+  function seedFromName(name){
+    var m=/orbforge-([\w.]+?)-\d{8}T/i.exec(name)||/([\w.]{2,32})\.(webp|gif|json)$/i.exec(name);
+    return m?m[1]:null;
+  }
+  function parseImportFile(file,cb){
+    var name=file.name||'', ext=((/\.(\w+)$/.exec(name)||[])[1]||'').toLowerCase();
+    var reader=new FileReader();
+    reader.onload=function(){
+      try{
+        if(ext==='json'||/^\s*\{/.test(String(reader.result))){ cb({doc:JSON.parse(reader.result),source:'json'}); return; }
+        var doc=scanEmbeddedJSON(new Uint8Array(reader.result));
+        if(doc){ cb({doc:doc,source:ext.toUpperCase()+' metadata'}); return; }
+        var seed=seedFromName(name);
+        if(seed){ cb({seed:seed,source:'filename seed'}); return; }
+        cb({error:'No ORBFORGE recipe or seed found in that '+(ext||'file').toUpperCase()+' — it was not made here, or its metadata was stripped.'});
+      }catch(e){ cb({error:'Could not read the file — '+(e&&e.message||e)}); }
+    };
+    reader.onerror=function(){ cb({error:'File read failed.'}); };
+    if(ext==='json') reader.readAsText(file); else reader.readAsArrayBuffer(file);
+  }
+  function importFileResult(res,setSt){
+    if(res.error){ setSt(res.error,'err'); return; }
+    if(res.doc){
+      var applied=applyDoc(res.doc);
+      if(!applied){ setSt('The file had no recognizable parameters.','err'); return; }
+      var cl=applyDoc._clamped||0;
+      setSt('Imported from '+res.source+' — '+applied+' parameters'+(cl?' ('+cl+' clamped)':'')+'.','ok');
+      eclog('info','config.import_file',{source:res.source,applied:applied},'Imported from '+res.source);
+    } else if(res.seed){
+      seededRandomize(res.seed);
+      setSt('Rebuilt from '+res.source+' "'+res.seed+'".','ok');
+    }
+  }
+  document.getElementById('crtApplyBtn').addEventListener('click',function(){ importJSONText(jsonArea.value,setStatus); });
   document.getElementById('btnImportJson').addEventListener('click',function(){
     setStatus('','');
     openDialog(dlgImport);
-    jsonArea.focus();
     eclog('info','ui.dialog.open',{dialog:'import'},'Import dialog opened');
+  });
+  (function(){
+    var drop=document.getElementById('importDrop'),fileInp=document.getElementById('importFile');
+    if(fileInp) fileInp.addEventListener('change',function(){ if(fileInp.files&&fileInp.files[0]) parseImportFile(fileInp.files[0],function(r){ importFileResult(r,setStatus); }); fileInp.value=''; });
+    if(drop){
+      ['dragover','dragenter'].forEach(function(ev){ drop.addEventListener(ev,function(e){ e.preventDefault(); drop.classList.add('drag'); }); });
+      ['dragleave','dragend'].forEach(function(ev){ drop.addEventListener(ev,function(){ drop.classList.remove('drag'); }); });
+      drop.addEventListener('drop',function(e){ e.preventDefault(); drop.classList.remove('drag'); var f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0]; if(f) parseImportFile(f,function(r){ importFileResult(r,setStatus); }); });
+    }
+  })();
+  document.getElementById('crtSchemaBtn').addEventListener('click',function(){
+    var props={};
+    CONFIG.forEach(function(c){ props[c.key]={type:'number',minimum:c.min,maximum:c.max,default:c.def,description:c.desc}; });
+    var schema={
+      '$schema':'https://json-schema.org/draft/2020-12/schema',
+      title:'ORBFORGE orb config', type:'object',
+      properties:{
+        effect:{type:'string'}, version:{type:'integer'}, seed:{type:['string','null']}, preset:{type:['string','null']},
+        background:{type:'object',properties:{transparent:{type:'boolean'},top:{type:'string',pattern:'^#[0-9a-fA-F]{6}$'},bottom:{type:'string',pattern:'^#[0-9a-fA-F]{6}$'}}},
+        parameters:{type:'object',required:CONFIG.map(function(c){return c.key;}),properties:props},
+        overlays:{type:'array',maxItems:3,items:{type:'object',properties:{name:{type:'string'},parameters:{type:'object',properties:props}}}}
+      },
+      required:['parameters']
+    };
+    var blob=new Blob([JSON.stringify(schema,null,2)],{type:'application/json'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a'); a.href=url; a.download='orbforge.schema.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); },1000);
+    eclog('info','config.schema',{},'Downloaded orbforge.schema.json');
   });
   document.getElementById('btnExportJson').addEventListener('click',function(){
     jsonOut.value=buildJSON();
     openDialog(dlgJson);
-    eclog('info','ui.dialog.open',{dialog:'export_json'},'Export JSON dialog opened');
+    eclog('info','ui.dialog.open',{dialog:'export_json'},'Export dialog opened');
   });
-  document.getElementById('crtApplyBtn').addEventListener('click',importJSON);
   document.getElementById('crtCopyBtn').addEventListener('click',function(){
     var btn=this;
     function done(){
@@ -1301,12 +1519,13 @@
     } else fallback();
   });
   document.getElementById('crtDownloadBtn').addEventListener('click',function(){
+    var fn=stampBase('json');
     var blob=new Blob([jsonOut.value||buildJSON()],{type:'application/json'});
     var url=URL.createObjectURL(blob);
-    var a=document.createElement('a'); a.href=url; a.download='orb-forge.json';
+    var a=document.createElement('a'); a.href=url; a.download=fn;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(function(){ URL.revokeObjectURL(url); },1000);
-    eclog('info','config.download',{filename:'orb-forge.json'},'Downloaded orb-forge.json');
+    eclog('info','config.download',{filename:fn},'Downloaded '+fn);
   });
 
   /* ---------- Reset & randomize ---------- */
@@ -1315,7 +1534,7 @@
     BG.transparent=BG_DEF.transparent; BG.top=BG_DEF.top; BG.bottom=BG_DEF.bottom;
     OVERLAYS=[]; renderOverlayBar();
     SEED.current=null;
-    syncUI(); syncBgUI(); presetSel.value=''; refreshExport(); updateAuto(); syncPresetUI();
+    activePreset=null; syncUI(); syncBgUI(); buildPresetOptions(); refreshExport(); updateAuto(); syncPresetUI();
     HL.mode=5; HL.pulse=1;
     eclog('info','params.reset',{count:CONFIG.length},'Reset all parameters to defaults');
     commitHistory();
@@ -1341,7 +1560,6 @@
      Every roll gets a human-readable seed; the same seed always reproduces the
      same orb. The seed rides along in the export JSON and prefills the
      save-preset name. */
-  var SEED={current:null};
   function xmur3(str){
     var h=1779033703^str.length;
     for(var i=0;i<str.length;i++){ h=Math.imul(h^str.charCodeAt(i),3432918353); h=h<<13|h>>>19; }
@@ -1394,7 +1612,7 @@
       BG.bottom=hslToHex((h+30+rng()*90)%360,45+rng()*20,12+rng()*8);
     }
     SEED.current=String(seed);
-    syncUI(); syncBgUI(); presetSel.value=''; refreshExport(); updateAuto(); syncPresetUI();
+    activePreset=null; syncUI(); syncBgUI(); buildPresetOptions(); refreshExport(); updateAuto(); syncPresetUI();
     HL.mode=5; HL.pulse=1;
     eclog('info','params.randomize',{seed:SEED.current,archetype:arch.name},'Randomized — '+arch.name+' · seed "'+SEED.current+'"');
     commitHistory();
@@ -1441,9 +1659,10 @@
     lastBlobUrl=url;
     resultImg.src=url;
     resultMeta.innerHTML=meta;
+    var fn=stampBase(ext);
     manualDl.href=url; manualDl.hidden=false;
-    manualDl.setAttribute('download','orb-forge.'+ext);
-    manualDl.title='Save orb-forge.'+ext+' ('+fmtSize(blob.size)+')';
+    manualDl.setAttribute('download',fn);
+    manualDl.title='Save '+fn+' ('+fmtSize(blob.size)+')';
     resultWrap.classList.add('on');
   }
 
@@ -1481,10 +1700,21 @@
     }
   }
   function currentDur(){ return autoChk.checked?autoT:parseFloat(durInp.value); }
+  // Reads a numeric select, treating the injected "__auto" sentinel as absent.
+  function numSel(sel,fallback){ var v=parseFloat(sel.value); return isFinite(v)?v:fallback; }
+  // After the auto-tuner picks, write the choice into the greyed selects'
+  // "Auto" labels so what's shown reflects what will actually be rendered.
+  function reflectAutoPick(pick){
+    var setA=function(sel,txt){ var o=sel.querySelector('option[value="__auto"]'); if(o) o.textContent='Auto · '+txt; };
+    setA(resSel,pick.rs+' px'); setA(fpsSel,pick.fp+' fps');
+    var qn=pick.q>=0.95?'Max':pick.q>=0.7?'High':pick.q>=0.5?'Medium':pick.q>=0.35?'Low':'Min';
+    setA(qualSel,qn);
+  }
   function updFrameInfo(){
-    var fps=parseInt(fpsSel.value,10),dur=currentDur();
+    var fps=numSel(fpsSel,60),dur=currentDur(),sp=params.playSpeed||1,real=dur/sp;
+    if(parseFloat(targetSel.value)>0&&formatSel.value!=='gif'){ durVal.textContent=dur.toFixed(2)+' s'; frameInfo.textContent='auto-tuned to fit '+fmtSize(parseFloat(targetSel.value)); return; }
     durVal.textContent=dur.toFixed(2)+' s';
-    frameInfo.textContent=Math.max(2,Math.round(fps*dur))+' frames · '+dur.toFixed(2)+' s';
+    frameInfo.textContent=Math.max(2,Math.round(fps*real))+' frames · '+real.toFixed(2)+' s'+(sp!==1?' · '+sp.toFixed(2)+'×':'');
   }
   function updateAuto(){
     if(!autoChk) return;
@@ -1509,9 +1739,21 @@
       targetSel.value=targetSel.dataset.prevTarget;
       delete targetSel.dataset.prevTarget;
     }
-    // Target mode owns resolution / frame rate / quality — grey them out so
-    // it's obvious the auto-tuner is choosing, not the selects.
+    // Target mode owns resolution / frame rate / quality — grey them out and
+    // show an "Auto" value so the greyed selects reflect reality, not a stale
+    // manual number. After a render the Auto label updates to the picked value.
     var coerced=!gif&&parseFloat(targetSel.value)>0;
+    [resSel,fpsSel,qualSel].forEach(function(sel){
+      var has=sel.querySelector('option[value="__auto"]');
+      if(coerced&&!has){
+        if(sel.value!=='__auto') sel.dataset.prevVal=sel.value;
+        var o=document.createElement('option'); o.value='__auto'; o.textContent='Auto';
+        sel.insertBefore(o,sel.firstChild); sel.value='__auto';
+      } else if(!coerced&&has){
+        has.remove();
+        if(sel.dataset.prevVal!==undefined){ sel.value=sel.dataset.prevVal; delete sel.dataset.prevVal; }
+      }
+    });
     qualSel.disabled=gif||coerced;
     resSel.disabled=coerced;
     fpsSel.disabled=coerced;
@@ -1576,7 +1818,8 @@
     }
     return out;
   }
-  function muxAnimatedWebP(frames,size,delay){
+  function strToBytes(s){ var a=new Uint8Array(s.length); for(var i=0;i<s.length;i++) a[i]=s.charCodeAt(i)&255; return a; }
+  function muxAnimatedWebP(frames,size,delay,meta){
     var anmf=[],hasAlpha=false,i;
     for(i=0;i<frames.length;i++){
       var ch=parseWebP(frames[i]);
@@ -1597,11 +1840,16 @@
       hdr[15]=0x02;
       anmf.push(mkChunk('ANMF',concat([hdr,frameData])));
     }
+    // XMP metadata chunk carrying the full recipe (marker: ORBFORGE:{...}).
+    var xmpChunk=null;
+    if(meta){ xmpChunk=mkChunk('XMP ',strToBytes('ORBFORGE:'+meta)); }
     var vp8x=new Uint8Array(10);
-    vp8x[0]=0x02|(hasAlpha?0x10:0);
+    vp8x[0]=0x02|(hasAlpha?0x10:0)|(xmpChunk?0x04:0); // 0x04 = XMP metadata present
     w24(vp8x,4,size-1); w24(vp8x,7,size-1);
     var anim=new Uint8Array(6);
-    var body=concat([mkChunk('VP8X',vp8x),mkChunk('ANIM',anim)].concat(anmf));
+    var chunks=[mkChunk('VP8X',vp8x),mkChunk('ANIM',anim)].concat(anmf);
+    if(xmpChunk) chunks.push(xmpChunk); // XMP after image data per the WebP spec
+    var body=concat(chunks);
     var head=new Uint8Array(12);
     head[0]=82;head[1]=73;head[2]=70;head[3]=70;
     var rs=4+body.length;
@@ -1732,7 +1980,14 @@
     parts.push(Uint8Array.of(0));
   }
   // delays: centiseconds — one number for every frame, or an array per frame.
-  function encodeGIF(frames,size,delays,hasAlpha,onProgress,done,onError){
+  // A GIF89a Comment Extension (0x21 0xFE) holding the marker+JSON as sub-blocks.
+  function gifCommentBlock(text){
+    var b=strToBytes(text),out=[0x21,0xFE],p;
+    for(p=0;p<b.length;p+=255){ var len=Math.min(255,b.length-p); out.push(len); for(var q=0;q<len;q++) out.push(b[p+q]); }
+    out.push(0);
+    return Uint8Array.from(out);
+  }
+  function encodeGIF(frames,size,delays,hasAlpha,onProgress,done,onError,meta){
     var palette,parts=[];
     try{
       palette=gifPalette(frames,hasAlpha,hasAlpha?255:256);
@@ -1749,6 +2004,7 @@
       }
       parts.push(gct);
       parts.push(Uint8Array.of(0x21,0xFF,0x0B,78,69,84,83,67,65,80,69,50,46,48,3,1,0,0,0)); // NETSCAPE2.0 infinite loop
+      if(meta) parts.push(gifCommentBlock('ORBFORGE:'+meta));
     }catch(e){ if(onError) onError(e); return; }
     var fi=0;
     function step(){
@@ -1798,8 +2054,12 @@
     if(estimateOnly&&estimating) return;
     if(!estimateOnly&&estimating){ renderQueued=true; return; }
     var format=formatSel.value;
-    var size0=parseInt(resSel.value,10),fps0=parseInt(fpsSel.value,10),manualQ=parseFloat(qualSel.value);
+    var size0=numSel(resSel,512),fps0=numSel(fpsSel,60),manualQ=numSel(qualSel,1);
     var T=currentDur(),transparent=BG.transparent,target=(format==='gif')?0:parseFloat(targetSel.value);
+    // Playback speed bakes into the export: the seamless motion (period T) is
+    // rendered across a shorter/longer real duration Treal, so frame counts and
+    // delays use Treal while the phase math keeps sampling the full T-loop.
+    var speed=playSpeed(),Treal=T/speed;
     if(estimateOnly){ estimating=true; }
     else{
       exporting=true;
@@ -1819,7 +2079,7 @@
       // the same max-channel rule the shader used to apply.
       gl.uniform1f(U.alphaMode,0.0);
       setBgUniforms(!transparent);
-      gl.uniform1f(U.hlMode,0.0); gl.uniform1f(U.hlStrength,0.0); gl.uniform1f(U.hlPulse,0.0);
+      gl.uniform1f(U.hlMode,0.0); gl.uniform1f(U.hlStrength,0.0); gl.uniform1f(U.hlPulse,0.0); gl.uniform1f(U.hlAnts,0.0);
       gl.uniform1f(U.loop,1.0); gl.uniform1f(U.loopDur,T);
       setPassUniforms(params);
     }
@@ -1871,20 +2131,23 @@
       }
       return flipped;
     }
+    // The full recipe, embedded in the exported file's metadata + the filename.
+    var metaJSON=buildJSON();
     function deliver(bytes,mime,ext,size,fps,nF,note){
+      var fn=stampBase(ext);
       var blob=new Blob([bytes],{type:mime});
       var url=URL.createObjectURL(blob);
-      var a=document.createElement('a'); a.href=url; a.download='orb-forge.'+ext;
+      var a=document.createElement('a'); a.href=url; a.download=fn;
       document.body.appendChild(a); a.click(); a.remove();
       showResult(url,blob,ext,
-        '<b>orb-forge.'+ext+'</b> · '+fmtSize(blob.size)+'<br>'+
-        size+' px · '+fps+' fps · '+nF+' frames · '+T.toFixed(2)+' s'+(transparent?' · transparent':''));
-      finishExport('Exported '+fmtSize(blob.size)+' — '+size+' px, '+fps+' fps, '+nF+' frames, '+T.toFixed(2)+' s'+(transparent?', transparent':'')+note,'ok',
-        {format:ext,bytes:blob.size,size:size,fps:fps,frames:nF,duration:T,transparent:transparent});
+        '<b>'+fn+'</b> · '+fmtSize(blob.size)+'<br>'+
+        size+' px · '+fps+' fps · '+nF+' frames · '+(T/speed).toFixed(2)+' s'+(transparent?' · transparent':''));
+      finishExport('Exported '+fmtSize(blob.size)+' — '+size+' px, '+fps+' fps, '+nF+' frames, '+(T/speed).toFixed(2)+' s'+(transparent?', transparent':'')+note,'ok',
+        {format:ext,bytes:blob.size,size:size,fps:fps,frames:nF,duration:T/speed,transparent:transparent,filename:fn});
     }
 
     function fullRenderWebP(size,fps,q,note){
-      var nF=Math.max(2,Math.round(fps*T)),delay=Math.max(1,Math.round(1000*T/nF));
+      var nF=Math.max(2,Math.round(fps*Treal)),delay=Math.max(1,Math.round(1000*Treal/nF));
       var o=makeCtx(size),pix=new Uint8Array(size*size*4),frames=[];
       setupGL(size);
       setWebpStatus('Rendering '+nF+' frames…','');
@@ -1893,7 +2156,7 @@
           setOv('Assembling WebP…',0.98);
           setTimeout(function(){
             try{
-              var bytes=muxAnimatedWebP(frames,size,delay);
+              var bytes=muxAnimatedWebP(frames,size,delay,metaJSON);
               deliver(bytes,'image/webp','webp',size,fps,nF,note);
             }catch(e){ finishExport('Assembly failed: '+(e&&e.message||e),'err',{reason:e&&e.message||String(e)}); }
           },20);
@@ -1918,12 +2181,12 @@
       // GIF's minimum frame delay is 2 cs, so >50 fps is unrepresentable —
       // cap the frame count instead of silently stretching the loop.
       var fpsEff=Math.min(fps,50);
-      var nF=Math.max(2,Math.round(fpsEff*T));
+      var nF=Math.max(2,Math.round(fpsEff*Treal));
       // Accumulated-timestamp rounding: each delay is the difference of two
       // rounded running totals, so the loop duration stays true to T instead
       // of drifting with a single uniformly-rounded delay.
       var delays=[];
-      for(var di=0;di<nF;di++) delays.push(Math.max(2,Math.round(100*T*(di+1)/nF)-Math.round(100*T*di/nF)));
+      for(var di=0;di<nF;di++) delays.push(Math.max(2,Math.round(100*Treal*(di+1)/nF)-Math.round(100*Treal*di/nF)));
       // Raw RGBA frames are held in memory until encoding; cap the worst case
       // (512 px @ 50 fps @ 9 s ≈ 450 MB) before it can take down the tab.
       var rawBytes=size*size*4*nF;
@@ -1940,7 +2203,8 @@
           encodeGIF(frames,size,delays,transparent,
             function(n,of){ setOv('Encoding GIF '+n+' / '+of,0.55+n/of*0.43); },
             function(bytes){ deliver(bytes,'image/gif','gif',size,fpsEff,nF,fpsEff!==fps?' · GIF caps at '+fpsEff+' fps':''); },
-            function(e){ finishExport('GIF encoding failed: '+(e&&e.message||e),'err',{reason:e&&e.message||String(e)}); });
+            function(e){ finishExport('GIF encoding failed: '+(e&&e.message||e),'err',{reason:e&&e.message||String(e)}); },
+            metaJSON);
           return;
         }
         var flipped=capturePixels(size,i/nF,pix);
@@ -1962,7 +2226,7 @@
         return;
       }
       var fpsE=(format==='gif')?Math.min(fps0,50):fps0;
-      var nFe=Math.max(2,Math.round(fpsE*T));
+      var nFe=Math.max(2,Math.round(fpsE*Treal));
       var oE=makeCtx(size0),pixE=new Uint8Array(size0*size0*4);
       setupGL(size0);
       var flippedE=capturePixels(size0,0.3,pixE);
@@ -2029,7 +2293,7 @@
       var fits=[];
       resCand.forEach(function(rs){
         fpsCand.forEach(function(fp){
-          var nF=Math.max(2,Math.round(fp*T));
+          var nF=Math.max(2,Math.round(fp*Treal));
           qLadder.forEach(function(q){
             var est=perFrame[rs][q]*nF*1.04+400;
             if(est<=target*0.95) fits.push({rs:rs,fp:fp,q:q,nF:nF,est:est});
@@ -2050,6 +2314,7 @@
         note=' · smallest possible — still over '+fmtSize(target)+', shorten the loop or lower the base resolution';
         eclog('warn','export.autotune_overflow',{target:target},'No configuration fits the target — using smallest');
       }
+      reflectAutoPick(pick);
       setOv('Rendering…',0.42);
       fullRenderWebP(pick.rs,pick.fp,pick.q,note);
     }
@@ -2063,7 +2328,7 @@
   /* ---------- Initial events + history baseline ---------- */
   var glInfo={vendor:gl.getParameter(gl.VENDOR),renderer:gl.getParameter(gl.RENDERER)};
   try{ var dbg=gl.getExtension('WEBGL_debug_renderer_info'); if(dbg){ glInfo.unmasked_renderer=gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL); } }catch(e){}
-  eclog('ready','app.start',{params:CONFIG.length,presets:Object.keys(PRESETS).length},'Orb Forge initialized');
+  eclog('ready','app.start',{params:CONFIG.length,presets:Object.keys(PRESETS).length},'ORBFORGE initialized');
   eclog('info','gl.ready',glInfo,'WebGL context ready');
   HIST.push(snapshot()); updateHistoryUI();
 

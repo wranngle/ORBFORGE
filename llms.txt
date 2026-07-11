@@ -1,11 +1,11 @@
-# Orb Forge - Wranngle Agent Avatar Maker
+# ORBFORGE - Wranngle Agent Avatar Maker
 
-> Orb Forge is a free WebGL avatar synthesizer by Wranngle Systems. Tune 34 parameters — texture styles, 3D lighting, volumetric cores, tracers, seeded randomize, preset overlays — and export an animated WebP or GIF for use as an AI agent avatar. It runs entirely in the browser — no login or account required.
+> ORBFORGE is a free WebGL avatar synthesizer by Wranngle Systems. Tune 40 parameters — texture styles, 3D lighting, volumetric cores, tracers, seeded randomize, preset overlays — and export an animated WebP or GIF for use as an AI agent avatar. It runs entirely in the browser — no login or account required.
 
 ## App
 
-- [Orb Forge](https://orb-forge.wranngle.com): the synthesizer, with live preview, presets, and JSON config import/export
-- [Source repository](https://github.com/wranngle/orb_forge): source, tests, and the OG-card generator
+- [ORBFORGE](https://orbforge.wranngle.com): the synthesizer, with live preview, presets, and JSON config import/export
+- [Source repository](https://github.com/wranngle/ORBFORGE): source, tests, and the OG-card generator
 
 ## Company
 

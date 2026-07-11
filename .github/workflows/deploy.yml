@@ -11,6 +11,8 @@ on:
       - robots.txt
       - llms.txt
       - _headers
+      - _redirects
+      - sitemap.xml
       - .github/workflows/deploy.yml
   workflow_dispatch:
 
@@ -35,7 +37,7 @@ jobs:
       - name: Stage site files
         run: |
           mkdir -p dist
-          cp index.html app.js orb.webp og.png robots.txt llms.txt _headers dist/
+          cp index.html app.js orb.webp og.png robots.txt llms.txt sitemap.xml _headers _redirects dist/
           # Cache-bust the engine: stale cached app.js paired with fresh markup
           # dead-ends every control. The ?v=dev sentinel becomes the commit SHA.
           sed -i "s|/app.js?v=dev|/app.js?v=${GITHUB_SHA::7}|" dist/index.html
@@ -60,5 +62,5 @@ jobs:
             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
             -H "Content-Type: application/json" \
             "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/purge_cache" \
-            --data '{"files":["https://orb-forge.wranngle.com/","https://orb-forge.wranngle.com/index.html","https://orb-forge.wranngle.com/app.js","https://orb-forge.wranngle.com/og.png","https://orb-forge.wranngle.com/orb.webp","https://orb-forge.wranngle.com/robots.txt","https://orb-forge.wranngle.com/llms.txt"]}' \
+            --data '{"files":["https://orbforge.wranngle.com/","https://orbforge.wranngle.com/index.html","https://orbforge.wranngle.com/app.js","https://orbforge.wranngle.com/og.png","https://orbforge.wranngle.com/orb.webp","https://orbforge.wranngle.com/robots.txt","https://orbforge.wranngle.com/llms.txt","https://orb-forge.wranngle.com/","https://orb-forge.wranngle.com/index.html","https://orb-forge.wranngle.com/app.js"]}' \
             | grep -q '"success": *true' && echo "cache purged"

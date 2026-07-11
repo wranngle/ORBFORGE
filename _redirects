@@ -1,0 +1,2 @@
+# Canonical host: orbforge.wranngle.com (old subdomain 301s, path-preserving)
+https://orb-forge.wranngle.com/* https://orbforge.wranngle.com/:splat 301
