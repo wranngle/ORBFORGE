@@ -76,7 +76,7 @@
         var v=src[c.key];
         q[c.key]=(typeof v==='number'&&isFinite(v))?snap(c,v):c.def;
       });
-      out.push({name:(o&&typeof o.name==='string')?o.name.slice(0,40):null,params:q});
+      out.push({name:(o&&typeof o.name==='string')?o.name.slice(0,40):null,params:q,visible:(o&&o.visible===false)?false:true});
     });
     return out;
   }
@@ -397,7 +397,7 @@
     if(hexOk(s.__bgBot)) BG.bottom=s.__bgBot;
     if(typeof s.__ov==='string'){
       try{ OVERLAYS=sanitizeOverlays(JSON.parse(s.__ov)); }catch(e){}
-      renderOverlayBar();
+      renderLayerTabs();
     }
     presetSel.value=s.__preset||'';
     // The snapshot may reference a preset deleted since — a valueless select
@@ -459,7 +459,9 @@
      computed inside the same fragment shader from the same uniforms, so the
      highlight tracks the moving feature (pulse, comets) in real time. */
   var HL_MODE={
-    radius:1,thickness:1,rotSpeed:1,pulseSpeed:1,pulseAmount:1,wobble:1,
+    // Ring geometry rides on mode 9 (a tight annulus at the ring radius) so
+    // radius/thickness/pulse/wobble light up the ring itself, not the whole disc.
+    radius:9,thickness:9,rotSpeed:9,pulseSpeed:9,pulseAmount:9,wobble:9,
     burn:1,noiseScale:1,flowSpeed:1,hue:1,chroma:1,
     texStyle:1,depth3d:1,lightAngle:1,gloss:1,
     fill:8,filaments:8,coreHue:8,surface3d:8,spin3d:8,tiltLat:8,matrix:8,matrixDensity:8,
@@ -711,11 +713,7 @@
     var neutral=(SEED.current||'default')+(activePreset===null?' *':'');
     var o0=document.createElement('option'); o0.value=''; o0.textContent=neutral;
     presetSel.appendChild(o0);
-    var ogB=document.createElement('optgroup'); ogB.label='Built-in';
-    Object.keys(BUILTIN_PRESETS).forEach(function(name){
-      var o=document.createElement('option'); o.value=name; o.textContent=name; ogB.appendChild(o);
-    });
-    presetSel.appendChild(ogB);
+    // Yours first, built-ins below.
     var userNames=Object.keys(USER_PRESETS);
     if(userNames.length){
       var ogU=document.createElement('optgroup'); ogU.label='Yours';
@@ -724,7 +722,13 @@
       });
       presetSel.appendChild(ogU);
     }
+    var ogB=document.createElement('optgroup'); ogB.label='Built-in';
+    Object.keys(BUILTIN_PRESETS).forEach(function(name){
+      var o=document.createElement('option'); o.value=name; o.textContent=name; ogB.appendChild(o);
+    });
+    presetSel.appendChild(ogB);
     presetSel.value=activePreset||'';
+    if(typeof renderLayerTabs==='function') renderLayerTabs();
   }
   function syncPresetUI(){
     btnSave.classList.toggle('is-dirty',activePreset===null);
@@ -797,20 +801,60 @@
   });
 
   /* ---------- Overlay layers (rendered additively) ---------- */
-  function renderOverlayBar(){
-    var bar=document.getElementById('overlayBar'); if(!bar) return;
-    bar.innerHTML='';
-    bar.hidden=OVERLAYS.length===0;
+  var EYE_ON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="2.5"/></svg>';
+  var EYE_OFF='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 3 18 18"/><path d="M10.6 6.1A9 9 0 0 1 12 6c6.5 0 10 6 10 6a15 15 0 0 1-3 3.4M6.6 6.6A15 15 0 0 0 2 12s3.5 7 10 7a9 9 0 0 0 4.2-1"/></svg>';
+  var XMARK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>';
+  var PLUS='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
+  // The layer tabs replace the old overlay pill bar: one base tab (the seed/preset
+  // identity, always rendered) plus one tab per overlay with a show/hide eye and a
+  // remove ×, then a "+ overlay" affordance (capped at 3) that opens the manager.
+  function renderLayerTabs(){
+    var wrap=document.getElementById('layerTabs'); if(!wrap) return;
+    wrap.innerHTML='';
+    // Base identity tab
+    var base=document.createElement('span');
+    base.className='layer-tab base';
+    base.title='Base orb — seed identity for this render';
+    var bn=document.createElement('span'); bn.className='lt-name';
+    bn.textContent=(SEED.current||'default');
+    base.appendChild(bn);
+    if(activePreset===null){ var d=document.createElement('span'); d.className='lt-dirty'; d.textContent=' *'; d.title='Unsaved changes'; base.appendChild(d); }
+    wrap.appendChild(base);
+    // Overlay tabs
     OVERLAYS.forEach(function(o,i){
-      var chip=document.createElement('span'); chip.className='ov-chip';
-      chip.title='Overlay layer '+(i+1)+' — rendered additively above the base orb';
-      var nm=document.createElement('span'); nm.textContent=o.name||('layer '+(i+1));
-      var x=document.createElement('button'); x.type='button'; x.className='ov-x'; x.textContent='×';
-      x.title='Remove this overlay'; x.setAttribute('aria-label','Remove overlay '+(o.name||('layer '+(i+1))));
+      var vis=o.visible!==false;
+      var tab=document.createElement('span');
+      tab.className='layer-tab overlay'+(vis?'':' hidden-layer');
+      var label=o.name||('layer '+(i+1));
+      var eye=document.createElement('button'); eye.type='button'; eye.className='lt-eye';
+      eye.innerHTML=vis?EYE_ON:EYE_OFF;
+      eye.title=vis?'Hide this overlay (kept in the file, excluded from render + export)':'Show this overlay';
+      eye.setAttribute('aria-label',(vis?'Hide ':'Show ')+label);
+      eye.setAttribute('aria-pressed',String(vis));
+      eye.addEventListener('click',function(){ toggleOverlay(i); });
+      var nm=document.createElement('span'); nm.className='lt-name'; nm.textContent=label; nm.title=label;
+      var x=document.createElement('button'); x.type='button'; x.className='lt-x'; x.innerHTML=XMARK;
+      x.title='Remove this overlay'; x.setAttribute('aria-label','Remove overlay '+label);
       x.addEventListener('click',function(){ removeOverlay(i); });
-      chip.appendChild(nm); chip.appendChild(x);
-      bar.appendChild(chip);
+      tab.appendChild(eye); tab.appendChild(nm); tab.appendChild(x);
+      wrap.appendChild(tab);
     });
+    // Add-overlay affordance
+    var add=document.createElement('button'); add.type='button'; add.className='lt-add'; add.innerHTML=PLUS;
+    var full=OVERLAYS.length>=3;
+    add.disabled=full;
+    add.title=full?'Overlays are capped at 3 layers':'Overlay a preset above the base orb';
+    add.setAttribute('aria-label','Add an overlay layer');
+    add.addEventListener('click',function(){ openManager('overlay'); });
+    wrap.appendChild(add);
+  }
+  function toggleOverlay(i){
+    if(i<0||i>=OVERLAYS.length) return;
+    var o=OVERLAYS[i];
+    o.visible=(o.visible===false);
+    renderLayerTabs(); refreshExport();
+    eclog('info','overlay.visibility',{name:o.name,visible:o.visible},(o.visible?'Showing':'Hiding')+' overlay "'+(o.name||'layer')+'"');
+    commitHistory();
   }
   function overlayIndexByName(name){
     for(var i=0;i<OVERLAYS.length;i++) if(OVERLAYS[i].name===name) return i;
@@ -822,8 +866,8 @@
     if(OVERLAYS.length>=3){ showToast('Overlays are capped at 3 layers'); return false; }
     var q={};
     CONFIG.forEach(function(c){ q[c.key]=(src[c.key]!==undefined)?src[c.key]:c.def; });
-    OVERLAYS.push({name:name,params:q});
-    renderOverlayBar(); refreshExport();
+    OVERLAYS.push({name:name,params:q,visible:true});
+    renderLayerTabs(); refreshExport();
     eclog('info','overlay.add',{name:name,count:OVERLAYS.length},'Overlaid "'+name+'"');
     commitHistory();
     return true;
@@ -832,7 +876,7 @@
     if(i<0||i>=OVERLAYS.length) return;
     var o=OVERLAYS[i];
     OVERLAYS.splice(i,1);
-    renderOverlayBar(); refreshExport();
+    renderLayerTabs(); refreshExport();
     eclog('info','overlay.remove',{name:o.name,count:OVERLAYS.length},'Removed overlay "'+(o.name||'layer')+'"');
     commitHistory();
   }
@@ -870,10 +914,11 @@
       }
       list.appendChild(r);
     }
-    group('Built-in');
-    Object.keys(BUILTIN_PRESETS).forEach(function(n){ row(n,false); });
+    // Yours on top, built-ins below.
     var mine=Object.keys(USER_PRESETS);
     if(mine.length){ group('Yours'); mine.forEach(function(n){ row(n,true); }); }
+    group('Built-in');
+    Object.keys(BUILTIN_PRESETS).forEach(function(n){ row(n,false); });
   }
   function beginRename(nmEl,name){
     var inp=document.createElement('input'); inp.type='text'; inp.value=name; inp.maxLength=40;
@@ -888,7 +933,7 @@
         var oi=overlayIndexByName(name); if(oi>=0) OVERLAYS[oi].name=nv;
         persistUserPresets();
         eclog('info','preset.rename',{from:name,to:nv},'Renamed preset to "'+nv+'"');
-        buildPresetOptions(); syncPresetUI(); renderOverlayBar();
+        buildPresetOptions(); syncPresetUI(); renderLayerTabs();
       }
       renderManager();
     }
@@ -911,20 +956,31 @@
       eclog('info','preset.restore',{name:name},'Restored preset "'+name+'"');
     });
   }
+  function openManager(from){
+    if(!dlgManager) return;
+    renderManager(); openDialog(dlgManager);
+    eclog('info','ui.dialog.open',{dialog:'manager',from:from||'button'},'Preset manager opened');
+  }
   (function(){
     var btn=document.getElementById('btnManager');
     if(!btn||!dlgManager) return;
-    btn.addEventListener('click',function(){
-      renderManager(); openDialog(dlgManager);
-      eclog('info','ui.dialog.open',{dialog:'manager'},'Preset manager opened');
-    });
+    btn.addEventListener('click',function(){ openManager('button'); });
     document.getElementById('mgrSaveCurrent').addEventListener('click',function(){
       savePreset(uniquePresetName(SEED.current||'default')); renderManager();
     });
   })();
-  renderOverlayBar();
+  renderLayerTabs();
 
   /* ---------- WEBGL ---------- */
+  // Boot progress: the bar climbs through named milestones so the load reads as
+  // real work, not a spinner. pct is monotonic; the label narrates the stage.
+  var bootPct=0;
+  function bootStep(pct,msg){
+    bootPct=Math.max(bootPct,pct);
+    var fill=document.getElementById('bootFill'); if(fill) fill.style.width=bootPct+'%';
+    var sub=document.getElementById('bootSub'); if(sub&&msg) sub.textContent=msg;
+  }
+  bootStep(8,'starting the forge…');
   var canvas=document.getElementById('crtCanvas');
   var glOpts={alpha:true,preserveDrawingBuffer:true,antialias:true,premultipliedAlpha:false};
   var gl=canvas.getContext('webgl',glOpts)||canvas.getContext('experimental-webgl',glOpts);
@@ -1156,27 +1212,33 @@
   '  else if(u_hlMode<5.5) hm=1.0-smoothstep(0.9,1.1,dist);',
   '  else if(u_hlMode<6.5) hm=clamp(1.0-(bMax+gG)*1.5,0.0,1.0)*(1.0-smoothstep(0.95,1.15,dist));',
   '  else if(u_hlMode<7.5) hm=clamp(max(bMax,comet*(bMax+gG))*1.3,0.0,1.0);',
-  '  else hm=1.0-smoothstep(inR*0.9,inR*1.02,dist);',
+  '  else if(u_hlMode<8.5) hm=1.0-smoothstep(inR*0.9,inR*1.02,dist);',
+  // Mode 9: an annulus at the live ring radius — tracks radius/pulse/wobble. The
+  // floor keeps a razor-thin ring (low thickness) wide enough to read as a highlight.
+  '  else hm=band(dist,pr,max(th*3.5,0.05));',
   '  float S=clamp(u_hlStrength,0.0,1.0);',
-  '  float inside=smoothstep(0.42,0.6,hm);',
-  // Translucent NEGATIVE-colour fill of whatever is behind — the complement of
-  // the pixel makes the selected region pop like an inverted editor selection.
+  '  float inside=smoothstep(0.40,0.62,hm);',
+  // True NEGATIVE-colour fill: at hover the region is pushed well past the grey
+  // midpoint toward the exact complement of what is behind it, so the selection
+  // reads as an inverted region (like an editor lasso) rather than a wash. The
+  // remaining fraction still shows motion so the highlight tracks the feature.
   '  vec3 neg=vec3(1.0)-clamp(col,0.0,1.0);',
-  '  col=mix(col,neg,inside*(0.30+0.14*u_hlPulse)*S);',
+  '  col=mix(col,neg,inside*clamp(0.70+0.20*u_hlPulse,0.0,0.92)*S);',
   // Thick DOTTED marquee on the contour: a wide band broken into round dots by
-  // an angular dash pattern that marches with u_hlAnts.
+  // an angular dash pattern that marches with u_hlAnts. Band + glow widened so
+  // the outline is unmistakable over a bright ring.
   '  float edge=abs(hm-0.5);',
-  '  float band=1.0-smoothstep(0.0,0.22,edge);',
+  '  float band=1.0-smoothstep(0.0,0.32,edge);',
   '  float dash=fract(ang/TAU*30.0 + u_hlAnts);',
   '  float dots=smoothstep(0.16,0.30,dash)*(1.0-smoothstep(0.70,0.84,dash));',
-  '  float ringOutline=band*mix(0.55,1.0,dots);',
+  '  float ringOutline=band*mix(0.62,1.0,dots);',
   '  vec3 antCol=mix(vec3(1.0,0.16,0.66),vec3(1.0,0.92,1.0),dots);',
-  '  float pop=0.7+0.5*u_hlPulse;',
+  '  float pop=0.8+0.5*u_hlPulse;',
   // Soft outer GLOW around the contour so the outline reads over a bright ring.
-  '  float glow=exp(-edge*edge*90.0);',
-  '  col+=vec3(1.0,0.22,0.7)*glow*(0.5+0.5*u_hlPulse)*S;',
+  '  float glow=exp(-edge*edge*55.0);',
+  '  col+=vec3(1.0,0.22,0.7)*glow*(0.55+0.5*u_hlPulse)*S;',
   // Opaque outline on top.
-  '  col=mix(col,antCol,clamp(ringOutline*pop*S,0.0,0.96));',
+  '  col=mix(col,antCol,clamp(ringOutline*pop*S,0.0,0.98));',
   ' }',
   ' float oa=clamp(max(col.r,max(col.g,col.b)),0.0,1.0);',
   ' vec3 oc=col/max(oa,0.0025);',
@@ -1195,10 +1257,12 @@
     var s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);
     return s;
   }
+  bootStep(22,'compiling shaders…');
   var prog=gl.createProgram();
   gl.attachShader(prog,compile(gl.VERTEX_SHADER,VERT));
   gl.attachShader(prog,compile(gl.FRAGMENT_SHADER,FRAG));
   gl.linkProgram(prog);
+  bootStep(38,'linking program…');
   // KHR_parallel_shader_compile lets the driver compile off-thread; we poll
   // COMPLETION_STATUS instead of blocking on LINK_STATUS. U/buffer setup and the
   // render loop are gated behind completion (finishGL) so the boot screen paints.
@@ -1224,13 +1288,19 @@
     U.hlMode=gl.getUniformLocation(prog,'u_hlMode'); U.hlStrength=gl.getUniformLocation(prog,'u_hlStrength');
     U.hlPulse=gl.getUniformLocation(prog,'u_hlPulse'); U.hlAnts=gl.getUniformLocation(prog,'u_hlAnts');
     CONFIG.forEach(function(c){ U[c.key]=gl.getUniformLocation(prog,'u_'+c.key); });
+    bootStep(92,'binding parameters…');
     glReady=true;
     requestAnimationFrame(frame);
   }
   // Yield one paint so the boot screen shows, then wait for the parallel
   // compile to finish (or run immediately if the extension is unavailable).
+  // Each poll nudges the bar toward 88% so the wait reads as progress, not a stall.
   function waitGL(){
-    if(pcExt && !gl.getProgramParameter(prog,pcExt.COMPLETION_STATUS_KHR)){ setTimeout(waitGL,24); return; }
+    if(pcExt && !gl.getProgramParameter(prog,pcExt.COMPLETION_STATUS_KHR)){
+      bootStep(Math.min(88,bootPct+6),'forging the orb…');
+      setTimeout(waitGL,24); return;
+    }
+    bootStep(80,'forging the orb…');
     finishGL();
   }
   requestAnimationFrame(function(){ setTimeout(waitGL,0); });
@@ -1349,6 +1419,7 @@
         gl.uniform1f(U.bgOn,0.0);
         gl.uniform1f(U.hlStrength,0.0);
         for(var oi=0;oi<OVERLAYS.length;oi++){
+          if(OVERLAYS[oi].visible===false) continue;
           setPassUniforms(OVERLAYS[oi].params);
           gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
         }
@@ -1357,7 +1428,7 @@
       var T=currentDur(),sp=playSpeed(),played=T/sp;
       if(playing&&!scrubActive) scrub.value=String((((elapsed%played)/played)).toFixed(3));
       if(timeEl) timeEl.textContent=(elapsed%played).toFixed(2)+' / '+played.toFixed(2)+' s';
-      if(!bootHidden){ bootHidden=true; bootDone(); } // first real frame is up — clear the boot screen
+      if(!bootHidden){ bootHidden=true; bootStep(100,'ready'); bootDone(); } // first real frame is up — clear the boot screen
     }
     requestAnimationFrame(frame);
   }
@@ -1385,7 +1456,7 @@
       background:{transparent:BG.transparent,top:BG.top,bottom:BG.bottom},
       parameters:roundParams(params)
     };
-    if(OVERLAYS.length) doc.overlays=OVERLAYS.map(function(o){ return {name:o.name,parameters:roundParams(o.params)}; });
+    if(OVERLAYS.length) doc.overlays=OVERLAYS.map(function(o){ return {name:o.name,visible:o.visible!==false,parameters:roundParams(o.params)}; });
     return doc;
   }
   function buildJSON(){ return JSON.stringify(buildDoc(),null,2); }
@@ -1422,7 +1493,7 @@
       if(hexOk(bgIn.bottom)) BG.bottom=bgIn.bottom.toLowerCase();
     }
     OVERLAYS=Array.isArray(data.overlays)?sanitizeOverlays(data.overlays):[];
-    renderOverlayBar();
+    renderLayerTabs();
     SEED.current=(typeof data.seed==='string'&&data.seed)?data.seed.slice(0,64):null;
     activePreset=(data&&data.preset&&PRESETS[data.preset])?data.preset:null;
     syncUI(); syncBgUI(); updateAuto(); buildPresetOptions(); syncPresetUI();
@@ -1522,7 +1593,7 @@
         effect:{type:'string'}, version:{type:'integer'}, seed:{type:['string','null']}, preset:{type:['string','null']},
         background:{type:'object',properties:{transparent:{type:'boolean'},top:{type:'string',pattern:'^#[0-9a-fA-F]{6}$'},bottom:{type:'string',pattern:'^#[0-9a-fA-F]{6}$'}}},
         parameters:{type:'object',required:CONFIG.map(function(c){return c.key;}),properties:props},
-        overlays:{type:'array',maxItems:3,items:{type:'object',properties:{name:{type:'string'},parameters:{type:'object',properties:props}}}}
+        overlays:{type:'array',maxItems:3,items:{type:'object',properties:{name:{type:'string'},visible:{type:'boolean'},parameters:{type:'object',properties:props}}}}
       },
       required:['parameters']
     };
@@ -1565,7 +1636,7 @@
   document.getElementById('crtResetBtn').addEventListener('click',function(){
     CONFIG.forEach(function(c){ params[c.key]=c.def; });
     BG.transparent=BG_DEF.transparent; BG.top=BG_DEF.top; BG.bottom=BG_DEF.bottom;
-    OVERLAYS=[]; renderOverlayBar();
+    OVERLAYS=[]; renderLayerTabs();
     SEED.current=null;
     activePreset=null; syncUI(); syncBgUI(); buildPresetOptions(); refreshExport(); updateAuto(); syncPresetUI();
     HL.mode=5; HL.pulse=1;
@@ -2125,6 +2196,7 @@
         gl.enable(gl.BLEND); gl.blendFunc(gl.ONE,gl.ONE);
         gl.uniform1f(U.bgOn,0.0);
         for(var oi=0;oi<OVERLAYS.length;oi++){
+          if(OVERLAYS[oi].visible===false) continue;
           setPassUniforms(OVERLAYS[oi].params);
           gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
         }

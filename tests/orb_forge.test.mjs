@@ -165,7 +165,12 @@ async function main() {
       return {
         sliders: document.querySelectorAll('#crtControls .row input[type=range]').length,
         presetOptions: document.querySelectorAll('#crtPreset option').length,
-        presetInTopbar: !!document.querySelector('.topbar #crtPreset'),
+        // F002: the visible preset control is gone; #crtPreset survives only as a
+        // hidden (sr-only) source of truth feeding the layer tabs.
+        presetHidden: document.querySelector('#crtPreset')?.classList.contains('sr-only') === true,
+        layerBaseTab: !!document.querySelector('#layerTabs .layer-tab.base'),
+        headerActionsPresent: ['crtRandomBtn','btnSavePreset','btnManager','crtResetBtn']
+          .every(id => !!document.querySelector('.param-header .param-actions #' + id)),
         transparentDefault: !!document.getElementById('crtTransp')?.checked,
         termCollapsed: !!document.querySelector('#term.is-collapsed'),
         logLines: document.querySelectorAll('#logConsole .tline').length,
@@ -181,8 +186,11 @@ async function main() {
     check('orb renders non-empty pixels', lit > 1000, `${lit} lit px`);
     check('all 40 parameter sliders present', load.sliders === 40, `${load.sliders}`);
     check('preset dropdown lists built-ins + seed row', load.presetOptions >= 13, `${load.presetOptions} options`);
-    // F006: presets moved to a dropdown in the topbar.
-    check('preset dropdown lives in the topbar', load.presetInTopbar);
+    // F002: layer tabs replace the visible preset dropdown; the select is hidden,
+    // the base layer tab renders, and Roll/Save/Manager/Reset live in the header.
+    check('preset select is a hidden source of truth', load.presetHidden);
+    check('base layer tab renders in the param header', load.layerBaseTab);
+    check('roll/save/manager/reset moved into the param header', load.headerActionsPresent);
     check('transparent background is the default', load.transparentDefault);
     // F007: the event log starts collapsed.
     check('event log is collapsed by default', load.termCollapsed);
@@ -232,6 +240,25 @@ async function main() {
       return { slider: slider.value, display: val.value };
     });
     check('typed param value applies to the slider', Math.abs(parseFloat(typed.slider) - 0.5) < 1e-9, `${typed.slider} / "${typed.display}"`);
+
+    // F002: overlay a preset via the manager → a layer tab with eye + × appears;
+    // toggling the eye hides the layer; the × removes it.
+    await page.click('#btnManager');
+    await page.waitForSelector('#mgrList .mgr-row input[type=checkbox]');
+    await page.evaluate(() => document.querySelector('#mgrList .mgr-row input[type=checkbox]').click());
+    await page.keyboard.press('Escape'); // close the modal so the header tabs are interactive
+    await new Promise(r => setTimeout(r, 60));
+    const tabAdded = await page.evaluate(() => {
+      const t = document.querySelector('#layerTabs .layer-tab.overlay');
+      return { present: !!t, hasEye: !!t?.querySelector('.lt-eye'), hasX: !!t?.querySelector('.lt-x') };
+    });
+    check('overlaying a preset adds a layer tab with eye + ×', tabAdded.present && tabAdded.hasEye && tabAdded.hasX);
+    await page.evaluate(() => document.querySelector('#layerTabs .layer-tab.overlay .lt-eye').click());
+    const hidden = await page.evaluate(() => document.querySelector('#layerTabs .layer-tab.overlay')?.classList.contains('hidden-layer'));
+    check('eye toggle hides the overlay layer', hidden === true);
+    await page.evaluate(() => document.querySelector('#layerTabs .layer-tab.overlay .lt-x').click());
+    const removed = await page.evaluate(() => !document.querySelector('#layerTabs .layer-tab.overlay'));
+    check('× removes the overlay layer', removed);
 
     // Drive the central promise: export a small animated WebP.
     await page.click('#crtWebpBtn'); // open export dialog
