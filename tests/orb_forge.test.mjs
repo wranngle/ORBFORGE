@@ -178,7 +178,7 @@ async function main() {
 
     check('WebGL context initializes', lit >= 0);
     check('orb renders non-empty pixels', lit > 1000, `${lit} lit px`);
-    check('all 27 parameter sliders present', load.sliders === 27, `${load.sliders}`);
+    check('all 34 parameter sliders present', load.sliders === 34, `${load.sliders}`);
     check('preset dropdown lists built-ins', load.presetOptions >= 8, `${load.presetOptions} options`);
     // F006: presets moved to a dropdown in the topbar.
     check('preset dropdown lives in the topbar', load.presetInTopbar);

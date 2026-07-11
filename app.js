@@ -1,40 +1,52 @@
 (function(){
   var TAU=Math.PI*2;
+  // rmin/rmax bound RANDOMIZE only (sliders keep the full min/max range) —
+  // tuned so a roll lands on a usable orb, not a blown-out extreme.
   var GROUPS=[
     {name:'Ring & motion', items:[
       {key:'radius',     label:'Radius',          min:0.08,max:0.72,step:0.01, def:0.40, desc:'Distance from canvas center to the ring (0–1 of canvas)'},
-      {key:'thickness',  label:'Border thickness',min:0.005,max:0.22,step:0.005,def:0.025,rmin:0.01,rmax:0.085, desc:'Width of the ring band — thicker = more presence'},
-      {key:'rotSpeed',   label:'Rotation',        min:-6,  max:6,   step:0.1,  def:0.4,  desc:'Ring angular speed in rad/s. Negative reverses direction.'},
-      {key:'pulseSpeed', label:'Pulse speed',     min:0,   max:14,  step:0.1,  def:2.2,  desc:'How quickly the ring breathes / pulses'},
-      {key:'pulseAmount',label:'Pulse amount',    min:0,   max:0.45,step:0.01, def:0.07,rmin:0,rmax:0.22, desc:'How much the radius pulses (0 = none)'},
-      {key:'wobble',     label:'Wobble / warp',   min:0,   max:0.25,step:0.01, def:0.04, desc:'How much the ring distorts into non-circular shapes'},
+      {key:'thickness',  label:'Border thickness',min:0.005,max:0.22,step:0.005,def:0.025,rmin:0.01,rmax:0.06, desc:'Width of the ring band — thicker = more presence'},
+      {key:'rotSpeed',   label:'Rotation',        min:-6,  max:6,   step:0.1,  def:0.4,  rmin:-2,rmax:2, desc:'Ring angular speed in rad/s. Negative reverses direction.'},
+      {key:'pulseSpeed', label:'Pulse speed',     min:0,   max:14,  step:0.1,  def:2.2,  rmin:0,rmax:8, desc:'How quickly the ring breathes / pulses'},
+      {key:'pulseAmount',label:'Pulse amount',    min:0,   max:0.45,step:0.01, def:0.07,rmin:0,rmax:0.15, desc:'How much the radius pulses (0 = none)'},
+      {key:'wobble',     label:'Wobble / warp',   min:0,   max:0.25,step:0.01, def:0.04, rmin:0,rmax:0.12, desc:'How much the ring distorts into non-circular shapes'},
       {key:'timeJitter', label:'Time jitter',     min:0,   max:0.8, step:0.01, def:0,   rmin:0,rmax:0.3, desc:'Warps time back and forth within the loop — motion surges forward and briefly reverses. 0 = steady time.'},
       {key:'jitterRate', label:'Jitter rate',     min:0.2, max:10,  step:0.1,  def:2,   rmin:0.5,rmax:6, desc:'How fast the time warp oscillates (only matters when Time jitter > 0)'}
     ]},
-    {name:'Burning texture', items:[
-      {key:'burn',       label:'Burn intensity',  min:0,   max:4,   step:0.05, def:1,   rmin:0.2,rmax:2.2, desc:'Strength of the noise-driven fire texture on the ring'},
-      {key:'noiseScale', label:'Texture scale',   min:0.5, max:50,  step:0.5,  def:8,   desc:'How fine vs coarse the burn pattern is'},
-      {key:'flowSpeed',  label:'Flame flow speed',min:0,   max:5,   step:0.1,  def:1,   desc:'How fast the flame texture drifts'},
-      {key:'glow',       label:'Glow intensity',  min:0,   max:6,   step:0.1,  def:1.3, rmin:0.4,rmax:2.6, desc:'Brightness of the soft halo around the ring'},
-      {key:'chroma',     label:'Chromatic aberration',min:0,max:0.16,step:0.002,def:0.014,rmin:0.002,rmax:0.07, desc:'RGB channel separation — bigger = more rainbow fringing'}
+    {name:'Surface & texture', items:[
+      {key:'burn',       label:'Burn intensity',  min:0,   max:4,   step:0.05, def:1,   rmin:0.2,rmax:2.0, desc:'Strength of the noise-driven surface texture on the ring'},
+      {key:'noiseScale', label:'Texture scale',   min:0.5, max:50,  step:0.5,  def:8,   rmin:2,rmax:28, desc:'How fine vs coarse the surface pattern is'},
+      {key:'texStyle',   label:'Texture style',   min:0,   max:4,   step:1,    def:0,   desc:'Surface material: 0 smoke · 1 ridged filaments · 2 plasma cells · 3 banded rings · 4 woven threads'},
+      {key:'flowSpeed',  label:'Flow speed',      min:0,   max:5,   step:0.1,  def:1,   rmin:0,rmax:3, desc:'How fast the surface texture drifts'},
+      {key:'glow',       label:'Glow intensity',  min:0,   max:6,   step:0.1,  def:1.3, rmin:0.4,rmax:2.2, desc:'Brightness of the soft halo around the ring'},
+      {key:'chroma',     label:'Chromatic aberration',min:0,max:0.16,step:0.002,def:0.014,rmin:0.002,rmax:0.05, desc:'RGB channel separation — bigger = more rainbow fringing'},
+      {key:'depth3d',    label:'3D shading',      min:0,   max:1.5, step:0.05, def:0,   rmin:0,rmax:1.0, desc:'Torus-style diffuse lighting — sculpts the ring into a lit 3D form (0 = flat emissive)'},
+      {key:'lightAngle', label:'Light angle',     min:0,   max:360, step:1,    def:132, desc:'Direction the 3D light comes from, in degrees (only visible with 3D shading or Gloss)'},
+      {key:'gloss',      label:'Gloss',           min:0,   max:3,   step:0.05, def:1,   rmin:0.4,rmax:2, desc:'Specular shine — 0 matte, high = wet / metallic highlight'}
     ]},
-    {name:'Comet / tracer', items:[
-      {key:'tracerCount',label:'Comet count',     min:0,   max:6,   step:1,    def:1,   desc:'Number of comets travelling around the ring (0 disables)'},
-      {key:'tracerSpeed',label:'Travel speed',    min:-12, max:12,  step:0.1,  def:2.6, desc:'Comet angular speed (negative reverses direction)'},
-      {key:'cometHead',  label:'Head size',       min:0.02,max:1.2, step:0.02, def:0.22,rmin:0.06,rmax:0.5, desc:'Width of each comet’s bright nucleus'},
-      {key:'tailLength', label:'Tail length',     min:0.05,max:5,   step:0.05, def:1.1, desc:'How far each comet’s tail trails behind'},
-      {key:'cometBulge', label:'Head bulge',      min:0,   max:4,   step:0.1,  def:1.4, rmin:0.3,rmax:2.6, desc:'How much the ring bulges where a comet is'},
-      {key:'tracerGlow', label:'Comet brightness',min:0,   max:6,   step:0.1,  def:2.2, rmin:0.6,rmax:3.0, desc:'Brightness of comets vs the ring'},
-      {key:'sparkle',    label:'Tail flicker',    min:0,   max:1.5, step:0.05, def:0.5, desc:'Random ember shimmer along each tail'}
+    {name:'Tracers', items:[
+      {key:'tracerCount',label:'Tracer count',    min:0,   max:6,   step:1,    def:1,   desc:'Number of tracers travelling around the ring (0 disables)'},
+      {key:'tracerSpeed',label:'Orbit speed',     min:-12, max:12,  step:0.1,  def:2.6, rmin:-4,rmax:4, desc:'Tracer angular speed (negative reverses direction)'},
+      {key:'cometHead',  label:'Head size',       min:0.02,max:1.2, step:0.02, def:0.22,rmin:0.06,rmax:0.32, desc:'Width of each tracer’s bright nucleus'},
+      {key:'tailLength', label:'Tail length',     min:0.05,max:5,   step:0.05, def:1.1, rmin:0.3,rmax:2.5, desc:'How far each tracer’s tail trails behind'},
+      {key:'cometBulge', label:'Head bulge',      min:0,   max:4,   step:0.1,  def:1.4, rmin:0.3,rmax:2.0, desc:'How much the ring bulges where a tracer is'},
+      {key:'tracerGlow', label:'Brightness',      min:0,   max:6,   step:0.1,  def:2.2, rmin:0.6,rmax:2.2, desc:'Brightness of tracers vs the ring'},
+      {key:'sparkle',    label:'Flicker',         min:0,   max:1.5, step:0.05, def:0.5, desc:'Random ember shimmer along each tail'}
     ]},
     {name:'Color & post', items:[
       {key:'hue',        label:'Ring hue',        min:0,   max:360, step:1,    def:24,  hue:true, desc:'Hue of the ring (0–360°)'},
-      {key:'tracerHue',  label:'Comet hue',       min:0,   max:360, step:1,    def:40,  hue:true, desc:'Hue of the comets (0–360°)'},
+      {key:'tracerHue',  label:'Tracer hue',      min:0,   max:360, step:1,    def:40,  hue:true, desc:'Hue of the tracers (0–360°)'},
       {key:'saturation', label:'Saturation',      min:0,   max:2,   step:0.05, def:1,   rmin:0.7,rmax:1.35, desc:'Color intensity (0 = grayscale)'},
       {key:'exposure',   label:'Exposure',        min:0.1, max:5,   step:0.05, def:1.3, rmin:0.85,rmax:1.55, desc:'Overall brightness'},
       {key:'contrast',   label:'Contrast',        min:0.2, max:3,   step:0.05, def:1.15,rmin:0.9,rmax:1.4, desc:'Tonal contrast'},
       {key:'gamma',      label:'Gamma',           min:0.3, max:2.6, step:0.05, def:1,   rmin:0.95,rmax:1.3, desc:'Mid-tone curve (lower = brighter mid-tones)'},
-      {key:'vignette',   label:'Vignette',        min:0,   max:2,   step:0.05, def:0.5, rmin:0.3,rmax:1.4, desc:'Darkens the canvas edges around the orb'}
+      {key:'vignette',   label:'Vignette',        min:0,   max:2,   step:0.05, def:0.5, rmin:0.3,rmax:1.1, desc:'Darkens the canvas edges around the orb'}
+    ]},
+    // Last so it tiles beside the Background group in the 2-column grid.
+    {name:'Core & volume', items:[
+      {key:'fill',      label:'Core fill',        min:0,   max:1,   step:0.05, def:0,   rmin:0,rmax:1, desc:'Fills the ring with a volumetric, lit 3D body textured by the Texture style — 0 = hollow ring, 1 = solid orb'},
+      {key:'filaments', label:'Filaments',        min:0,   max:2,   step:0.05, def:0,   rmin:0,rmax:1.4, desc:'Radial plasma strands arcing from a hot nucleus to the shell — the plasma-ball look'},
+      {key:'coreHue',   label:'Core hue',         min:0,   max:360, step:1,    def:200, hue:true, desc:'Hue of the core body and filaments (0–360°)'}
     ]}
   ];
   var CONFIG=[]; GROUPS.forEach(function(g){ g.items.forEach(function(it){ CONFIG.push(it); }); });
@@ -42,6 +54,26 @@
   /* ---------- Background (not a slider param — checkbox + colors) ---------- */
   var BG_DEF={transparent:true,top:'#0b0916',bottom:'#050409'};
   var BG={transparent:BG_DEF.transparent,top:BG_DEF.top,bottom:BG_DEF.bottom};
+
+  /* ---------- Overlay layers ----------
+     Each overlay is a full param snapshot rendered additively above the base
+     orb (light adds, like layered exposures). Capped at 3; they follow the
+     base loop length, ride along in exports, and live in undo history. */
+  var OVERLAYS=[];
+  function sanitizeOverlays(list){
+    var out=[];
+    (Array.isArray(list)?list:[]).slice(0,3).forEach(function(o){
+      var src=(o&&typeof o.parameters==='object'&&o.parameters)||(o&&typeof o.params==='object'&&o.params)||null;
+      if(!src) return;
+      var q={};
+      CONFIG.forEach(function(c){
+        var v=src[c.key];
+        q[c.key]=(typeof v==='number'&&isFinite(v))?snap(c,v):c.def;
+      });
+      out.push({name:(o&&typeof o.name==='string')?o.name.slice(0,40):null,params:q});
+    });
+    return out;
+  }
 
   var BUILTIN_PRESETS={
     'My default':{radius:0.4,thickness:0.007,rotSpeed:0.4,pulseSpeed:2.2,pulseAmount:0.015,wobble:0.01,burn:1,noiseScale:22,flowSpeed:1,glow:1.3,chroma:0.003,tracerCount:1,tracerSpeed:-0.6,cometHead:0.24,tailLength:0.85,cometBulge:1,tracerGlow:1.5,sparkle:1.5,hue:19,tracerHue:19,saturation:1.22,exposure:2,contrast:1.02,gamma:1,vignette:0},
@@ -83,6 +115,13 @@
     jitterRate:  '<circle cx="12" cy="13" r="8"/><path d="M12 13l3.5-3.5"/><path d="M12 5V3M5 6l1.5 1.5M19 6l-1.5 1.5"/>',
     burn:        '<path d="M12 3c0 4-4 5-4 10a4 4 0 0 0 8 0c0-2-1-3-2-5 0 2-1 3-2 3 0-3 1-5 0-8z"/>',
     noiseScale:  '<circle cx="6" cy="6" r="1.2" fill="currentColor" stroke="none"/><circle cx="12" cy="6" r="1.2" fill="currentColor" stroke="none"/><circle cx="18" cy="6" r="1.2" fill="currentColor" stroke="none"/><circle cx="6" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="18" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="6" cy="18" r="1.2" fill="currentColor" stroke="none"/><circle cx="12" cy="18" r="1.2" fill="currentColor" stroke="none"/><circle cx="18" cy="18" r="1.2" fill="currentColor" stroke="none"/>',
+    texStyle:    '<rect x="3" y="3" width="8" height="8" rx="2"/><circle cx="17" cy="7" r="4"/><path d="M3 15l4 6 4-6z"/><path d="M14 15h7M14 18h7M14 21h5"/>',
+    depth3d:     '<path d="M12 2 3 7v10l9 5 9-5V7z"/><path d="M12 12 3 7M12 12l9-5M12 12v10"/>',
+    lightAngle:  '<circle cx="12" cy="12" r="4"/><path d="M12 2v3M19 5l-2 2M22 12h-3"/>',
+    gloss:       '<circle cx="12" cy="12" r="8"/><path d="M8 8a5 5 0 0 1 4-2" stroke-width="2.4"/>',
+    fill:        '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5" fill="currentColor" stroke="none" opacity=".6"/>',
+    filaments:   '<circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><path d="M12 12 6 5M12 12l7-4M12 12l-8 4M12 12l5 8M12 12l8 1M12 12l-3 9"/>',
+    coreHue:     '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4" fill="currentColor" stroke="none" opacity=".5"/><path d="M12 3v5M12 16v5"/>',
     flowSpeed:   '<path d="M3 7h11a3 3 0 1 0-3-3M3 12h17M3 17h9a3 3 0 1 1-3 3"/>',
     glow:        '<circle cx="12" cy="12" r="3.6"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.5 4.5l2 2M17.5 17.5l2 2M4.5 19.5l2-2M17.5 6.5l2-2"/>',
     chroma:      '<circle cx="9" cy="10" r="5"/><circle cx="15" cy="10" r="5"/><circle cx="12" cy="15" r="5"/>',
@@ -210,7 +249,7 @@
     dlg.addEventListener('pointerdown',function(e){ downOnBackdrop=(e.target===dlg); });
     dlg.addEventListener('click',function(e){ if(e.target===dlg&&downOnBackdrop){ downOnBackdrop=false; dlg.close(); } });
   }
-  ['dlgExport','dlgImport','dlgJson','dlgSave','dlgHelp'].forEach(function(id){ wireDialog(document.getElementById(id)); });
+  ['dlgExport','dlgImport','dlgJson','dlgSave','dlgHelp','dlgOverlay','dlgSeed'].forEach(function(id){ wireDialog(document.getElementById(id)); });
   function openDialog(dlg){ if(dlg&&!dlg.open){ try{ dlg.showModal(); }catch(e){} } }
 
   /* ---------- Toast (undoable actions) ---------- */
@@ -321,6 +360,7 @@
     CONFIG.forEach(function(c){ s[c.key]=params[c.key]; });
     s.__preset=presetSel.value||'';
     s.__bgT=BG.transparent; s.__bgTop=BG.top; s.__bgBot=BG.bottom;
+    s.__ov=JSON.stringify(OVERLAYS);
     return s;
   }
   function applySnapshot(s){
@@ -329,6 +369,10 @@
     if(s.__bgT!==undefined){ BG.transparent=!!s.__bgT; }
     if(hexOk(s.__bgTop)) BG.top=s.__bgTop;
     if(hexOk(s.__bgBot)) BG.bottom=s.__bgBot;
+    if(typeof s.__ov==='string'){
+      try{ OVERLAYS=sanitizeOverlays(JSON.parse(s.__ov)); }catch(e){}
+      renderOverlayBar();
+    }
     presetSel.value=s.__preset||'';
     // The snapshot may reference a preset deleted since — a valueless select
     // renders blank; fall back to "— custom —".
@@ -391,6 +435,8 @@
   var HL_MODE={
     radius:1,thickness:1,rotSpeed:1,pulseSpeed:1,pulseAmount:1,wobble:1,
     burn:1,noiseScale:1,flowSpeed:1,hue:1,chroma:1,
+    texStyle:1,depth3d:1,lightAngle:1,gloss:1,
+    fill:8,filaments:8,coreHue:8,
     glow:2,
     tracerCount:3,tracerSpeed:3,cometHead:3,tailLength:3,cometBulge:3,tracerGlow:3,sparkle:3,tracerHue:3,
     vignette:4,
@@ -638,7 +684,9 @@
   }
   presetSel.addEventListener('change',function(){
     var p=PRESETS[presetSel.value]; if(!p){ syncPresetUI(); return; }
-    CONFIG.forEach(function(c){ if(p[c.key]!==undefined) params[c.key]=p[c.key]; });
+    // Missing keys fall back to defaults so presets saved before a parameter
+    // existed still land on a deterministic look.
+    CONFIG.forEach(function(c){ params[c.key]=(p[c.key]!==undefined)?p[c.key]:c.def; });
     if(p._bg){
       BG.transparent=!!p._bg.transparent;
       if(hexOk(p._bg.top)) BG.top=p._bg.top;
@@ -657,7 +705,7 @@
   var presetNameInp=document.getElementById('presetName');
   var presetSaveStatus=document.getElementById('presetSaveStatus');
   document.getElementById('btnSavePreset').addEventListener('click',function(){
-    presetNameInp.value=(presetSel.value&&USER_PRESETS[presetSel.value])?presetSel.value:'';
+    presetNameInp.value=(presetSel.value&&USER_PRESETS[presetSel.value])?presetSel.value:(SEED.current||'');
     presetSaveStatus.textContent=''; presetSaveStatus.className='status';
     openDialog(dlgSave);
     presetNameInp.focus();
@@ -707,6 +755,86 @@
     });
   });
 
+  /* ---------- Overlay presets (stack up to 3 layers) ---------- */
+  var dlgOverlay=document.getElementById('dlgOverlay');
+  function renderOverlayBar(){
+    var bar=document.getElementById('overlayBar'); if(!bar) return;
+    bar.innerHTML='';
+    bar.hidden=OVERLAYS.length===0;
+    OVERLAYS.forEach(function(o,i){
+      var chip=document.createElement('span'); chip.className='ov-chip';
+      chip.title='Overlay layer '+(i+1)+' — rendered additively above the base orb';
+      var nm=document.createElement('span'); nm.textContent=o.name||('layer '+(i+1));
+      var x=document.createElement('button'); x.type='button'; x.className='ov-x'; x.textContent='×';
+      x.title='Remove this overlay'; x.setAttribute('aria-label','Remove overlay '+(o.name||('layer '+(i+1))));
+      x.addEventListener('click',function(){
+        OVERLAYS.splice(i,1);
+        renderOverlayBar(); refreshExport();
+        eclog('info','overlay.remove',{name:o.name,count:OVERLAYS.length},'Removed overlay "'+(o.name||'layer')+'"');
+        commitHistory();
+      });
+      chip.appendChild(nm); chip.appendChild(x);
+      bar.appendChild(chip);
+    });
+  }
+  function addOverlay(name){
+    if(OVERLAYS.length>=3){ showToast('Overlays are capped at 3 layers'); return; }
+    var p=PRESETS[name]; if(!p) return;
+    var q={};
+    CONFIG.forEach(function(c){ q[c.key]=(p[c.key]!==undefined)?p[c.key]:c.def; });
+    OVERLAYS.push({name:name,params:q});
+    renderOverlayBar(); refreshExport();
+    eclog('info','overlay.add',{name:name,count:OVERLAYS.length},'Overlaid preset "'+name+'"');
+    commitHistory();
+    if(dlgOverlay) dlgOverlay.close();
+  }
+  (function(){
+    var btn=document.getElementById('btnOverlay');
+    if(!btn||!dlgOverlay) return;
+    btn.addEventListener('click',function(){
+      var list=document.getElementById('overlayList');
+      list.innerHTML='';
+      Object.keys(PRESETS).forEach(function(name){
+        var b=document.createElement('button'); b.type='button'; b.className='btn btn--ghost';
+        b.textContent=name;
+        b.title='Stack "'+name+'" above the current orb';
+        b.addEventListener('click',function(){ addOverlay(name); });
+        list.appendChild(b);
+      });
+      openDialog(dlgOverlay);
+      eclog('info','ui.dialog.open',{dialog:'overlay'},'Overlay dialog opened');
+    });
+  })();
+
+  /* ---------- Seed entry / quick import ---------- */
+  (function(){
+    var btn=document.getElementById('btnSeed'),dlg=document.getElementById('dlgSeed');
+    if(!btn||!dlg) return;
+    var inp=document.getElementById('seedInput'),st=document.getElementById('seedStatus');
+    function setSt(msg,kind){ st.textContent=msg; st.className='status'+(kind?' '+kind:''); }
+    btn.addEventListener('click',function(){
+      inp.value='';
+      setSt(SEED.current?('Current seed: '+SEED.current):'','');
+      openDialog(dlg);
+      inp.focus();
+      eclog('info','ui.dialog.open',{dialog:'seed'},'Seed dialog opened');
+    });
+    function apply(){
+      var v=inp.value.trim();
+      if(!v){ setSt('Enter a seed, or paste a full config JSON.','err'); return; }
+      if(v[0]==='{'){
+        if(importJSONText(v,setSt)) dlg.close();
+        return;
+      }
+      if(!/^[\w.-]{1,64}$/.test(v)){ setSt('Seeds are short — letters, numbers, dots, dashes.','err'); return; }
+      seededRandomize(v);
+      dlg.close();
+    }
+    document.getElementById('seedApplyBtn').addEventListener('click',apply);
+    inp.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); apply(); } });
+  })();
+  renderOverlayBar();
+
   /* ---------- WEBGL ---------- */
   var canvas=document.getElementById('crtCanvas');
   var glOpts={alpha:true,preserveDrawingBuffer:true,antialias:true,premultipliedAlpha:false};
@@ -725,6 +853,8 @@
   'uniform float u_radius,u_thickness,u_rotSpeed,u_pulseSpeed,u_pulseAmount,u_wobble;',
   'uniform float u_timeJitter,u_jitterRate;',
   'uniform float u_burn,u_noiseScale,u_flowSpeed,u_glow,u_chroma;',
+  'uniform float u_texStyle,u_depth3d,u_lightAngle,u_gloss;',
+  'uniform float u_fill,u_filaments,u_coreHue;',
   'uniform float u_tracerCount,u_tracerSpeed,u_cometHead,u_tailLength,u_cometBulge,u_tracerGlow,u_sparkle;',
   'uniform float u_hue,u_tracerHue,u_saturation,u_exposure,u_contrast,u_gamma,u_vignette,u_alphaMode;',
   'uniform float u_loop,u_phase,u_loopDur;',
@@ -736,6 +866,19 @@
   ' float a=hash(i),b=hash(i+vec2(1.,0.)),c=hash(i+vec2(0.,1.)),d=hash(i+vec2(1.,1.));',
   ' return mix(mix(a,b,u.x),mix(c,d,u.x),u.y);}',
   'float fbm(vec2 p){float v=0.,a=0.55;for(int i=0;i<5;i++){v+=a*noise(p);p=p*2.03+1.7;a*=0.5;}return v;}',
+  // Surface material styles — same drivers (pol coords + flow time), five looks:
+  // 0 smoke (classic fbm) · 1 ridged filaments · 2 plasma cells (worley)
+  // · 3 banded rings · 4 woven threads.
+  'float texv(vec2 p,float style){',
+  ' if(style<0.5) return pow(fbm(p),1.6);',
+  ' if(style<1.5){ float r=1.0-abs(2.0*fbm(p)-1.0); return pow(r,2.4); }',
+  ' if(style<2.5){ vec2 ip=floor(p),fp=fract(p); float md=8.0;',
+  '  for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){ vec2 g=vec2(float(x),float(y));',
+  '   vec2 o=vec2(hash(ip+g),hash(ip+g+19.7)); float d=length(g+o-fp); md=min(md,d); }',
+  '  return pow(clamp(1.0-md,0.0,1.0),2.0); }',
+  ' if(style<3.5){ float w=fbm(p); return pow(0.5+0.5*sin(p.y*2.2+w*5.0),1.6); }',
+  ' float w2=fbm(p*0.7); return pow(0.5+0.5*sin(p.x*3.0+w2*7.0),1.4)*mix(0.6,1.3,fbm(p+7.3));',
+  '}',
   'vec3 hsv2rgb(vec3 c){vec4 K=vec4(1.,0.6666667,0.3333333,3.);',
   ' vec3 p=abs(fract(c.xxx+K.xyz)*6.-K.www);return c.z*mix(K.xxx,clamp(p-K.xxx,0.,1.),c.y);}',
   'float band(float d,float r,float th){float x=abs(d-r);return smoothstep(th,th*0.15,x);}',
@@ -756,10 +899,10 @@
   ' float phw=ph+((lp>0.5)?jw/max(Td,0.001):0.0);',
   ' vec2 pol=vec2(cos(ang),sin(ang))*u_noiseScale+vec2(0.0,dist*u_noiseScale);',
   ' vec2 fv=vec2(0.6*u_flowSpeed,-0.9*u_flowSpeed);',
-  ' float bt=pow(fbm(pol+fv*t),1.6);',
+  ' float bt=texv(pol+fv*t,u_texStyle);',
   // The crossfade weight stays the UNWARPED ph: it must run 0→1 monotonically
   // across the loop or the seam blend itself would jitter.
-  ' if(lp>0.5){ float bt2=pow(fbm(pol+fv*(t-Td)),1.6); bt=mix(bt,bt2,ph); }',
+  ' if(lp>0.5){ float bt2=texv(pol+fv*(t-Td),u_texStyle); bt=mix(bt,bt2,ph); }',
   ' float pulse;',
   ' if(lp>0.5){ float np=floor(u_pulseSpeed*Td/TAU+0.5); pulse=sin(TAU*np*phw); }',
   ' else { pulse=sin(t*u_pulseSpeed); }',
@@ -813,22 +956,57 @@
   ' float gR=halo(dist,pr+ca,th)*u_glow,gG=halo(dist,pr,th)*u_glow,gB=halo(dist,pr-ca,th)*u_glow;',
   ' vec2 dir=uv/max(dist,1e-4);',
   ' vec3 nrm=normalize(vec3(dir*((dist-pr)/max(th,1e-4))*1.4,1.0));',
-  ' vec3 L=normalize(vec3(-0.55,0.6,0.75));',
-  ' float spec=pow(max(dot(nrm,L),0.0),22.0);',
+  // Light direction from u_lightAngle; the default 132° reproduces the legacy
+  // fixed vector (-0.55, 0.6). diff sculpts the band into a lit torus when
+  // u_depth3d > 0; gloss=1 reproduces the legacy specular (exp 22 × 1.2).
+  ' float la=u_lightAngle*0.017453293;',
+  ' vec3 L=normalize(vec3(cos(la),sin(la),0.75));',
+  ' float ndl=max(dot(nrm,L),0.0);',
+  ' float spec=pow(ndl,8.0+14.0*u_gloss)*1.2*u_gloss;',
+  ' float diff=mix(1.0,0.22+1.6*ndl,clamp(u_depth3d,0.0,1.5));',
   ' vec3 baseCol=hsv2rgb(vec3(u_hue/360.0,0.85,1.0));',
   ' vec3 hotCol=mix(vec3(1.0,0.32,0.05),vec3(1.0,0.95,0.55),bt);',
   ' vec3 ringCol=mix(baseCol,hotCol,clamp(u_burn*bt*0.7,0.0,1.0));',
   ' vec3 cometCol=mix(hsv2rgb(vec3(u_tracerHue/360.0,0.8,1.0)),vec3(1.0,0.97,0.92),nucleus);',
   ' vec3 col=vec3(0.0);',
-  ' col+=vec3(bR,bG,bB)*ringCol*1.4;',
+  ' col+=vec3(bR,bG,bB)*ringCol*1.4*diff;',
   ' col+=vec3(gR,gG,gB)*ringCol;',
-  ' col+=bMax*bt*u_burn*hotCol*1.3;',
-  ' col+=bMax*spec*vec3(1.0,0.95,0.9)*1.2;',
+  ' col+=bMax*bt*u_burn*hotCol*1.3*diff;',
+  ' col+=bMax*spec*vec3(1.0,0.95,0.9);',
   ' float cOn=comet*(bMax+gG*0.7);',
   ' col+=cOn*cometCol*u_tracerGlow;',
   ' col+=comet*gG*cometCol*0.7;',
   ' col+=nucleus*nucleus*bMax*vec3(1.0)*u_tracerGlow*0.6;',
   ' col+=smoothstep(pr,pr-0.28,dist)*0.06*ringCol;',
+  // ---- Volumetric core: a lit 3D body inside the ring (u_fill) and radial
+  // plasma filaments with a hot nucleus (u_filaments). Same texture style,
+  // same light; drift uses the warped t with the standard seam crossfade.
+  ' float inR=max(pr-th*0.5,0.03);',
+  ' vec3 coreCol=hsv2rgb(vec3(u_coreHue/360.0,0.8,1.0));',
+  ' if(u_fill>0.001){',
+  '  float body=1.0-smoothstep(inR*0.82,inR,dist);',
+  '  float ct=texv(pol*0.8+fv*t*0.7,u_texStyle);',
+  '  if(lp>0.5){ float ct2=texv(pol*0.8+fv*(t-Td)*0.7,u_texStyle); ct=mix(ct,ct2,ph); }',
+  '  vec2 sxy=uv/max(inR,1e-3);',
+  '  float z2=1.0-clamp(dot(sxy,sxy),0.0,1.0);',
+  '  vec3 nS=normalize(vec3(sxy,sqrt(z2)+0.02));',
+  '  float ndlS=max(dot(nS,L),0.0);',
+  '  float shS=mix(0.55,0.20+1.35*ndlS,clamp(u_depth3d,0.0,1.5));',
+  '  float fres=pow(1.0-clamp(nS.z,0.0,1.0),2.0);',
+  '  float specS=pow(ndlS,8.0+14.0*u_gloss)*u_gloss;',
+  '  col+=body*u_fill*(coreCol*(0.22+0.85*ct)*shS+coreCol*fres*0.55+specS*vec3(1.0,0.97,0.9)*0.8);',
+  ' }',
+  ' if(u_filaments>0.001){',
+  '  vec2 fq=vec2(cos(ang),sin(ang))*3.5+vec2(0.0,dist*5.0);',
+  '  vec2 fdrift=vec2(0.0,-1.1);',
+  '  float fw=fbm(fq+fdrift*t);',
+  '  if(lp>0.5){ float fw2=fbm(fq+fdrift*(t-Td)); fw=mix(fw,fw2,ph); }',
+  '  float fil=pow(1.0-abs(2.0*fw-1.0),6.0);',
+  '  float reach=smoothstep(inR*1.05,inR*0.6,dist);',
+  '  float nucleusHot=exp(-dist*dist/(inR*inR*0.015+1e-4));',
+  '  vec3 filCol=mix(coreCol,vec3(1.0),0.35);',
+  '  col+=(fil*reach*1.5+nucleusHot*2.2)*u_filaments*filCol;',
+  ' }',
   ' col*=(0.82+(pulse*0.5+0.5)*0.36);',
   ' col*=1.0-clamp(u_vignette,0.0,2.0)*0.5*smoothstep(0.55,1.15,dist);',
   ' col*=u_exposure;',
@@ -848,9 +1026,11 @@
   '  else if(u_hlMode<4.5) hm=smoothstep(0.5,1.05,dist);',
   '  else if(u_hlMode<5.5) hm=0.45;',
   '  else if(u_hlMode<6.5) hm=clamp(1.0-(bMax+gG)-smoothstep(pr,pr-0.3,dist),0.0,1.0);',
-  '  else hm=clamp(max(bMax,comet*(bMax+gG)),0.0,1.0);',
+  '  else if(u_hlMode<7.5) hm=clamp(max(bMax,comet*(bMax+gG)),0.0,1.0);',
+  '  else hm=1.0-smoothstep(inR*0.85,inR,dist);',
   '  float rim=smoothstep(0.03,0.16,hm)*(1.0-smoothstep(0.3,0.6,hm));',
-  '  col+=vec3(1.0,0.72,0.35)*(hm*(0.14+0.10*u_hlPulse)+rim*(0.30+0.45*u_hlPulse))*u_hlStrength;',
+  // Hot-pink edit indicator: soft translucent in-fill + a stronger pink rim.
+  '  col+=(vec3(1.0,0.45,0.80)*hm*(0.10+0.08*u_hlPulse)+vec3(1.0,0.25,0.70)*rim*(0.45+0.5*u_hlPulse))*u_hlStrength;',
   ' }',
   ' float oa=clamp(max(col.r,max(col.g,col.b)),0.0,1.0);',
   ' vec3 oc=col/max(oa,0.0025);',
@@ -893,6 +1073,10 @@
     var a=hexToRgbF(BG.top),b=hexToRgbF(BG.bottom);
     gl.uniform3f(U.bgA,a[0],a[1],a[2]);
     gl.uniform3f(U.bgB,b[0],b[1],b[2]);
+  }
+  // One render pass = one full param set (the base orb or an overlay layer).
+  function setPassUniforms(p){
+    CONFIG.forEach(function(c){ gl.uniform1f(U[c.key],(p[c.key]!==undefined)?p[c.key]:c.def); });
   }
 
   var exporting=false,estimating=false,renderQueued=false;
@@ -980,8 +1164,20 @@
       gl.uniform1f(U.hlMode,HL.mode);
       gl.uniform1f(U.hlStrength,Math.min(1,HL.cur+HL.pulse*0.7));
       gl.uniform1f(U.hlPulse,HL.pulse);
-      CONFIG.forEach(function(c){ gl.uniform1f(U[c.key],params[c.key]); });
+      setPassUniforms(params);
       gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+      // Overlay layers: additive light above the base pass. The highlight and
+      // backdrop belong to the base only.
+      if(OVERLAYS.length){
+        gl.enable(gl.BLEND); gl.blendFunc(gl.ONE,gl.ONE);
+        gl.uniform1f(U.bgOn,0.0);
+        gl.uniform1f(U.hlStrength,0.0);
+        for(var oi=0;oi<OVERLAYS.length;oi++){
+          setPassUniforms(OVERLAYS[oi].params);
+          gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+        }
+        gl.disable(gl.BLEND);
+      }
       var T=currentDur();
       if(playing&&!scrubActive) scrub.value=String(((elapsed%T)/T).toFixed(3));
       if(timeEl) timeEl.textContent=(elapsed%T).toFixed(2)+' / '+T.toFixed(2)+' s';
@@ -994,28 +1190,39 @@
   var dlgImport=document.getElementById('dlgImport'),dlgJson=document.getElementById('dlgJson');
   var jsonArea=document.getElementById('crtJson'),jsonOut=document.getElementById('crtJsonOut'),statusEl=document.getElementById('crtStatus');
   function setStatus(msg,kind){ statusEl.textContent=msg; statusEl.className='status'+(kind?' '+kind:''); }
-  function buildJSON(){
+  function roundParams(src){
     var p={};
-    CONFIG.forEach(function(c){ p[c.key]=c.step>=1?Math.round(params[c.key]):parseFloat(Number(params[c.key]).toFixed(Math.max(decimals(c.step),3))); });
-    return JSON.stringify({
+    CONFIG.forEach(function(c){
+      var v=(src[c.key]!==undefined)?src[c.key]:c.def;
+      p[c.key]=c.step>=1?Math.round(v):parseFloat(Number(v).toFixed(Math.max(decimals(c.step),3)));
+    });
+    return p;
+  }
+  function buildJSON(){
+    var doc={
       effect:'chromatic_burning_comet_ring',
-      version:12,
+      version:13,
       exportedAt:new Date().toISOString(),
+      seed:SEED.current,
       preset:presetSel.value||null,
       background:{transparent:BG.transparent,top:BG.top,bottom:BG.bottom},
-      parameters:p
-    },null,2);
+      parameters:roundParams(params)
+    };
+    if(OVERLAYS.length) doc.overlays=OVERLAYS.map(function(o){ return {name:o.name,parameters:roundParams(o.params)}; });
+    return JSON.stringify(doc,null,2);
   }
   function refreshExport(){
     if(dlgJson&&dlgJson.open) jsonOut.value=buildJSON();
     scheduleEstimate();
   }
-  function importJSON(){
-    var txt=jsonArea.value.trim();
-    if(!txt){ setStatus('Paste a JSON config into the box first.','err'); return; }
-    var data; try{ data=JSON.parse(txt); }catch(e){ setStatus('Invalid JSON — '+e.message,'err'); eclog('error','config.import_error',{reason:e.message},'Invalid JSON'); return; }
+  // Shared by the Import dialog and the seed dialog (which accepts pasted
+  // JSON too). Returns true when something was applied.
+  function importJSONText(txt,setSt){
+    txt=String(txt||'').trim();
+    if(!txt){ setSt('Paste a JSON config into the box first.','err'); return false; }
+    var data; try{ data=JSON.parse(txt); }catch(e){ setSt('Invalid JSON — '+e.message,'err'); eclog('error','config.import_error',{reason:e.message},'Invalid JSON'); return false; }
     var src=(data&&typeof data.parameters==='object'&&data.parameters)?data.parameters:data;
-    if(!src||typeof src!=='object'){ setStatus('No parameters object found.','err'); return; }
+    if(!src||typeof src!=='object'){ setSt('No parameters object found.','err'); return false; }
     var applied=0,clamped=0;
     CONFIG.forEach(function(c){
       var v=src[c.key];
@@ -1025,21 +1232,25 @@
         params[c.key]=s; applied++;
       }
     });
-    if(applied===0){ setStatus('No matching parameter keys found in that JSON.','err'); return; }
+    if(applied===0){ setSt('No matching parameter keys found in that JSON.','err'); return false; }
     var bgIn=data&&data.background;
     if(bgIn&&typeof bgIn==='object'){
       if(typeof bgIn.transparent==='boolean') BG.transparent=bgIn.transparent;
       if(hexOk(bgIn.top)) BG.top=bgIn.top.toLowerCase();
       if(hexOk(bgIn.bottom)) BG.bottom=bgIn.bottom.toLowerCase();
     }
+    if(Array.isArray(data.overlays)){ OVERLAYS=sanitizeOverlays(data.overlays); renderOverlayBar(); }
+    if(typeof data.seed==='string'&&data.seed) SEED.current=data.seed.slice(0,64);
     syncUI(); syncBgUI(); updateAuto();
     presetSel.value=(data&&data.preset&&PRESETS[data.preset])?data.preset:'';
     syncPresetUI();
-    setStatus('Applied '+applied+' of '+CONFIG.length+' parameters'+(clamped?' ('+clamped+' clamped to range)':'')+'.','ok');
-    eclog('info','config.import',{applied:applied,clamped:clamped,preset:presetSel.value||null},'Imported '+applied+' parameters');
+    setSt('Applied '+applied+' of '+CONFIG.length+' parameters'+(clamped?' ('+clamped+' clamped to range)':'')+(OVERLAYS.length?' + '+OVERLAYS.length+' overlay'+(OVERLAYS.length===1?'':'s'):'')+'.','ok');
+    eclog('info','config.import',{applied:applied,clamped:clamped,overlays:OVERLAYS.length,preset:presetSel.value||null},'Imported '+applied+' parameters');
     commitHistory();
     refreshExport();
+    return true;
   }
+  function importJSON(){ importJSONText(jsonArea.value,setStatus); }
   document.getElementById('btnImportJson').addEventListener('click',function(){
     setStatus('','');
     openDialog(dlgImport);
@@ -1078,6 +1289,8 @@
   document.getElementById('crtResetBtn').addEventListener('click',function(){
     CONFIG.forEach(function(c){ params[c.key]=c.def; });
     BG.transparent=BG_DEF.transparent; BG.top=BG_DEF.top; BG.bottom=BG_DEF.bottom;
+    OVERLAYS=[]; renderOverlayBar();
+    SEED.current=null;
     syncUI(); syncBgUI(); presetSel.value=''; refreshExport(); updateAuto(); syncPresetUI();
     HL.mode=5; HL.pulse=1;
     eclog('info','params.reset',{count:CONFIG.length},'Reset all parameters to defaults');
@@ -1086,6 +1299,7 @@
 
   function tameBrightness(){
     var load=params.exposure*1.25+params.glow*0.62+params.tracerGlow*0.58+params.burn*0.45
+            +params.fill*0.5+params.filaments*0.7
             +Math.max(0,params.contrast-1.0)*1.6+Math.max(0,params.thickness-0.03)*4.0;
     var CAP=5.4;
     if(load>CAP){
@@ -1094,28 +1308,52 @@
       params.glow=clamp(params.glow*s,0,6);
       params.tracerGlow=clamp(params.tracerGlow*s,0,6);
       params.burn=clamp(params.burn*Math.sqrt(s),0,4);
+      params.filaments=clamp(params.filaments*Math.sqrt(s),0,2);
       params.contrast=clamp(1.0+(params.contrast-1.0)*s,0.2,3);
     }
   }
-  document.getElementById('crtRandomBtn').addEventListener('click',function(){
+
+  /* ---------- Seeded randomize ----------
+     Every roll gets a human-readable seed; the same seed always reproduces the
+     same orb. The seed rides along in the export JSON and prefills the
+     save-preset name. */
+  var SEED={current:null};
+  function xmur3(str){
+    var h=1779033703^str.length;
+    for(var i=0;i<str.length;i++){ h=Math.imul(h^str.charCodeAt(i),3432918353); h=h<<13|h>>>19; }
+    return function(){ h=Math.imul(h^(h>>>16),2246822507); h=Math.imul(h^(h>>>13),3266489909); return (h^=h>>>16)>>>0; };
+  }
+  function mulberry32(a){
+    return function(){ var t=a+=0x6D2B79F5; t=Math.imul(t^t>>>15,t|1); t^=t+Math.imul(t^t>>>7,t|61); return ((t^t>>>14)>>>0)/4294967296; };
+  }
+  var SEED_WORDS=['ember','plasma','nova','quasar','vortex','halo','flux','ion','pulse','corona','zenith','drift','umbra','sol','tide','aether'];
+  function newSeed(){
+    return SEED_WORDS[(Math.random()*SEED_WORDS.length)|0]+'-'+Math.random().toString(16).slice(2,6);
+  }
+  function seededRandomize(seed){
+    var rng=mulberry32(xmur3(String(seed))());
     CONFIG.forEach(function(c){
       var lo=c.rmin!==undefined?c.rmin:c.min, hi=c.rmax!==undefined?c.rmax:c.max;
       var steps=Math.max(1,Math.round((hi-lo)/c.step));
-      params[c.key]=snap(c,lo+Math.round(Math.random()*steps)*c.step);
+      params[c.key]=snap(c,lo+Math.round(rng()*steps)*c.step);
     });
     tameBrightness();
     CONFIG.forEach(function(c){ params[c.key]=snap(c,params[c.key]); });
     // Backdrop colors ride along only when they're visible; the Transparent
     // toggle itself is never randomized.
     if(!BG.transparent){
-      var h=Math.random()*360;
-      BG.top=hslToHex(h,40+Math.random()*20,7+Math.random()*7);
-      BG.bottom=hslToHex((h+30+Math.random()*90)%360,45+Math.random()*20,12+Math.random()*8);
+      var h=rng()*360;
+      BG.top=hslToHex(h,40+rng()*20,7+rng()*7);
+      BG.bottom=hslToHex((h+30+rng()*90)%360,45+rng()*20,12+rng()*8);
     }
+    SEED.current=String(seed);
     syncUI(); syncBgUI(); presetSel.value=''; refreshExport(); updateAuto(); syncPresetUI();
     HL.mode=5; HL.pulse=1;
-    eclog('info','params.randomize',{},'Randomized within sensible ranges');
+    eclog('info','params.randomize',{seed:SEED.current},'Randomized — seed "'+SEED.current+'"');
     commitHistory();
+  }
+  document.getElementById('crtRandomBtn').addEventListener('click',function(){
+    seededRandomize(newSeed());
   });
 
   /* ---------- Keyboard shortcuts ---------- */
@@ -1215,8 +1453,6 @@
   }
   function syncFormatUI(){
     var gif=formatSel.value==='gif';
-    qualSel.disabled=gif;
-    targetSel.disabled=gif;
     if(gif){
       // Park the target while GIF is selected and restore it on the way back —
       // a format round-trip must not silently discard the user's size cap.
@@ -1226,12 +1462,22 @@
       targetSel.value=targetSel.dataset.prevTarget;
       delete targetSel.dataset.prevTarget;
     }
-    qualSel.title=gif?'GIF uses a fixed 255-color palette — size is driven by resolution and frame rate instead.':'WebP encoder quality. Max is near-lossless; High is usually indistinguishable at roughly half the size.';
-    targetSel.title=gif?'Target-size auto-tuning is WebP-only.':'Hard cap on file size. The exporter measures real frame cost, then picks the sharpest resolution that fits, flexing quality and frame rate first (never below 24 fps unless nothing fits).';
+    // Target mode owns resolution / frame rate / quality — grey them out so
+    // it's obvious the auto-tuner is choosing, not the selects.
+    var coerced=!gif&&parseFloat(targetSel.value)>0;
+    qualSel.disabled=gif||coerced;
+    resSel.disabled=coerced;
+    fpsSel.disabled=coerced;
+    targetSel.disabled=gif;
+    var autoTitle='Chosen automatically to fit the target size.';
+    resSel.title=coerced?autoTitle:'Pixel size of the square output. 512 px is crisp for avatars; 192–256 px keeps files tiny.';
+    fpsSel.title=coerced?autoTitle:'Frames per second. 24–30 fps looks smooth; 60 fps is silky but roughly doubles file size vs 30.';
+    qualSel.title=gif?'GIF uses a fixed 255-color palette — size is driven by resolution and frame rate instead.':(coerced?autoTitle:'WebP encoder quality. Max is near-lossless; High is usually indistinguishable at roughly half the size.');
+    targetSel.title=gif?'Target-size auto-tuning is WebP-only.':'Hard cap on file size. When set, it takes over resolution, frame rate, and quality to fit under the cap (frame rate stays ≥ 24 fps unless nothing fits).';
   }
   autoChk.addEventListener('change',function(){ updateAuto(); scheduleEstimate(); });
   fpsSel.addEventListener('change',function(){ updFrameInfo(); scheduleEstimate(); });
-  targetSel.addEventListener('change',function(){ updFrameInfo(); scheduleEstimate(); });
+  targetSel.addEventListener('change',function(){ syncFormatUI(); updFrameInfo(); scheduleEstimate(); });
   resSel.addEventListener('change',scheduleEstimate);
   qualSel.addEventListener('change',scheduleEstimate);
   formatSel.addEventListener('change',function(){ syncFormatUI(); scheduleEstimate(); });
@@ -1521,19 +1767,47 @@
       canvas.width=size; canvas.height=size;
       gl.viewport(0,0,size,size);
       gl.uniform2f(U.res,size,size);
-      gl.uniform1f(U.alphaMode,transparent?1.0:0.0);
+      // Always render premultiplied light (alphaMode 0) so overlay passes can
+      // blend additively; the alpha channel is reconstructed in JS below with
+      // the same max-channel rule the shader used to apply.
+      gl.uniform1f(U.alphaMode,0.0);
       setBgUniforms(!transparent);
       gl.uniform1f(U.hlMode,0.0); gl.uniform1f(U.hlStrength,0.0); gl.uniform1f(U.hlPulse,0.0);
       gl.uniform1f(U.loop,1.0); gl.uniform1f(U.loopDur,T);
-      CONFIG.forEach(function(c){ gl.uniform1f(U[c.key],params[c.key]); });
+      setPassUniforms(params);
     }
     function makeCtx(size){ var cv=document.createElement('canvas'); cv.width=cv.height=size; return {cv:cv,ctx:cv.getContext('2d')}; }
     function capturePixels(size,phase,pix){
       gl.uniform1f(U.phase,phase); gl.uniform1f(U.time,phase*T);
+      setPassUniforms(params);
       gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+      if(OVERLAYS.length){
+        gl.enable(gl.BLEND); gl.blendFunc(gl.ONE,gl.ONE);
+        gl.uniform1f(U.bgOn,0.0);
+        for(var oi=0;oi<OVERLAYS.length;oi++){
+          setPassUniforms(OVERLAYS[oi].params);
+          gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+        }
+        gl.disable(gl.BLEND);
+        gl.uniform1f(U.bgOn,transparent?0.0:1.0);
+      }
       gl.readPixels(0,0,size,size,gl.RGBA,gl.UNSIGNED_BYTE,pix);
       var out=new Uint8Array(size*size*4);
       for(var y=0;y<size;y++){ out.set(pix.subarray((size-1-y)*size*4,(size-y)*size*4),y*size*4); }
+      if(transparent){
+        // Reconstruct straight alpha: a = max channel (the shader's rule),
+        // color unpremultiplied so soft glow edges survive compositing.
+        for(var i=0;i<out.length;i+=4){
+          var r=out[i],g=out[i+1],b=out[i+2];
+          var a=r>g?(r>b?r:b):(g>b?g:b);
+          out[i+3]=a;
+          if(a>0&&a<255){
+            out[i]=Math.min(255,Math.round(r*255/a));
+            out[i+1]=Math.min(255,Math.round(g*255/a));
+            out[i+2]=Math.min(255,Math.round(b*255/a));
+          }
+        }
+      }
       return out;
     }
     function drawToCtx(size,flipped,ctx){
@@ -1633,6 +1907,13 @@
 
     /* ----- estimate (single probe frame, silent) ----- */
     if(estimateOnly){
+      // Target mode takes over resolution / fps / quality entirely — there is
+      // nothing meaningful to probe until render time.
+      if(target>0){
+        endEstimate();
+        setWebpStatus('Auto-fit under '+fmtSize(target)+' — resolution, frame rate, and quality are chosen at render time.','');
+        return;
+      }
       var fpsE=(format==='gif')?Math.min(fps0,50):fps0;
       var nFe=Math.max(2,Math.round(fpsE*T));
       var oE=makeCtx(size0),pixE=new Uint8Array(size0*size0*4);
@@ -1651,7 +1932,7 @@
       encodeBlob(oE.cv,manualQ).then(function(b){
         var est=b.size*nFe*1.04+400;
         endEstimate();
-        setWebpStatus('≈ '+fmtSize(est)+' estimated · '+size0+' px · '+fps0+' fps · '+nFe+' frames'+(target>0?' · auto-fits '+fmtSize(target):''),'');
+        setWebpStatus('≈ '+fmtSize(est)+' estimated · '+size0+' px · '+fps0+' fps · '+nFe+' frames','');
       }).catch(function(){
         endEstimate();
         setWebpStatus('This browser cannot encode WebP — switch Format to GIF.','err');
@@ -1671,9 +1952,11 @@
       return;
     }
 
+    // Target mode coerces the whole grid: the manual selects are disabled in
+    // the UI, so the auto-tuner searches every resolution / frame rate.
     var qLadder=[0.18,0.3,0.45,0.6,0.78,1.0];
-    var resCand=[192,256,360,480,512].filter(function(r){ return r<=size0; });
-    var fpsCand=[12,15,24,30,60].filter(function(f){ return f<=fps0; });
+    var resCand=[192,256,360,480,512];
+    var fpsCand=[12,15,24,30,60];
     var perFrame={};
     function calibrate(ri){
       if(ri>=resCand.length){ choose(); return; }

@@ -229,21 +229,27 @@ select option,select optgroup{background-color:#16151f;color:var(--text)}
 /* ============================================================
    Parameters column — 2-column groups via CSS columns
    ============================================================ */
+/* Grid, not CSS columns: every row of tiles shares one height, so sections
+   align cleanly instead of ragged masonry. */
 #crtControls{
-  column-count:2;column-gap:14px;
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;align-items:stretch;
 }
-@media (max-width:780px){#crtControls{column-count:1}}
+@media (max-width:780px){#crtControls{grid-template-columns:1fr}}
 
 .group{
   background:var(--panel);
   border:1px solid var(--line);
   border-radius:var(--radius-lg);
   overflow:hidden;
-  margin:0 0 12px;
-  break-inside:avoid;
-  -webkit-column-break-inside:avoid;
-  page-break-inside:avoid;
+  margin:0;
+  display:flex;flex-direction:column;
 }
+.group-body{flex:1}
+.group--wide{grid-column:1/-1}
+.group--wide .group-body{display:flex;flex-wrap:wrap;column-gap:26px}
+.group--wide .row{flex:1 1 300px}
+.group--wide .row + .row{border-top:none}
 .group-head{
   display:flex;align-items:center;gap:9px;
   padding:8px 12px;
@@ -387,12 +393,19 @@ input[type=range]:focus-visible::-moz-range-thumb{
    ============================================================ */
 .stage-col{position:sticky;top:14px;display:flex;flex-direction:column;gap:10px}
 
+/* Video-player transport: overlaid along the bottom of the preview, calm
+   until the pointer is over the stage (always visible on touch). */
 .transport{
+  position:absolute;left:10px;right:10px;bottom:10px;z-index:5;
   display:flex;align-items:center;gap:9px;
-  padding:6px 9px;
-  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-md);
+  padding:5px 8px;
+  background:rgba(8,7,13,.72);backdrop-filter:blur(10px);
+  border:1px solid rgba(255,255,255,.08);border-radius:var(--radius-md);
+  opacity:.25;transition:opacity var(--duration-normal) var(--ease-out);
 }
-.transport.is-disabled{opacity:.5;pointer-events:none}
+.stage-frame:hover .transport,.transport:focus-within{opacity:1}
+@media (hover:none){.transport{opacity:.9}}
+.transport.is-disabled{opacity:.4;pointer-events:none}
 .transport input[type=range]{flex:1}
 .transport-time{
   font-family:var(--font-mono);font-size:10px;color:var(--text-dim);
@@ -409,12 +422,18 @@ input[type=range]:focus-visible::-moz-range-thumb{
   background:radial-gradient(circle at 50% 50%, #0e0a16 0%, #06050a 70%);
   border-radius:17px 4px 17px 4px;overflow:hidden;cursor:pointer;
 }
-/* Fullscreen wraps the whole column so the transport (play / scrub / exit)
-   stays reachable; the export buttons hide to keep the view clean. */
-.stage-col:fullscreen{background:#000;padding:10px;gap:10px}
+/* Fullscreen: the whole column goes fullscreen and the stage letterboxes to a
+   centered square that fits the screen — the orb is never cropped. The
+   transport keeps overlaying the preview bottom, video-player style. */
+.stage-col:fullscreen{background:#000;padding:12px;gap:0;align-items:center;justify-content:center}
 .stage-col:fullscreen .actions{display:none}
-.stage-col:fullscreen .stage-frame{flex:1;min-height:0;border-radius:var(--radius-md)}
-.stage-col:fullscreen .stage{aspect-ratio:auto;height:100%;border-radius:7px}
+.stage-col:fullscreen .stage-frame{
+  flex:0 1 auto;
+  width:min(100vh - 24px,100vw - 24px);
+  max-width:100%;max-height:100%;
+  border-radius:var(--radius-md);
+}
+.stage-col:fullscreen .stage{border-radius:7px}
 .stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 .stage::before,.stage::after{
   content:'';position:absolute;width:14px;height:14px;pointer-events:none;
@@ -537,6 +556,31 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
 /* ============================================================
    Toast (undo delete, etc.)
    ============================================================ */
+/* ============================================================
+   Overlay layer chips
+   ============================================================ */
+.overlay-bar{
+  display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+  padding:6px 12px;
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-md);
+  border-left:3px solid var(--violet-500);
+}
+/* display:flex would otherwise defeat the hidden attribute */
+.overlay-bar[hidden]{display:none}
+.ov-chip{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:3px 5px 3px 10px;
+  background:rgba(207,60,105,.08);border:1px solid var(--violet-700);border-radius:999px;
+  font-family:var(--font-mono);font-size:10.5px;color:var(--violet-300);
+}
+.ov-chip .ov-x{
+  width:16px;height:16px;padding:0;border:0;border-radius:50%;
+  background:rgba(255,255,255,.06);color:var(--text-dim);
+  font-size:11px;line-height:1;cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;
+}
+.ov-chip .ov-x:hover{background:var(--text-danger);color:#fff}
+
 .toast{
   position:fixed;left:50%;bottom:60px;transform:translateX(-50%);z-index:70;
   display:flex;align-items:center;gap:10px;
@@ -644,7 +688,7 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
       </div>
     </div>
     <div class="topbar-actions">
-      <button class="btn btn--dice" id="crtRandomBtn" type="button" title="Randomize every parameter within curated ranges — a new orb each click">
+      <button class="btn btn--dice" id="crtRandomBtn" type="button" title="Randomize every parameter within curated ranges — each roll gets a seed you can re-enter to rebuild it">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="15.5" cy="15.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="15.5" cy="8.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="8.5" cy="15.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/></svg>
         Randomize
       </button>
@@ -656,6 +700,12 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
         </button>
         <button class="ic-btn" id="btnDeletePreset" type="button" title="Delete this preset (undoable)" aria-label="Delete preset" hidden>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+        </button>
+        <button class="ic-btn" id="btnOverlay" type="button" title="Overlay a preset — stack up to 3 layers additively above the current orb" aria-label="Overlay a preset">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 9 5-9 5-9-5z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/></svg>
+        </button>
+        <button class="ic-btn" id="btnSeed" type="button" title="Enter a seed (reproduces an exact roll) or paste a config JSON" aria-label="Seed or import">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-7"/><path d="M5 8c4 0 7 3 7 7-4 0-7-3-7-7z"/><path d="M19 4c-4 0-7 3-7 7 4 0 7-3 7-7z"/></svg>
         </button>
       </div>
       <button class="ic-btn" id="crtResetBtn" type="button" title="Reset every parameter to its default value" aria-label="Reset to defaults">
@@ -679,23 +729,14 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
     </div>
   </header>
 
+  <!-- Overlay layers (hidden until a preset is stacked) -->
+  <div class="overlay-bar" id="overlayBar" hidden aria-label="Overlay layers"></div>
+
   <!-- ============================================================
        Main grid — preview first in DOM so it leads on mobile
        ============================================================ -->
   <div class="grid">
     <aside class="stage-col">
-      <div class="transport" id="transport">
-        <button class="ic-btn" id="btnPlay" type="button" data-playing="true" title="Pause (Space)" aria-label="Pause">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
-        </button>
-        <label class="sr-only" for="crtScrub">Scrub through the loop</label>
-        <input type="range" id="crtScrub" min="0" max="1" step="0.001" value="0" title="Scrub through the loop — drag to any point in time">
-        <span class="transport-time" id="crtTime">0.00 / 0.00 s</span>
-        <button class="ic-btn" id="btnFull" type="button" title="Fullscreen preview (F)" aria-label="Fullscreen preview">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
-        </button>
-      </div>
-
       <div class="stage-frame" id="stageFrame">
         <div class="stage">
           <canvas id="crtCanvas"></canvas>
@@ -703,6 +744,17 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
             <img class="crt-fallback-orb" src="orb.webp" alt="Sample animated orb exported from Orb Forge" width="220" height="220" loading="lazy" decoding="async">
             <p>WebGL is unavailable in this browser, so the live preview cannot render. This orb is a real export — the controls shape one just like it.</p>
           </div>
+        </div>
+        <div class="transport" id="transport">
+          <button class="ic-btn" id="btnPlay" type="button" data-playing="true" title="Pause (Space)" aria-label="Pause">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+          </button>
+          <label class="sr-only" for="crtScrub">Scrub through the loop</label>
+          <input type="range" id="crtScrub" min="0" max="1" step="0.001" value="0" title="Scrub through the loop — drag to any point in time">
+          <span class="transport-time" id="crtTime">0.00 / 0.00 s</span>
+          <button class="ic-btn" id="btnFull" type="button" title="Fullscreen preview (F)" aria-label="Fullscreen preview">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
+          </button>
         </div>
       </div>
 
@@ -794,9 +846,9 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
       <div class="field" title="Hard cap on file size. The exporter encodes probe frames to measure real cost, then keeps the sharpest resolution that fits — quality and frame rate flex first, and frame rate never drops below 24 fps unless nothing fits. WebP only.">
         <label for="crtTarget">Target size</label>
         <select id="crtTarget">
-          <option value="0" title="Use the manual settings above, whatever they weigh">Off — manual</option>
+          <option value="0" selected title="Use the manual settings above, whatever they weigh">Off — manual</option>
           <option value="1048576" title="Auto-fit under 1 MB — most chat apps">Under 1 MB</option>
-          <option value="2097152" selected title="Auto-fit under 2 MB — safe default">Under 2 MB</option>
+          <option value="2097152" title="Auto-fit under 2 MB — safe default">Under 2 MB</option>
           <option value="5242880" title="Auto-fit under 5 MB — generous">Under 5 MB</option>
         </select>
       </div>
@@ -829,7 +881,7 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
         </a>
       </div>
     </div>
-    <p class="hint" id="crtExportHint">The size estimate updates automatically as you change settings. With a target size set, the exporter measures real frame cost first, then keeps the sharpest image that fits — quality and frame rate give way before resolution does. WebP encodes natively in Chrome, Edge, and recent Firefox; GIF is built in and works in every browser.</p>
+    <p class="hint" id="crtExportHint">The estimate updates live. Setting a target size hands resolution, frame rate, and quality to the auto-tuner. WebP needs Chrome, Edge, or recent Firefox; GIF plays everywhere.</p>
   </div>
 </dialog>
 
@@ -897,6 +949,39 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
 </dialog>
 
 <!-- ============================================================
+     Overlay preset dialog
+     ============================================================ -->
+<dialog id="dlgOverlay" aria-labelledby="dlgOverlayTitle">
+  <div class="dlg-head" id="dlgOverlayTitle">Overlay a preset
+    <button class="ic-btn dlg-x" type="button" data-close title="Close" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+  </div>
+  <div class="dlg-body">
+    <div class="bar" id="overlayList" style="margin-top:0"></div>
+    <p class="hint">Overlays render additively above your current orb — stack up to 3 layers. They follow the base loop length, export with the animation, and can be removed from the chips under the top bar.</p>
+  </div>
+</dialog>
+
+<!-- ============================================================
+     Seed / quick import dialog
+     ============================================================ -->
+<dialog id="dlgSeed" aria-labelledby="dlgSeedTitle">
+  <div class="dlg-head" id="dlgSeedTitle">Seed or import
+    <button class="ic-btn dlg-x" type="button" data-close title="Close" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+  </div>
+  <div class="dlg-body">
+    <input type="text" class="wide" id="seedInput" maxlength="4096" spellcheck="false" placeholder="Seed (e.g. plasma-4f2a) — or paste a full config JSON" aria-label="Seed or config JSON">
+    <div class="bar">
+      <button class="btn btn--primary" id="seedApplyBtn" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        Apply
+      </button>
+    </div>
+    <div class="status" id="seedStatus" aria-live="polite"></div>
+    <p class="hint">Every Randomize roll has a seed — the same seed always rebuilds the same orb. Find it in the export JSON, or share just the seed.</p>
+  </div>
+</dialog>
+
+<!-- ============================================================
      Help dialog
      ============================================================ -->
 <dialog id="dlgHelp" aria-labelledby="dlgHelpTitle">
@@ -904,20 +989,21 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
     <button class="ic-btn dlg-x" type="button" data-close title="Close" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
   </div>
   <div class="dlg-body">
-    <p>Orb Forge forges a <b>signature animated orb</b> — a living avatar for your AI agent, bot, app, or profile. One burning comet-ring, shaped by you, exported as a looping animation.</p>
+    <p>Orb Forge forges a <b>signature animated orb</b> — a living avatar for your AI agent, bot, app, or profile. Rings, glassy spheres, plasma cores, woven auras — shaped by you, exported as a looping animation.</p>
     <h3>Forge</h3>
     <ul>
-      <li>Drag any slider — or click its value and type. Every change renders live.</li>
-      <li><b>Randomize</b> rolls a new orb from curated ranges; <b>Undo</b> walks it back.</li>
+      <li>Drag any slider — or click its value and type. Every change renders live, and the region you’re editing glows pink in the preview.</li>
+      <li><b>Randomize</b> rolls a new orb from curated ranges. Every roll has a <b>seed</b> — re-enter it (seedling icon) to rebuild the exact same orb.</li>
+      <li><b>Overlay</b> (layers icon) stacks up to 3 presets additively for composite orbs.</li>
       <li>Save looks you like as presets; they stay in this browser.</li>
-      <li>Scrub the timeline above the preview, or go fullscreen to inspect it.</li>
+      <li>Scrub the timeline at the preview’s foot, or go fullscreen to inspect it.</li>
     </ul>
     <h3>Export</h3>
     <ul>
       <li><b>WebP</b> (recommended): small, smooth, true soft transparency.</li>
       <li><b>GIF</b>: plays everywhere, bigger files, hard-edged transparency.</li>
-      <li>Set a target size and the exporter auto-fits resolution, fps, and quality.</li>
-      <li>JSON export captures the exact recipe — commit it, share it, re-import it.</li>
+      <li>Set a target size and the auto-tuner takes over resolution, fps, and quality.</li>
+      <li>JSON export captures the exact recipe — seed, overlays, and all. Re-import it any time.</li>
     </ul>
     <h3>Private by construction</h3>
     <p>Everything renders and encodes in your browser. No login, no upload, no tracking — the page can’t even phone home; its security policy forbids it.</p>

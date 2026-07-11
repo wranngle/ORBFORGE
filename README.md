@@ -25,15 +25,22 @@ Firefox). WebGL is required for the preview.
 
 ## What it does
 
-- **Live WebGL preview**: a fragment-shader orb with a noise-driven burning
-  ring, configurable comets/tracers, glow, chromatic aberration, time jitter
-  (in-loop surge/reverse motion), and color post — with play/pause, timeline
-  scrubbing, and fullscreen.
-- **27 parameters** in five groups (Ring & motion, Burning texture,
-  Comet / tracer, Color & post, Background), each with a slider, ±steppers
+- **Live WebGL preview**: a fragment-shader orb with five surface texture
+  styles (smoke, ridged filaments, plasma cells, banded rings, woven threads),
+  3D torus/sphere lighting with adjustable light angle and gloss, a volumetric
+  core (solid lit body + radial plasma filaments), orbiting tracers, glow,
+  chromatic aberration, time jitter (in-loop surge/reverse motion), and color
+  post — with a video-player transport (play/pause, scrubbing, fullscreen)
+  overlaid on the preview.
+- **34 parameters** in six aligned groups, each with a slider, ±steppers
   (hold to repeat), and a typeable value field. Hovering or adjusting a
-  parameter highlights the exact region of the render it controls, tracked in
-  real time by the shader.
+  parameter pink-highlights the exact region of the render it controls,
+  tracked in real time by the shader.
+- **Seeded randomize**: every roll gets a human-readable seed (`plasma-4f2a`)
+  that deterministically rebuilds the same orb — re-enter it via the seed
+  dialog, share it, or find it stamped in the export JSON.
+- **Preset overlays**: stack up to 3 presets additively above the base orb
+  for composite looks; overlays export with the animation and the JSON.
 - **Background**: transparent by default (true alpha), or bake in a solid /
   gradient backdrop with hex-precise colors.
 - **Presets**: seven built-ins plus user presets saved to `localStorage`,
