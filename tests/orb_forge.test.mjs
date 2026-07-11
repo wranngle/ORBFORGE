@@ -1,9 +1,9 @@
 // Orb Forge end-to-end test.
 // Central product promise: render a configurable WebGL orb and export it as a
-// valid *animated* WebP. This test exercises that promise in a real browser
-// (headless Chrome + SwiftShader), plus the load-time invariants the UI relies
-// on. It is intentionally outcome-based — it fails when the product breaks, not
-// when the code is refactored.
+// valid *animated* WebP (or GIF). This test exercises that promise in a real
+// browser (headless Chrome + SwiftShader), plus the load-time invariants the
+// UI relies on. It is intentionally outcome-based — it fails when the product
+// breaks, not when the code is refactored.
 
 import http from 'node:http';
 import fs from 'node:fs';
@@ -48,8 +48,63 @@ function validateAnimatedWebP(buf) {
   return { anmf, hasAlpha: !!(vp8xFlags & 0x10), bytes: buf.length };
 }
 
+// Walk a GIF89a byte buffer; assert it is a well-formed looping animated GIF.
+function validateAnimatedGIF(buf) {
+  if (buf.toString('ascii', 0, 6) !== 'GIF89a') throw new Error('missing GIF89a header');
+  const width = buf.readUInt16LE(6), height = buf.readUInt16LE(8);
+  const packed = buf[10];
+  let p = 13;
+  if (packed & 0x80) p += (2 << (packed & 7)) * 3; // global color table
+  let images = 0, netscape = false, sawTrailer = false;
+  while (p < buf.length) {
+    const b = buf[p];
+    if (b === 0x3B) { sawTrailer = true; break; }
+    if (b === 0x21) { // extension block
+      const label = buf[p + 1];
+      p += 2;
+      if (label === 0xFF && buf.toString('ascii', p + 1, p + 9) === 'NETSCAPE') netscape = true;
+      while (p < buf.length) { const sz = buf[p]; p += 1 + sz; if (sz === 0) break; }
+    } else if (b === 0x2C) { // image descriptor
+      images++;
+      const localPacked = buf[p + 9];
+      p += 10;
+      if (localPacked & 0x80) p += (2 << (localPacked & 7)) * 3;
+      p += 1; // LZW min code size
+      while (p < buf.length) { const sz = buf[p]; p += 1 + sz; if (sz === 0) break; }
+    } else {
+      throw new Error(`unknown GIF block 0x${b.toString(16)} at offset ${p}`);
+    }
+  }
+  if (!sawTrailer) throw new Error('missing GIF trailer');
+  if (!netscape) throw new Error('missing NETSCAPE loop extension');
+  if (images < 2) throw new Error(`expected >= 2 GIF frames, found ${images}`);
+  return { images, width, height, bytes: buf.length };
+}
+
 const checks = [];
 function check(name, ok, detail = '') { checks.push({ name, ok: !!ok, detail }); if (!ok) console.error(`  ✗ ${name}${detail ? ' — ' + detail : ''}`); else console.log(`  ✓ ${name}${detail ? ' — ' + detail : ''}`); }
+
+// Wait for a download with the given extension to land and stabilize.
+function awaitDownload(dir, ext, timeoutMs = 90000) {
+  return new Promise((resolve, reject) => {
+    const deadline = Date.now() + timeoutMs;
+    let lastSize = -1;
+    const tick = () => {
+      const f = fs.readdirSync(dir).find(n => n.endsWith(ext));
+      if (f) {
+        const fp = path.join(dir, f);
+        const size = fs.statSync(fp).size;
+        // require a stable size across two polls so a mid-write file
+        // is never validated as truncated
+        if (size > 0 && size === lastSize) return resolve(fp);
+        lastSize = size;
+      }
+      if (Date.now() > deadline) return reject(new Error(`export timed out (no ${ext} produced)`));
+      setTimeout(tick, 400);
+    };
+    tick();
+  });
+}
 
 async function main() {
   const { server, port } = await serve();
@@ -70,8 +125,9 @@ async function main() {
     const page = await browser.newPage();
     await page.setViewport({ width: 1480, height: 1000 });
     // Only failures from the product itself count; external-origin noise
-    // (Google Fonts on an egress-restricted runner) must not fail the run.
-    const external = t => /fonts\.(googleapis|gstatic)\.com/.test(t);
+    // (Google Fonts / GitHub API on an egress-restricted runner) must not
+    // fail the run — the app treats both as best-effort.
+    const external = t => /fonts\.(googleapis|gstatic)\.com|api\.github\.com/.test(t);
     page.on('console', m => { if (m.type() === 'error' && !external(m.text())) errors.push(m.text()); });
     page.on('pageerror', e => errors.push('PAGEERROR: ' + e.message));
     page.on('requestfailed', r => { if (r.url().startsWith(base)) errors.push('REQFAIL: ' + r.url()); });
@@ -104,32 +160,36 @@ async function main() {
     }
 
     const load = await page.evaluate(() => {
-      const grid = document.querySelector('.grid');
-      const presetsEl = document.querySelector('.presets');
-      // DOCUMENT_POSITION_FOLLOWING (4) => presets comes after grid in DOM order.
-      const presetsAfterGrid = !!(grid && presetsEl &&
-        (grid.compareDocumentPosition(presetsEl) & Node.DOCUMENT_POSITION_FOLLOWING));
       const glyphBg = getComputedStyle(document.querySelector('.brand-glyph')).backgroundImage;
-      const opt = document.querySelector('#crtWebpPanel select option');
+      const opt = document.querySelector('#dlgExport select option');
       return {
-        controls: document.querySelectorAll('#crtControls .row').length,
-        presets: document.querySelectorAll('#crtPresetChips .preset-chip').length,
+        sliders: document.querySelectorAll('#crtControls .row input[type=range]').length,
+        presetOptions: document.querySelectorAll('#crtPreset option').length,
+        presetInTopbar: !!document.querySelector('.topbar #crtPreset'),
+        transparentDefault: !!document.getElementById('crtTransp')?.checked,
+        termCollapsed: !!document.querySelector('#term.is-collapsed'),
         logLines: document.querySelectorAll('#logConsole .tline').length,
-        presetsAfterGrid,
         glyphUsesOrb: /orb\.webp/.test(glyphBg),
         optionBg: opt ? getComputedStyle(opt).backgroundColor : null,
+        footerStarCta: !!document.querySelector('.footer a[href*="github.com/wranngle/orb_forge"]'),
+        helpDialog: !!document.getElementById('dlgHelp'),
       };
     });
 
     check('WebGL context initializes', lit >= 0);
     check('orb renders non-empty pixels', lit > 1000, `${lit} lit px`);
-    check('all 25 parameter controls present', load.controls === 25, `${load.controls}`);
-    check('built-in presets render', load.presets >= 7, `${load.presets}`);
+    check('all 27 parameter sliders present', load.sliders === 27, `${load.sliders}`);
+    check('preset dropdown lists built-ins', load.presetOptions >= 8, `${load.presetOptions} options`);
+    // F006: presets moved to a dropdown in the topbar.
+    check('preset dropdown lives in the topbar', load.presetInTopbar);
+    check('transparent background is the default', load.transparentDefault);
+    // F007: the event log starts collapsed.
+    check('event log is collapsed by default', load.termCollapsed);
     check('event terminal logs startup', load.logLines >= 2, `${load.logLines} lines`);
-    // F001: presets bar relocated below the workspace.
-    check('presets bar is at the bottom (after grid)', load.presetsAfterGrid);
     // F002: brand glyph uses the forged orb webp; the asset must be served.
     check('brand glyph uses orb.webp', load.glyphUsesOrb);
+    check('footer begs for a star', load.footerStarCta);
+    check('help dialog exists', load.helpDialog);
     const orbOk = await page.evaluate(async () => (await fetch('/orb.webp')).ok);
     check('orb.webp asset is served', orbOk);
     // Social unfurl surface: og/twitter meta must declare the card and the asset must exist.
@@ -147,56 +207,60 @@ async function main() {
     const obg = (load.optionBg || '').match(/\d+/g)?.map(Number) || [255, 255, 255];
     check('dropdown options have a dark background', obg[0] + obg[1] + obg[2] < 200, load.optionBg || 'n/a');
 
-    // F005: clicking the preview toggles pause/resume.
-    const liveText = async () => page.evaluate(() => document.querySelector('#hudLive .v').textContent);
+    // F005: clicking the preview toggles pause/resume (state lives on the transport button).
+    const playState = async () => page.evaluate(() => document.getElementById('btnPlay').dataset.playing);
     await page.click('.stage');
-    const paused = await liveText();
+    const paused = await playState();
     await page.click('.stage');
-    const resumed = await liveText();
-    check('clicking preview pauses then resumes', paused === 'PAUSED' && resumed === 'LIVE', `${paused} -> ${resumed}`);
+    const resumed = await playState();
+    check('clicking preview pauses then resumes', paused === 'false' && resumed === 'true', `${paused} -> ${resumed}`);
+
+    // F008: typing a value into a param field applies it (clamped + synced to the slider).
+    const typed = await page.evaluate(() => {
+      const slider = document.getElementById('crt-radius');
+      const val = slider.closest('.row').querySelector('input.val');
+      val.focus(); val.value = '0.5';
+      val.dispatchEvent(new Event('blur'));
+      return { slider: slider.value, display: val.value };
+    });
+    check('typed param value applies to the slider', Math.abs(parseFloat(typed.slider) - 0.5) < 1e-9, `${typed.slider} / "${typed.display}"`);
 
     // Drive the central promise: export a small animated WebP.
-    await page.click('#crtWebpBtn'); // open export panel
+    await page.click('#crtWebpBtn'); // open export dialog
     await page.evaluate(() => {
       const set = (id, v, ev) => { const el = document.getElementById(id); el.value = v; el.dispatchEvent(new Event(ev)); };
       const auto = document.getElementById('crtAuto'); auto.checked = false; auto.dispatchEvent(new Event('change'));
       set('crtDur', '1.5', 'input');
+      set('crtFormat', 'webp', 'change');
       set('crtRes', '192', 'change');
       set('crtFps', '12', 'change');
       set('crtTarget', '0', 'change'); // manual — skip calibration for a deterministic run
     });
     await page.evaluate(() => document.getElementById('crtRenderBtn').click());
 
-    // Wait for the .webp download to land.
-    const exported = await new Promise((resolve, reject) => {
-      const deadline = Date.now() + 90000;
-      let lastSize = -1;
-      const tick = () => {
-        const f = fs.readdirSync(downloadDir).find(n => n.endsWith('.webp'));
-        if (f) {
-          const fp = path.join(downloadDir, f);
-          const size = fs.statSync(fp).size;
-          // require a stable size across two polls so a mid-write file
-          // is never validated as truncated
-          if (size > 0 && size === lastSize) return resolve(fp);
-          lastSize = size;
-        }
-        if (Date.now() > deadline) return reject(new Error('export timed out (no .webp produced)'));
-        setTimeout(tick, 400);
-      };
-      tick();
-    });
-
-    const webp = validateAnimatedWebP(fs.readFileSync(exported));
+    const exportedWebp = await awaitDownload(downloadDir, '.webp');
+    const webp = validateAnimatedWebP(fs.readFileSync(exportedWebp));
     check('exports a valid animated WebP', true, `${webp.anmf} frames, ${webp.bytes} bytes, alpha=${webp.hasAlpha}`);
     check('exported WebP has transparency', webp.hasAlpha);
 
-    // F003: manual-download fallback link appears after a successful export.
+    // F003: manual-download fallback + in-dialog preview appear after a successful export.
     const manual = await page.evaluate(() => {
       const a = document.getElementById('crtManualDl');
-      return { visible: a && !a.hidden, href: a ? a.getAttribute('href') : '' };
+      const img = document.getElementById('crtResultImg');
+      return { visible: a && !a.hidden, href: a ? a.getAttribute('href') : '', preview: /^blob:/.test(img?.src || '') };
     });
     check('manual-download fallback link appears', manual.visible && /^blob:/.test(manual.href), manual.href.slice(0, 12));
+    check('exported animation previews in the dialog', manual.preview);
+
+    // F009: the same pipeline exports a valid looping animated GIF.
+    await page.evaluate(() => {
+      const f = document.getElementById('crtFormat'); f.value = 'gif'; f.dispatchEvent(new Event('change'));
+      document.getElementById('crtRenderBtn').click();
+    });
+    const exportedGif = await awaitDownload(downloadDir, '.gif');
+    const gif = validateAnimatedGIF(fs.readFileSync(exportedGif));
+    check('exports a valid animated GIF', true, `${gif.images} frames, ${gif.bytes} bytes, ${gif.width}x${gif.height}`);
+    check('GIF matches requested resolution', gif.width === 192 && gif.height === 192, `${gif.width}x${gif.height}`);
 
     check('no console / page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
   } finally {

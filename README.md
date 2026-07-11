@@ -1,4 +1,4 @@
-![A burning comet-ring orb rendering live in WebGL beside the 25-parameter control rig](docs/hero.webp)
+![A burning comet-ring orb rendering live in WebGL beside the 27-parameter control rig](docs/hero.webp)
 
 # Orb Forge
 
@@ -9,7 +9,8 @@
 > [!NOTE]
 > Active personal project. Used in my own workflow. Issues triaged on a personal-time cadence.
 
-**Live:** https://orb-forge.wranngle.com
+**Live demo:** https://orb-forge.wranngle.com — free, runs entirely in your
+browser, **no login or account required**.
 
 ## Quick start
 
@@ -25,18 +26,29 @@ Firefox). WebGL is required for the preview.
 ## What it does
 
 - **Live WebGL preview**: a fragment-shader orb with a noise-driven burning
-  ring, configurable comets/tracers, glow, chromatic aberration, and color post.
-- **25 parameters** in four groups (Ring & motion, Burning texture,
-  Comet / tracer, Color & post), each with a slider, ±steppers (click-and-hold
-  repeat), and a value chip, all in a console-aesthetic Wranngle UI.
-- **Presets**: seven built-ins plus user presets saved to `localStorage`.
-- **Animated WebP export**: browser-native WebP encoding muxed into a
-  transparent animated file for use as an avatar or loader, with loop-duration
-  solving and a target-file-size auto-tuner.
+  ring, configurable comets/tracers, glow, chromatic aberration, time jitter
+  (in-loop surge/reverse motion), and color post — with play/pause, timeline
+  scrubbing, and fullscreen.
+- **27 parameters** in five groups (Ring & motion, Burning texture,
+  Comet / tracer, Color & post, Background), each with a slider, ±steppers
+  (hold to repeat), and a typeable value field. Hovering or adjusting a
+  parameter highlights the exact region of the render it controls, tracked in
+  real time by the shader.
+- **Background**: transparent by default (true alpha), or bake in a solid /
+  gradient backdrop with hex-precise colors.
+- **Presets**: seven built-ins plus user presets saved to `localStorage`,
+  with undoable delete.
+- **Animated WebP + GIF export**: WebP (recommended) via browser-native
+  encoding muxed into a transparent animated file; GIF via a built-in
+  median-cut + Floyd–Steinberg + LZW encoder for universal playback. Loop
+  durations are solved for seamless repeats; a target-file-size auto-tuner
+  fits WebP exports under a cap; the size estimate updates live; the finished
+  file previews in-dialog.
 - **JSON I/O**: copy, download, or paste a full parameter config.
-- **Undo / redo**: `⌘/Ctrl+Z`, `⌘/Ctrl+Shift+Z` (or `Y`); `Space` toggles play.
-- **Pinned event terminal**: every action emits an ECS-shaped JSONL record you
-  can copy or download as `.jsonl`.
+- **Undo / redo**: `⌘/Ctrl+Z`, `⌘/Ctrl+Shift+Z` (or `Y`); `Space` toggles
+  play; `F` toggles fullscreen.
+- **Event log**: every action emits an ECS-shaped JSONL record you can copy
+  or download as `.jsonl` (collapsed footer bar — click to expand).
 
 ## Structure
 

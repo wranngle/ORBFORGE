@@ -1,6 +1,6 @@
 # Orb Forge - Wranngle Agent Avatar Maker
 
-> Orb Forge is a free WebGL avatar synthesizer by Wranngle Systems. Tune 25 parameters for a burning comet-ring orb and export an animated WebP for use as an AI agent avatar. It runs entirely in the browser.
+> Orb Forge is a free WebGL avatar synthesizer by Wranngle Systems. Tune 27 parameters for a burning comet-ring orb and export an animated WebP or GIF for use as an AI agent avatar. It runs entirely in the browser — no login or account required.
 
 ## App
 
