@@ -471,7 +471,7 @@
   };
   var HL={mode:0,cur:0,target:0,pulse:0,ants:0};
   function hlHover(mode,on){
-    if(on){ HL.mode=mode; HL.target=0.72; }
+    if(on){ HL.mode=mode; HL.target=0.9; }
     else if(HL.mode===mode||mode===0){ HL.target=0; }
   }
   function hlKick(mode){ HL.mode=mode; HL.pulse=1; }
@@ -708,7 +708,7 @@
   var activePreset=null;
   function buildPresetOptions(){
     presetSel.innerHTML='';
-    var neutral=(SEED.current||'custom')+(activePreset===null?' *':'');
+    var neutral=(SEED.current||'default')+(activePreset===null?' *':'');
     var o0=document.createElement('option'); o0.value=''; o0.textContent=neutral;
     presetSel.appendChild(o0);
     var ogB=document.createElement('optgroup'); ogB.label='Built-in';
@@ -729,7 +729,7 @@
   function syncPresetUI(){
     btnSave.classList.toggle('is-dirty',activePreset===null);
     btnSave.title=activePreset===null
-      ? 'Unsaved — click to save this orb as a preset ("'+(SEED.current||'custom')+'")'
+      ? 'Unsaved — click to save this orb as a preset ("'+(SEED.current||'default')+'")'
       : 'Saved as "'+activePreset+'"';
   }
   // Mark the current state as diverged from any saved preset.
@@ -792,7 +792,7 @@
   }
   btnSave.addEventListener('click',function(){
     // Save over the active user preset if there is one and it's dirty; else new.
-    var name=(activePreset&&USER_PRESETS[activePreset])?activePreset:uniquePresetName(SEED.current||'custom');
+    var name=(activePreset&&USER_PRESETS[activePreset])?activePreset:uniquePresetName(SEED.current||'default');
     savePreset(name);
   });
 
@@ -919,7 +919,7 @@
       eclog('info','ui.dialog.open',{dialog:'manager'},'Preset manager opened');
     });
     document.getElementById('mgrSaveCurrent').addEventListener('click',function(){
-      savePreset(uniquePresetName(SEED.current||'custom')); renderManager();
+      savePreset(uniquePresetName(SEED.current||'default')); renderManager();
     });
   })();
   renderOverlayBar();
@@ -1157,18 +1157,26 @@
   '  else if(u_hlMode<6.5) hm=clamp(1.0-(bMax+gG)*1.5,0.0,1.0)*(1.0-smoothstep(0.95,1.15,dist));',
   '  else if(u_hlMode<7.5) hm=clamp(max(bMax,comet*(bMax+gG))*1.3,0.0,1.0);',
   '  else hm=1.0-smoothstep(inR*0.9,inR*1.02,dist);',
-  '  float inside=smoothstep(0.35,0.55,hm);',
-  // Contour = a narrow band where the mask crosses ~0.45; dash it by arc angle
-  // plus a marching phase so the ants crawl along the boundary.
-  '  float band=1.0-smoothstep(0.0,0.14,abs(hm-0.45));',
-  '  float ants=step(0.5,fract(ang/TAU*26.0 + u_hlAnts));',
-  '  vec3 antA=vec3(1.0,0.28,0.72), antB=vec3(1.0,0.96,1.0);',
-  '  vec3 antCol=mix(antA,antB,ants);',
-  '  float pop=0.55+0.45*u_hlPulse;',
-  // Dim the unselected area a touch for editor-style contrast, then lay the
-  // opaque marquee over the contour.
-  '  col*=1.0-0.28*u_hlStrength*(1.0-inside);',
-  '  col=mix(col,antCol,clamp(band*pop*u_hlStrength,0.0,0.92));',
+  '  float S=clamp(u_hlStrength,0.0,1.0);',
+  '  float inside=smoothstep(0.42,0.6,hm);',
+  // Translucent NEGATIVE-colour fill of whatever is behind — the complement of
+  // the pixel makes the selected region pop like an inverted editor selection.
+  '  vec3 neg=vec3(1.0)-clamp(col,0.0,1.0);',
+  '  col=mix(col,neg,inside*(0.30+0.14*u_hlPulse)*S);',
+  // Thick DOTTED marquee on the contour: a wide band broken into round dots by
+  // an angular dash pattern that marches with u_hlAnts.
+  '  float edge=abs(hm-0.5);',
+  '  float band=1.0-smoothstep(0.0,0.22,edge);',
+  '  float dash=fract(ang/TAU*30.0 + u_hlAnts);',
+  '  float dots=smoothstep(0.16,0.30,dash)*(1.0-smoothstep(0.70,0.84,dash));',
+  '  float ringOutline=band*mix(0.55,1.0,dots);',
+  '  vec3 antCol=mix(vec3(1.0,0.16,0.66),vec3(1.0,0.92,1.0),dots);',
+  '  float pop=0.7+0.5*u_hlPulse;',
+  // Soft outer GLOW around the contour so the outline reads over a bright ring.
+  '  float glow=exp(-edge*edge*90.0);',
+  '  col+=vec3(1.0,0.22,0.7)*glow*(0.5+0.5*u_hlPulse)*S;',
+  // Opaque outline on top.
+  '  col=mix(col,antCol,clamp(ringOutline*pop*S,0.0,0.96));',
   ' }',
   ' float oa=clamp(max(col.r,max(col.g,col.b)),0.0,1.0);',
   ' vec3 oc=col/max(oa,0.0025);',
@@ -2356,6 +2364,9 @@
   eclog('ready','app.start',{params:CONFIG.length,presets:Object.keys(PRESETS).length},'ORBFORGE initialized');
   eclog('info','gl.ready',glInfo,'WebGL context ready');
   HIST.push(snapshot()); updateHistoryUI();
+  // Open on a fresh seeded orb — the forge always greets you with a named
+  // roll (never an unnamed "custom" state). Undo returns to the defaults.
+  seededRandomize(newSeed());
 
   /* ---------- Wire history buttons ---------- */
   document.getElementById('btnUndo').addEventListener('click',undo);

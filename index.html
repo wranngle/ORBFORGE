@@ -270,7 +270,11 @@ select option,select optgroup{background-color:#16151f;color:var(--text)}
 @media (max-width:1171px){
   .grid{grid-template-columns:1fr}
   .params{grid-column:1;grid-row:auto}
-  .stage-col{grid-column:1;grid-row:auto;position:static}
+  /* Cap the preview in single-column (half-window / vertical) so the square
+     doesn't eat the whole viewport and the params stay reachable. */
+  .stage-col{grid-column:1;grid-row:auto;position:static;width:100%;max-width:520px;margin:0 auto}
+  .stage-frame{max-height:62vh}
+  .stage{max-height:62vh}
 }
 
 /* ============================================================
@@ -624,7 +628,12 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
 .dropzone b{color:var(--text)}
 .or-line{display:flex;align-items:center;gap:10px;margin:12px 0 8px;color:var(--text-faint);font-size:10.5px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em}
 .or-line::before,.or-line::after{content:'';flex:1;height:1px;background:var(--line)}
-.mgr-list{display:flex;flex-direction:column;gap:5px;max-height:46vh;overflow-y:auto;scrollbar-width:thin}
+.mgr-legend{display:inline-flex;align-items:center;gap:3px;color:var(--violet-300);font-weight:600;white-space:nowrap}
+.mgr-legend svg{width:12px;height:12px}
+.mgr-head{display:flex;align-items:center;gap:8px;padding:2px 8px;font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-faint)}
+.mgr-head-ov{flex:0 0 15px;color:var(--violet-300);text-align:center}
+.mgr-head-nm{flex:1}
+.mgr-list{display:flex;flex-direction:column;gap:5px;max-height:44vh;overflow-y:auto;scrollbar-width:thin}
 .mgr-group{font-family:var(--font-mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--text-faint);margin:8px 2px 2px}
 .mgr-group:first-child{margin-top:0}
 .mgr-row{
@@ -651,25 +660,26 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
 .mgr-row .mgr-act[hidden]{display:none}
 
 /* ============================================================
-   Overlay layer chips
+   Overlay layer pills — float on the preview's top-left corner
    ============================================================ */
-.overlay-bar{
-  display:flex;align-items:center;gap:6px;flex-wrap:wrap;
-  padding:6px 12px;
-  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-md);
-  border-left:3px solid var(--violet-500);
+.overlay-pills{
+  position:absolute;left:14px;top:14px;z-index:6;
+  display:flex;align-items:center;gap:5px;flex-wrap:wrap;max-width:calc(100% - 28px);
+  pointer-events:none;
 }
-/* display:flex would otherwise defeat the hidden attribute */
-.overlay-bar[hidden]{display:none}
+.overlay-pills[hidden]{display:none}
 .ov-chip{
-  display:inline-flex;align-items:center;gap:6px;
-  padding:3px 5px 3px 10px;
-  background:rgba(207,60,105,.08);border:1px solid var(--violet-700);border-radius:999px;
-  font-family:var(--font-mono);font-size:10.5px;color:var(--violet-300);
+  pointer-events:auto;
+  display:inline-flex;align-items:center;gap:5px;
+  padding:3px 5px 3px 9px;
+  background:rgba(8,7,13,.72);backdrop-filter:blur(8px);
+  border:1px solid var(--violet-500);border-radius:999px;
+  font-family:var(--font-mono);font-size:10px;color:var(--violet-300);
+  box-shadow:0 2px 10px rgba(0,0,0,.4);
 }
 .ov-chip .ov-x{
-  width:16px;height:16px;padding:0;border:0;border-radius:50%;
-  background:rgba(255,255,255,.06);color:var(--text-dim);
+  width:15px;height:15px;padding:0;border:0;border-radius:50%;
+  background:rgba(255,255,255,.08);color:var(--text-dim);
   font-size:11px;line-height:1;cursor:pointer;
   display:inline-flex;align-items:center;justify-content:center;
 }
@@ -829,9 +839,6 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
     </div>
   </header>
 
-  <!-- Overlay layers (hidden until a preset is stacked) -->
-  <div class="overlay-bar" id="overlayBar" hidden aria-label="Overlay layers"></div>
-
   <!-- ============================================================
        Main grid — preview first in DOM so it leads on mobile
        ============================================================ -->
@@ -840,6 +847,8 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
       <div class="stage-frame" id="stageFrame">
         <div class="stage">
           <canvas id="crtCanvas"></canvas>
+          <!-- Overlay layer pills float on the preview (top-left), × to remove. -->
+          <div class="overlay-pills" id="overlayBar" hidden aria-label="Overlay layers"></div>
           <div class="crt-fallback" id="crtFallback" style="display:none">
             <img class="crt-fallback-orb" src="orb.webp" alt="Sample animated orb exported from ORBFORGE" width="220" height="220" loading="lazy" decoding="async">
             <p>WebGL is unavailable in this browser, so the live preview cannot render. This orb is a real export — the controls shape one just like it.</p>
@@ -942,13 +951,13 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
         </select>
       </div>
       <div class="field" title="WebP compression quality. Max is near-lossless and largest; each step down compresses harder — softer glow edges, smaller file. High is usually indistinguishable from Max at about half the size. GIF ignores this (its size is driven by resolution and frame rate).">
-        <label for="crtQual" title="WebP compression quality — Max is near-lossless and largest; lower settings compress harder for a smaller file. GIF ignores it.">Quality</label>
-        <select id="crtQual" title="WebP compression quality — Max is near-lossless and largest; lower settings compress harder for a smaller file. GIF ignores it.">
-          <option value="1" selected title="Near-lossless — biggest file">Max</option>
-          <option value="0.8" title="Usually indistinguishable from Max at ~half the size">High</option>
-          <option value="0.6" title="Light softness on glow edges">Medium</option>
-          <option value="0.4" title="Visible softness — small file">Low</option>
-          <option value="0.22" title="Smallest file — soft and grainy">Min</option>
+        <label for="crtQual" title="WebP encoder quality (the 0–1 quality factor passed to the browser's WebP encoder). It sets how aggressively the lossy VP8 codec quantizes each frame: higher quality = finer quantization step = more high-frequency detail kept and a larger file; lower = coarser quantization that discards fine gradients and edges (soft, blocky glow) for a smaller file. Max ≈ 1.0 is near-lossless; each step roughly halves quality. GIF ignores this — its size comes from resolution and frame count.">Quality</label>
+        <select id="crtQual" title="WebP encoder quality (the 0–1 quality factor passed to the browser's WebP encoder). Higher = finer VP8 quantization = more detail + bigger file; lower = coarser quantization that discards fine gradients/edges for a smaller file. Max ≈ near-lossless. GIF ignores this.">
+          <option value="1" selected title="q≈1.0 — near-lossless, minimal quantization, biggest file">Max</option>
+          <option value="0.8" title="q≈0.8 — light quantization, usually indistinguishable from Max at ~half the size">High</option>
+          <option value="0.6" title="q≈0.6 — moderate quantization, slight softening of glow edges">Medium</option>
+          <option value="0.4" title="q≈0.4 — heavy quantization, visible softening/banding, small file">Low</option>
+          <option value="0.22" title="q≈0.22 — coarse quantization, soft and grainy, smallest file">Min</option>
         </select>
       </div>
       <div class="field" title="Hard cap on file size. The exporter encodes probe frames to measure real cost, then keeps the sharpest resolution that fits — quality and frame rate flex first, and frame rate never drops below 24 fps unless nothing fits. WebP only.">
@@ -961,9 +970,9 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
         </select>
       </div>
     </div>
-    <label class="check" title="Solves a loop length where rotation, pulse, and tracer motion all return to their start — the animation repeats without a visible jump. Turn off to set the duration by hand."><input type="checkbox" id="crtAuto" checked>Seamless loop</label>
+    <label class="check" title="Every export loops seamlessly: the exporter phase-locks all motion (rotation, pulse, wobble, tracers, spin) to a whole number of cycles across the chosen duration, so the last frame flows into the first. Checked = auto-pick the duration that needs the least speed adjustment (the tightest seam). Uncheck to set ANY duration below — still seamless; the motion is gently time-stretched to fit."><input type="checkbox" id="crtAuto" checked>Auto duration <span style="color:var(--text-faint)">· always seamless</span></label>
     <div class="dur-row">
-      <label for="crtDur" title="Loop length in seconds. Turn off Seamless loop to set it by hand.">Duration</label>
+      <label for="crtDur" title="Loop length in seconds — set any value; the export stays seamless (motion is time-stretched to a whole cycle count). Turn off Auto duration to edit.">Duration</label>
       <input type="range" id="crtDur" min="1.5" max="9" step="0.05" value="3" disabled title="Loop length in seconds">
       <span class="dur-val" id="crtDurVal">3.00 s</span>
     </div>
@@ -989,7 +998,7 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
         </a>
       </div>
     </div>
-    <p class="hint" id="crtExportHint">WebP needs Chrome, Edge, or recent Firefox; GIF plays everywhere. The seed and full recipe are baked into every downloaded file.</p>
+    <p class="hint" id="crtExportHint">Every export loops seamlessly at any duration you pick. WebP needs Chrome, Edge, or recent Firefox; GIF plays everywhere. The seed and full recipe are baked into every downloaded file.</p>
   </div>
 </dialog>
 
@@ -1054,14 +1063,17 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
     <button class="ic-btn dlg-x" type="button" data-close title="Close" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
   </div>
   <div class="dlg-body">
-    <div class="bar" style="margin:0 0 10px">
+    <div class="bar" style="margin:0 0 8px">
       <button class="btn btn--primary" id="mgrSaveCurrent" type="button" title="Save the current orb as a new preset">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
         Save current orb
       </button>
     </div>
+    <p class="hint" style="margin:0 0 6px">Click a name to <b>load</b> it as your base orb. Tick <span class="mgr-legend"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 9 5-9 5-9-5z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/></svg> overlay</span> to <b>stack</b> it over the base (up to 3, additive).</p>
+    <!-- Column header so the checkbox's job is unmistakable -->
+    <div class="mgr-head"><span class="mgr-head-ov">Overlay</span><span class="mgr-head-nm">Preset — click to load</span></div>
     <div class="mgr-list" id="mgrList" aria-label="Presets"></div>
-    <p class="hint">Click a name to load it. The checkbox <b>overlays</b> that preset above your base orb (up to 3, additive). Your presets can be renamed and deleted; built-ins are read-only.</p>
+    <p class="hint" style="margin-top:8px">Your presets can be renamed and deleted; built-ins are read-only.</p>
   </div>
 </dialog>
 
