@@ -1,84 +1,126 @@
-![A burning comet-ring orb rendering live in WebGL beside the 27-parameter control rig](docs/hero.webp)
+<div align="center">
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/brand/orbforge-wordmark-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="docs/brand/orbforge-wordmark-light.png">
+  <img alt="Orb Forge" src="docs/brand/orbforge-wordmark-light.png" width="30%">
+</picture>
 
-# Orb Forge
+#### burning comet-ring orbs · live WebGL console · 34 parameters · seeded randomize · 12 built-in presets · transparent animated WebP + GIF export
 
-> agent-avatar synthesizer: burning comet-ring orb, 25 parameters in, animated WebP out
+# Agent-avatar synthesizer: 34 parameters in, animated WebP out
 
-[![CI](https://github.com/wranngle/orb_forge/actions/workflows/ci.yml/badge.svg)](https://github.com/wranngle/orb_forge/actions/workflows/ci.yml) [![License](https://img.shields.io/github/license/wranngle/orb_forge?color=A371F7)](./LICENSE) ![Status](https://img.shields.io/badge/status-active-brightgreen.svg)
+**[Features](#-features) | [Presets](#-preset-gallery) | [Grab an orb](#-grab-an-orb) | [Getting started](#-getting-started) | [Shortcuts](#-json-io-and-shortcuts)**
 
-> [!NOTE]
-> Active personal project. Used in my own workflow. Issues triaged on a personal-time cadence.
+### [🔥 Forge your orb → orb-forge.wranngle.com](https://orb-forge.wranngle.com)
 
-**Live demo:** https://orb-forge.wranngle.com — free, runs entirely in your
-browser, **no login or account required**.
+Free, runs entirely in your browser, no login or account required.
 
-## Quick start
+**❤️ [Sponsor this project](https://github.com/sponsors/wranngle) ❤️**
 
-```bash
-git clone https://github.com/wranngle/orb_forge && cd orb_forge
-python3 -m http.server 8080
-# open http://localhost:8080
-```
+[![CI](https://github.com/wranngle/orb_forge/actions/workflows/ci.yml/badge.svg)](https://github.com/wranngle/orb_forge/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/wranngle/orb_forge?color=ff5f00)](https://github.com/wranngle/orb_forge/releases/latest)
+[![License](https://img.shields.io/github/license/wranngle/orb_forge?color=A371F7)](LICENSE)
+[![Last commit](https://img.shields.io/github/last-commit/wranngle/orb_forge)](https://github.com/wranngle/orb_forge/commits/main)
+[![Contributors](https://img.shields.io/github/contributors/wranngle/orb_forge)](https://github.com/wranngle/orb_forge/graphs/contributors)
 
-WebP export needs browser-native WebP encoding (Chrome, Edge, or a recent
-Firefox). WebGL is required for the preview.
+[![GitHub stars](https://img.shields.io/github/stars/wranngle/orb_forge?style=social)](https://github.com/wranngle/orb_forge/stargazers)
+[![Follow on GitHub](https://img.shields.io/github/followers/wranngle?style=social)](https://github.com/wranngle)
+</div>
 
-## What it does
+---
 
-- **Live WebGL preview**: a fragment-shader orb with seven surface texture
-  styles (smoke, ridged filaments, plasma cells, banded rings, woven threads,
-  stipple dots, wire lattice), 3D torus/sphere lighting with adjustable light
-  angle and gloss, a volumetric core (solid lit body + radial plasma
-  filaments), orbiting tracers, glow, chromatic aberration, time jitter
-  (in-loop surge/reverse motion), and color post — with a video-player
-  transport (play/pause, scrubbing, fullscreen) overlaid on the preview.
-- **34 parameters** in six aligned groups, each with a slider, ±steppers
-  (hold to repeat), and a typeable value field. Hovering or adjusting a
-  parameter pink-highlights the exact region of the render it controls,
-  tracked in real time by the shader.
-- **Seeded, archetype-weighted randomize**: each roll first picks a coherent
-  archetype (comet ring, plasma ball, glassy sphere, wire mesh, lit sculpture,
-  thick aura) with correlated parameter ranges, so distinct species emerge
-  instead of uniform noise. Every roll gets a human-readable seed
-  (`plasma-4f2a`) that deterministically rebuilds the same orb — re-enter it
-  via the seed dialog, share it, or find it stamped in the export JSON.
-- **Preset overlays**: stack up to 3 presets additively above the base orb
-  for composite looks; overlays export with the animation and the JSON.
-- **Background**: transparent by default (true alpha), or bake in a solid /
-  gradient backdrop with hex-precise colors.
-- **Presets**: twelve built-ins (including engine showcases like Glass moon,
-  Dot matrix, and Obsidian sculpt) plus user presets saved to `localStorage`,
-  with undoable delete.
-- **Animated WebP + GIF export**: WebP (recommended) via browser-native
-  encoding muxed into a transparent animated file; GIF via a built-in
-  median-cut + Floyd–Steinberg + LZW encoder for universal playback. Loop
-  durations are solved for seamless repeats; a target-file-size auto-tuner
-  fits WebP exports under a cap; the size estimate updates live; the finished
-  file previews in-dialog.
-- **JSON I/O**: copy, download, or paste a full parameter config.
-- **Undo / redo**: `⌘/Ctrl+Z`, `⌘/Ctrl+Shift+Z` (or `Y`); `Space` toggles
-  play; `F` toggles fullscreen.
-- **Event log**: every action emits an ECS-shaped JSONL record you can copy
-  or download as `.jsonl` (collapsed footer bar — click to expand).
+![The Orb Forge console: a burning comet-ring orb rendering live in WebGL beside the 34-parameter control rig](docs/hero.webp)
 
-## Structure
+Orb Forge is a WebGL console that renders a burning comet-ring orb and exports it as a transparent animated WebP. Dial the 34 parameters by hand, roll a seeded archetype, or start from one of 12 built-in presets; loop durations solve to whole cycle counts, so every export repeats without a visible seam. It is a static page with no build step, no server, and no account.
 
-| File         | Purpose                                              |
-|--------------|------------------------------------------------------|
-| `index.html` | Markup + design-system styles (inline `<style>`).    |
-| `app.js`     | The engine: controls, WebGL render loop, WebP muxer. |
-| `_headers`   | Cloudflare Pages security headers (CSP, caching).    |
-| `og.png`     | Social-unfurl card. Regenerate with `npm run og`.    |
-| `tests/`     | Outcome-based e2e: renders in headless Chrome and validates the exported WebP bytes. |
+## 🔥 Features
 
-It is a static site with no build step. The engine is a single external script
-so the page ships a strict CSP (`script-src 'self'`, no inline script).
+- 🔆 **Live WebGL preview**: seven surface texture styles (smoke, ridged filaments, plasma cells, banded rings, woven threads, stipple dots, wire lattice), 3D torus and sphere lighting with adjustable light angle and gloss, a volumetric core, orbiting tracers, glow, chromatic aberration, and a video-player transport (play, pause, scrub, fullscreen) over the render.
+- 🎛️ **34 parameters in six groups**, each with a slider, hold-to-repeat steppers, and a typeable value field. Hovering a parameter pink-highlights the exact region of the render it controls, tracked in real time by the shader.
+- 🎲 **Seeded, archetype-weighted randomize**: each roll picks a coherent archetype (comet ring, plasma ball, glassy sphere, wire mesh, lit sculpture, thick aura) with correlated parameter ranges, so distinct species emerge instead of uniform noise. Every roll stamps a human-readable seed (`plasma-4f2a`) that deterministically rebuilds the same orb.
+- 🧅 **Preset overlays**: stack up to 3 presets additively above the base orb for composite looks; overlays ride along in the animation and the JSON.
+- 🖼️ **Transparent by default**: true alpha out of the box, or bake in a solid or gradient backdrop with hex-precise colors.
+- 📤 **Animated WebP + GIF export**: browser-native WebP encoding muxed into a transparent animated file, plus a built-in median-cut, Floyd-Steinberg, LZW GIF encoder for universal playback. A target-file-size auto-tuner picks resolution, fps, and quality to fit a byte cap; the size estimate updates live; the finished file previews in-dialog.
+- 💾 **12 built-in presets** plus user presets saved to `localStorage`, with undoable delete.
+- 🧾 **Event log**: every action emits an ECS-shaped JSONL record you can copy or download as `.jsonl`.
 
-## Deploy
+## 🎨 Preset gallery
 
-Cloudflare Pages (direct upload). Pushes to `main` that touch the site files
-auto-deploy via `.github/workflows/deploy.yml`, which stages them into `dist/`
-and runs `wrangler pages deploy`; `_headers` is applied automatically.
+![All twelve built-in presets rendered by the engine, from Ember comet to Obsidian sculpt](docs/brand/preset-gallery.png)
+
+*12 built-ins, one dropdown.*
+
+## 📦 Grab an orb
+
+All 12 built-ins ship pre-exported as animated WebPs on the [latest release](https://github.com/wranngle/orb_forge/releases/tag/v1.0.0); seven preview below. Drop one straight into a chat avatar, an agent UI, or a README.
+
+| Orb | Preview | Size | Frames |
+| --- | :---: | ---: | ---: |
+| [My default](https://github.com/wranngle/orb_forge/releases/download/v1.0.0/my-default.webp) | <img src="https://github.com/wranngle/orb_forge/releases/download/v1.0.0/my-default.webp" width="56" alt="My default orb"> | 3.9 MB | 151 |
+| [Ember comet](https://github.com/wranngle/orb_forge/releases/download/v1.0.0/ember-comet.webp) | <img src="https://github.com/wranngle/orb_forge/releases/download/v1.0.0/ember-comet.webp" width="56" alt="Ember comet orb"> | 3.4 MB | 137 |
+| [Solar flare](https://github.com/wranngle/orb_forge/releases/download/v1.0.0/solar-flare.webp) | <img src="https://github.com/wranngle/orb_forge/releases/download/v1.0.0/solar-flare.webp" width="56" alt="Solar flare orb"> | 590 KB | 121 |
+| [Plasma ring](https://github.com/wranngle/orb_forge/releases/download/v1.0.0/plasma-ring.webp) | <img src="https://github.com/wranngle/orb_forge/releases/download/v1.0.0/plasma-ring.webp" width="56" alt="Plasma ring orb"> | 1.9 MB | 91 |
+| [Ghost trail](https://github.com/wranngle/orb_forge/releases/download/v1.0.0/ghost-trail.webp) | <img src="https://github.com/wranngle/orb_forge/releases/download/v1.0.0/ghost-trail.webp" width="56" alt="Ghost trail orb"> | 4.0 MB | 163 |
+| [Whisper thread](https://github.com/wranngle/orb_forge/releases/download/v1.0.0/whisper-thread.webp) | <img src="https://github.com/wranngle/orb_forge/releases/download/v1.0.0/whisper-thread.webp" width="56" alt="Whisper thread orb"> | 2.6 MB | 126 |
+| [Supernova](https://github.com/wranngle/orb_forge/releases/download/v1.0.0/supernova.webp) | <img src="https://github.com/wranngle/orb_forge/releases/download/v1.0.0/supernova.webp" width="56" alt="Supernova orb"> | 539 KB | 151 |
+
+*Every orb above is a real engine export.*
+
+## 🚀 Getting started
+
+1. Clone and serve
+
+   ```bash
+   git clone https://github.com/wranngle/orb_forge && cd orb_forge
+   python3 -m http.server 8080
+   ```
+
+2. Open `http://localhost:8080`, pick a preset or hit RANDOMIZE, then click EXPORT ANIMATION.
+
+Or skip the clone: the same page is live at [orb-forge.wranngle.com](https://orb-forge.wranngle.com).
+
+WebGL is required for the preview; WebP export uses browser-native WebP encoding (Chrome, Edge, or a recent Firefox), and Safari falls back to the built-in GIF encoder.
+
+## 🎮 JSON I/O and shortcuts
+
+| Control | Action |
+| --- | --- |
+| <kbd>⌘/Ctrl</kbd> + <kbd>Z</kbd> | Undo |
+| <kbd>⌘/Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd>, or <kbd>⌘/Ctrl</kbd> + <kbd>Y</kbd> | Redo |
+| <kbd>Space</kbd> | Play or pause |
+| <kbd>F</kbd> | Fullscreen |
+| JSON copy, download, paste | Full parameter config out, full config back in |
+| Seed dialog | Re-enter any seed (`plasma-4f2a`) to rebuild the exact orb; seeds are also stamped in the export JSON |
+
+## 🌐 Where an orb goes
+
+A finished orb is a small transparent looping image, so it goes anywhere one does.
+
+<table>
+<tr>
+<td align="center" width="33%"><b>Agent avatars</b><br/>a face for your AI agent's idle and thinking states</td>
+<td align="center" width="33%"><b>Chat UIs</b><br/>profile pictures that move in Slack, Discord, Teams</td>
+<td align="center" width="33%"><b>Loading states</b><br/>a looping indicator in place of a spinner</td>
+</tr>
+<tr>
+<td align="center" width="33%"><b>Stream overlays</b><br/>OBS and Twitch talking or brb badges</td>
+<td align="center" width="33%"><b>README headers</b><br/>the glowing-glyph treatment this page uses</td>
+<td align="center" width="33%"><b>...anywhere an image goes</b><br/>the export is a plain file</td>
+</tr>
+</table>
+
+Named surfaces are usage examples, not integrations.
+
+## ⭐ Star history
+
+<!--
+Restore this line when api.star-history.com recovers from its outage:
+[![Star History Chart](https://api.star-history.com/svg?repos=wranngle/orb_forge&type=Date)](https://www.star-history.com/#wranngle/orb_forge&Date)
+-->
+
+[![GitHub stars](https://img.shields.io/github/stars/wranngle/orb_forge?style=social)](https://www.star-history.com/#wranngle/orb_forge&Date)
+
+[**View the interactive star history**](https://www.star-history.com/#wranngle/orb_forge&Date), drawn live even while star-history's image API is down.
 
 ## License
 
