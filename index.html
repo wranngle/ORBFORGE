@@ -57,6 +57,7 @@
   --font-display:'Outfit',system-ui,sans-serif;
   --font-body:'Inter',system-ui,sans-serif;
   --font-mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --btn-h:30px; /* one height for every button in the app */
   --radius-sm:4px; --radius-md:8px; --radius-lg:12px; --radius-xl:16px;
   --radius-lasso:18px 4px 18px 4px;
   --ease-out:cubic-bezier(0.16,1,0.3,1);
@@ -149,30 +150,30 @@ button,select,input,textarea{font-family:inherit;color:inherit}
 .app{
   position:relative;z-index:var(--z-content);
   max-width:1480px;margin:0 auto;
-  padding:8px 16px 16px;
-  display:flex;flex-direction:column;gap:8px;
+  padding:6px 16px 16px;
+  display:flex;flex-direction:column;gap:6px;
 }
 
 /* ---------- Topbar ---------- */
 .topbar{
-  display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
-  padding:5px 12px 5px 9px;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:nowrap;
+  padding:3px 12px 3px 9px;
   border:1px solid var(--line);
   border-radius:var(--radius-lasso);
   background:linear-gradient(180deg,rgba(255,95,0,.05),rgba(255,255,255,0) 60%),var(--panel);
   border-left:4px solid var(--sunset-500);
   box-shadow:0 6px 22px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.02);
 }
-.brand{display:flex;align-items:center;gap:11px;min-width:0}
+.brand{display:flex;align-items:center;gap:9px;min-width:0}
 .brand-glyph{
-  width:32px;height:32px;flex:0 0 32px;border-radius:50%;
+  width:26px;height:26px;flex:0 0 26px;border-radius:50%;
   background:#1a0808 url("/orb.webp") center/cover no-repeat;
   box-shadow:0 0 0 1px rgba(255,158,51,.5), 0 0 18px rgba(255,95,0,.45);
   position:relative;animation:brandPulse 3.4s ease-in-out infinite;
 }
 @keyframes brandPulse{0%,100%{box-shadow:0 0 0 1px rgba(255,158,51,.5),0 0 18px rgba(255,95,0,.45)}50%{box-shadow:0 0 0 1px rgba(255,158,51,.7),0 0 28px rgba(255,95,0,.65)}}
 .brand-title{
-  font-family:var(--font-display);font-weight:800;letter-spacing:.015em;font-size:17px;line-height:1.02;
+  font-family:var(--font-display);font-weight:800;letter-spacing:.015em;font-size:15px;line-height:1.02;
   background:linear-gradient(94deg,#ffe9d2 0%,var(--sunset-300) 32%,var(--sunset-500) 60%,var(--violet-400) 100%);
   background-size:180% 100%;
   -webkit-background-clip:text;background-clip:text;color:transparent;
@@ -180,14 +181,15 @@ button,select,input,textarea{font-family:inherit;color:inherit}
 }
 @keyframes wmShift{from{background-position:0% 0}to{background-position:100% 0}}
 @media (prefers-reduced-motion:reduce){.brand-title,.brand-glyph{animation:none}}
-.brand-sub{font-family:var(--font-mono);font-size:10px;letter-spacing:.05em;color:var(--text-dim);margin-top:1px;text-transform:uppercase}
+.brand-sub{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.05em;color:var(--text-dim);margin-top:1px;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brand>div{min-width:0}
 .brand-home{color:var(--text-dim);text-decoration:none;border-bottom:1px solid var(--line)}
 .brand-home:hover,.brand-home:focus-visible{color:var(--sunset-500);border-bottom-color:var(--sunset-500)}
 
-.topbar-actions{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
+.topbar-actions{display:inline-flex;align-items:center;gap:6px;flex-wrap:nowrap;flex:0 0 auto}
 .topbar-divider{width:1px;height:22px;background:var(--line)}
 .ic-btn{
-  width:30px;height:30px;padding:0;
+  width:var(--btn-h);height:var(--btn-h);padding:0;
   display:inline-flex;align-items:center;justify-content:center;
   background:rgba(255,255,255,.02);
   border:1px solid var(--line);border-radius:var(--radius-md);
@@ -214,7 +216,7 @@ select option,select optgroup{background-color:#16151f;color:var(--text)}
 
 /* Split star pill (GitHub mark | ★ count), after PinchGrab's g-pill. */
 .star-pill{
-  display:inline-flex;align-items:stretch;height:30px;
+  display:inline-flex;align-items:stretch;height:var(--btn-h);
   border:1px solid var(--line);border-radius:var(--radius-md);overflow:hidden;
   text-decoration:none;font-family:var(--font-mono);font-size:11px;font-weight:700;
   transition:all var(--duration-fast) var(--ease-out);
@@ -248,7 +250,7 @@ select option,select optgroup{background-color:#16151f;color:var(--text)}
 .btn{
   --bg:rgba(255,255,255,.03);--bd:var(--line);--fg:var(--text);
   display:inline-flex;align-items:center;justify-content:center;gap:6px;
-  padding:8px 11px;
+  height:var(--btn-h);padding:0 12px;
   background:var(--bg);border:1px solid var(--bd);border-radius:var(--radius-md);
   color:var(--fg);font-family:var(--font-mono);font-size:10.5px;font-weight:600;
   letter-spacing:.06em;text-transform:uppercase;cursor:pointer;
@@ -262,14 +264,14 @@ select option,select optgroup{background-color:#16151f;color:var(--text)}
   --bg:linear-gradient(180deg,var(--sunset-400),var(--sunset-500));
   --bd:var(--sunset-500);--fg:#fff;
   box-shadow:0 4px 14px rgba(255,95,0,.32), 0 0 0 1px rgba(255,127,0,.4) inset;
-  padding:10px 14px;font-size:11px;
+  padding:0 16px;font-size:11px;
 }
 .btn--primary:hover{
   --bg:linear-gradient(180deg,var(--sunset-300),var(--sunset-400));
   box-shadow:0 8px 22px rgba(255,95,0,.45), 0 0 0 1px rgba(255,158,51,.6) inset;
 }
 .btn--ghost{--bg:transparent}
-.btn--dice{--bd:var(--sunset-500);--bg:rgba(255,95,0,.10);--fg:var(--sunset-200);padding:7px 12px}
+.btn--dice{--bd:var(--sunset-500);--bg:rgba(255,95,0,.10);--fg:var(--sunset-200);padding:0 12px}
 .btn--dice:hover{--bg:rgba(255,95,0,.18);border-color:var(--sunset-400)}
 .btn[disabled]{opacity:.5;pointer-events:none}
 
@@ -300,18 +302,23 @@ select option,select optgroup{background-color:#16151f;color:var(--text)}
   background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-md);
 }
 .layer-tabs{display:flex;align-items:center;gap:5px;flex-wrap:wrap;min-width:0;flex:1 1 auto}
+/* Tabs are peers: same chip, distinguished only by a small accent dot and the
+   active-selection ring. Click a tab to edit its layer's parameters. */
 .layer-tab{
   display:inline-flex;align-items:center;gap:6px;
-  padding:4px 6px 4px 9px;max-width:190px;
+  padding:4px 7px;max-width:190px;
   background:rgba(255,255,255,.02);border:1px solid var(--line);border-radius:var(--radius-sm);
   cursor:pointer;transition:all var(--duration-fast) var(--ease-out);
 }
-.layer-tab:hover{border-color:var(--line-strong)}
-.layer-tab.base{border-left:3px solid var(--sunset-500)}
-.layer-tab.overlay{border-left:3px solid var(--violet-500)}
+.layer-tab:hover{border-color:var(--line-strong);background:rgba(255,255,255,.045)}
+.layer-tab.is-active{border-color:var(--sunset-500);background:rgba(255,95,0,.1);box-shadow:0 0 0 1px var(--sunset-500) inset}
+.layer-tab .lt-dot{width:6px;height:6px;flex:0 0 6px;border-radius:50%;background:var(--text-faint)}
+.layer-tab.base .lt-dot{background:var(--sunset-500)}
+.layer-tab.overlay .lt-dot{background:var(--violet-500)}
 .layer-tab.hidden-layer{opacity:.5}
 .layer-tab .lt-name{font-family:var(--font-mono);font-size:10.5px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px}
-.layer-tab .lt-dirty{color:var(--sunset-300);font-weight:700}
+.layer-tab.is-active .lt-name{color:var(--sunset-100)}
+.layer-tab .lt-dirty{color:var(--sunset-300);font-weight:700;margin-left:-3px}
 .layer-tab .lt-eye,.layer-tab .lt-x{
   width:16px;height:16px;flex:0 0 16px;padding:0;border:0;border-radius:4px;
   display:inline-flex;align-items:center;justify-content:center;cursor:pointer;
@@ -320,7 +327,6 @@ select option,select optgroup{background-color:#16151f;color:var(--text)}
 .layer-tab .lt-eye svg,.layer-tab .lt-x svg{width:11px;height:11px}
 .layer-tab .lt-eye:hover{color:var(--violet-300)}
 .layer-tab .lt-x:hover{background:var(--text-danger);color:#fff}
-.layer-tab.base .lt-name{color:var(--sunset-200)}
 .lt-add{
   width:26px;height:26px;flex:0 0 26px;padding:0;border:1px dashed var(--line-strong);border-radius:var(--radius-sm);
   background:transparent;color:var(--text-dim);cursor:pointer;
@@ -330,7 +336,7 @@ select option,select optgroup{background-color:#16151f;color:var(--text)}
 .lt-add:disabled{opacity:.3;cursor:not-allowed}
 .lt-add svg{width:14px;height:14px}
 .param-actions{display:inline-flex;align-items:center;gap:5px;flex:0 0 auto}
-.param-actions .btn--dice{padding:5px 10px}
+.param-actions .btn--dice{padding:0 10px}
 .param-actions .btn--dice span{font-size:10px}
 
 /* ============================================================
@@ -609,6 +615,9 @@ dialog[open]{animation:dlgIn .22s var(--ease-out);display:flex;flex-direction:co
 
 .field-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px}
 .field{display:flex;align-items:center;gap:8px;min-width:0}
+/* [hidden] must beat the display rules on these flex/grid components (class
+   selectors otherwise override the UA [hidden]{display:none}). */
+.field[hidden],.dur-row[hidden],.shot-row[hidden],.json-row[hidden],.check[hidden],.btn[hidden]{display:none}
 .field label{font-size:11px;color:var(--text-dim);flex:0 0 72px;font-weight:500;cursor:help}
 .field select,.field input[type=text]{
   flex:1;min-width:0;
@@ -635,6 +644,23 @@ dialog[open]{animation:dlgIn .22s var(--ease-out);display:flex;flex-direction:co
 .dur-row{display:grid;grid-template-columns:72px 1fr 56px;align-items:center;gap:8px;padding:4px 0 8px}
 .dur-row label{font-size:11px;color:var(--text-dim);cursor:help}
 .dur-row .dur-val{font-family:var(--font-mono);font-size:10.5px;text-align:right;color:var(--text);padding:2px 6px;background:rgba(255,255,255,.025);border:1px solid var(--line);border-radius:var(--radius-sm)}
+
+/* Single-frame export: scrub-to-frame on the left, a live preview of that exact
+   frame on the right. */
+.shot-row{display:flex;gap:12px;align-items:center;padding:6px 0 8px}
+.shot-scrub{flex:1;min-width:0;display:grid;grid-template-columns:56px 1fr 48px;align-items:center;gap:8px}
+.shot-scrub label{font-size:11px;color:var(--text-dim);cursor:help}
+.shot-scrub .dur-val{font-family:var(--font-mono);font-size:10.5px;text-align:right;color:var(--text);padding:2px 6px;background:rgba(255,255,255,.025);border:1px solid var(--line);border-radius:var(--radius-sm)}
+.shot-preview{flex:0 0 auto}
+.shot-preview canvas{
+  width:96px;height:96px;display:block;border-radius:var(--radius-sm);
+  border:1px solid var(--line-strong);
+  /* checkerboard so transparency reads at a glance */
+  background-image:linear-gradient(45deg,#1a1822 25%,transparent 25%),linear-gradient(-45deg,#1a1822 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#1a1822 75%),linear-gradient(-45deg,transparent 75%,#1a1822 75%);
+  background-size:14px 14px;background-position:0 0,0 7px,7px -7px,-7px 0;background-color:#0c0b12;
+}
+.json-row{padding:2px 0 0}
+.json-row textarea{width:100%;min-height:150px;resize:vertical}
 
 .bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:10px}
 .status{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.04em;min-height:13px;margin-top:6px;color:var(--text-dim)}
@@ -894,6 +920,9 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
             <option value="2">2×</option>
             <option value="3">3×</option>
           </select>
+          <button class="ic-btn" id="btnRollTransport" type="button" title="Roll a new orb (also works in fullscreen)" aria-label="Roll a new orb">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="15.5" cy="15.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="15.5" cy="8.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="8.5" cy="15.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/></svg>
+          </button>
           <button class="ic-btn" id="btnFull" type="button" title="Fullscreen preview (F)" aria-label="Fullscreen preview">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
           </button>
@@ -908,10 +937,6 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
         <button class="btn btn--ghost" id="btnImportJson" type="button" title="Import a config — drop a .json / .webp / .gif, or paste JSON or a seed">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 8l5-5 5 5"/><path d="M12 3v12"/></svg>
           Import
-        </button>
-        <button class="btn btn--ghost" id="btnExportJson" type="button" title="Copy or download the current config as JSON">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"/><path d="M7 9l5-5 5 5"/><path d="M12 4v12"/></svg>
-          Export
         </button>
       </div>
     </aside>
@@ -962,19 +987,22 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
      Export dialog — WebP / GIF
      ============================================================ -->
 <dialog id="dlgExport" aria-labelledby="dlgExportTitle">
-  <div class="dlg-head" id="dlgExportTitle">Export animation
+  <div class="dlg-head" id="dlgExportTitle">Download
     <button class="ic-btn dlg-x" type="button" data-close title="Close" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
   </div>
   <div class="dlg-body">
     <div class="field-grid">
-      <div class="field" title="WebP: small files, smooth gradients, true soft transparency — best for avatars. GIF: plays absolutely everywhere, but files are bigger, colors are limited to 255, and transparency is hard-edged.">
+      <div class="field" id="fldFormat" title="WebP/GIF are animated loops. PNG/JPG export a single frame you pick with the scrubber. JSON exports the config only.">
         <label for="crtFormat">Format</label>
         <select id="crtFormat">
-          <option value="webp" selected title="Recommended — small, smooth, real alpha (Chrome, Edge, recent Firefox)">WebP — recommended</option>
-          <option value="gif" title="Universal playback — bigger files, 255 colors, hard-edged transparency">GIF — universal</option>
+          <option value="webp" selected title="Animated — small, smooth, real alpha (Chrome, Edge, recent Firefox)">WebP — animated</option>
+          <option value="gif" title="Animated — universal playback, bigger files, 255 colors, hard-edged transparency">GIF — animated</option>
+          <option value="png" title="Single frame — lossless, keeps true transparency">PNG — single frame</option>
+          <option value="jpg" title="Single frame — smaller, no transparency (flattened on a solid backdrop)">JPG — single frame</option>
+          <option value="json" title="Config only — the full recipe as JSON, re-importable">JSON — config only</option>
         </select>
       </div>
-      <div class="field" title="Pixel size of the square output. 512 px is crisp for avatars; 192–256 px keeps files tiny for chat apps and favicons.">
+      <div class="field" id="fldRes" title="Pixel size of the square output. 512 px is crisp for avatars; 192–256 px keeps files tiny for chat apps and favicons.">
         <label for="crtRes">Resolution</label>
         <select id="crtRes">
           <option value="192" title="Tiny — favicons, chat emotes">192 px</option>
@@ -984,7 +1012,7 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
           <option value="512" selected title="Largest — crispest, biggest file">512 px</option>
         </select>
       </div>
-      <div class="field" title="Frames per second. 24–30 fps looks smooth for a glowing loop; 60 fps is silky but roughly doubles the file size vs 30. GIF tops out near 50 fps by format design.">
+      <div class="field" id="fldFps" title="Frames per second. 24–30 fps looks smooth for a glowing loop; 60 fps is silky but roughly doubles the file size vs 30. GIF tops out near 50 fps by format design.">
         <label for="crtFps">Frame rate</label>
         <select id="crtFps">
           <option value="12" title="12 fps — flipbook feel, smallest">12 fps</option>
@@ -994,7 +1022,7 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
           <option value="60" selected title="60 fps — silky, biggest file">60 fps</option>
         </select>
       </div>
-      <div class="field" title="WebP compression quality. Max is near-lossless and largest; each step down compresses harder — softer glow edges, smaller file. High is usually indistinguishable from Max at about half the size. GIF ignores this (its size is driven by resolution and frame rate).">
+      <div class="field" id="fldQual" title="Compression quality for the lossy encoders (WebP, JPG). Max is near-lossless and largest; each step down compresses harder — softer glow edges, smaller file. High is usually indistinguishable from Max at about half the size. GIF and PNG ignore this.">
         <label for="crtQual" title="WebP encoder quality (the 0–1 quality factor passed to the browser's WebP encoder). It sets how aggressively the lossy VP8 codec quantizes each frame: higher quality = finer quantization step = more high-frequency detail kept and a larger file; lower = coarser quantization that discards fine gradients and edges (soft, blocky glow) for a smaller file. Max ≈ 1.0 is near-lossless; each step roughly halves quality. GIF ignores this — its size comes from resolution and frame count.">Quality</label>
         <select id="crtQual" title="WebP encoder quality (the 0–1 quality factor passed to the browser's WebP encoder). Higher = finer VP8 quantization = more detail + bigger file; lower = coarser quantization that discards fine gradients/edges for a smaller file. Max ≈ near-lossless. GIF ignores this.">
           <option value="1" selected title="q≈1.0 — near-lossless, minimal quantization, biggest file">Max</option>
@@ -1004,7 +1032,7 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
           <option value="0.22" title="q≈0.22 — coarse quantization, soft and grainy, smallest file">Min</option>
         </select>
       </div>
-      <div class="field" title="Hard cap on file size. The exporter encodes probe frames to measure real cost, then keeps the sharpest resolution that fits — quality and frame rate flex first, and frame rate never drops below 24 fps unless nothing fits. WebP only.">
+      <div class="field" id="fldTarget" title="Hard cap on file size. The exporter encodes probe frames to measure real cost, then keeps the sharpest resolution that fits — quality and frame rate flex first, and frame rate never drops below 24 fps unless nothing fits. WebP only.">
         <label for="crtTarget">Target size</label>
         <select id="crtTarget">
           <option value="0" selected title="Use the manual settings above, whatever they weigh">Off — manual</option>
@@ -1014,16 +1042,35 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
         </select>
       </div>
     </div>
-    <label class="check" title="Every export loops seamlessly: the exporter phase-locks all motion (rotation, pulse, wobble, tracers, spin) to a whole number of cycles across the chosen duration, so the last frame flows into the first. Checked = auto-pick the duration that needs the least speed adjustment (the tightest seam). Uncheck to set ANY duration below — still seamless; the motion is gently time-stretched to fit."><input type="checkbox" id="crtAuto" checked>Auto duration <span style="color:var(--text-faint)">· always seamless</span></label>
-    <div class="dur-row">
+    <label class="check" id="fldAuto" title="Every export loops seamlessly: the exporter phase-locks all motion (rotation, pulse, wobble, tracers, spin) to a whole number of cycles across the chosen duration, so the last frame flows into the first. Checked = auto-pick the duration that needs the least speed adjustment (the tightest seam). Uncheck to set ANY duration below — still seamless; the motion is gently time-stretched to fit."><input type="checkbox" id="crtAuto" checked>Auto duration <span style="color:var(--text-faint)">· always seamless</span></label>
+    <div class="dur-row" id="fldDur">
       <label for="crtDur" title="Loop length in seconds — set any value; the export stays seamless (motion is time-stretched to a whole cycle count). Turn off Auto duration to edit.">Duration</label>
       <input type="range" id="crtDur" min="1.5" max="9" step="0.05" value="3" disabled title="Loop length in seconds">
       <span class="dur-val" id="crtDurVal">3.00 s</span>
     </div>
+    <!-- Single-frame (PNG/JPG): pick the exact frame and preview it -->
+    <div class="shot-row" id="fldShot" hidden>
+      <div class="shot-scrub">
+        <label for="crtShot" title="Pick the exact moment in the loop to capture as a still.">Frame</label>
+        <input type="range" id="crtShot" min="0" max="1" step="0.001" value="0.3" title="Scrub to the frame you want to export">
+        <span class="dur-val" id="crtShotVal">30%</span>
+      </div>
+      <div class="shot-preview" title="The exact frame that will be exported at this scrub point">
+        <canvas id="crtShotCanvas" width="128" height="128" aria-label="Export frame preview"></canvas>
+      </div>
+    </div>
+    <!-- JSON config export -->
+    <div class="json-row" id="fldJson" hidden>
+      <textarea id="crtJsonOut" spellcheck="false" readonly aria-label="Current parameter state as JSON"></textarea>
+    </div>
     <div class="bar">
-      <button class="btn btn--primary" id="crtRenderBtn" type="button" title="Render every frame and download the file">
+      <button class="btn btn--primary" id="crtRenderBtn" type="button" title="Render and download">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
-        Render &amp; Download
+        <span id="crtRenderLabel">Render &amp; Download</span>
+      </button>
+      <button class="btn" id="crtCopyBtn" type="button" title="Copy the JSON config to the clipboard" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Copy
       </button>
       <span id="crtFrameInfo" style="font-family:var(--font-mono);font-size:10.5px;color:var(--text-dim);margin-left:auto"></span>
     </div>
@@ -1073,29 +1120,6 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
     </div>
     <div class="status" id="crtStatus" aria-live="polite"></div>
     <p class="hint">A seed rebuilds the exact orb it was rolled from. Dropped WebP/GIF exports carry their full recipe in the file; a plain file falls back to its filename seed. Unknown keys are ignored and values clamp to range.</p>
-  </div>
-</dialog>
-
-<!-- ============================================================
-     Export JSON dialog
-     ============================================================ -->
-<dialog id="dlgJson" aria-labelledby="dlgJsonTitle">
-  <div class="dlg-head" id="dlgJsonTitle">Export
-    <button class="ic-btn dlg-x" type="button" data-close title="Close" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
-  </div>
-  <div class="dlg-body">
-    <textarea id="crtJsonOut" spellcheck="false" readonly aria-label="Current parameter state as JSON"></textarea>
-    <div class="bar">
-      <button class="btn" id="crtCopyBtn" type="button" title="Copy JSON to clipboard">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-        Copy
-      </button>
-      <button class="btn" id="crtDownloadBtn" type="button" title="Download the config as JSON (filename carries the seed and timestamp)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
-        Download .json
-      </button>
-    </div>
-    <p class="hint">This snapshot recreates the exact orb — seed, parameters, background, and overlays. Import it here or keep it in your repo.</p>
   </div>
 </dialog>
 

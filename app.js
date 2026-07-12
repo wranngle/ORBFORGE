@@ -118,6 +118,13 @@
   // Declared early: buildPresetOptions() (run at init) reads SEED.current.
   var SEED={current:null};
 
+  // Which layer the 40 parameter controls edit: 0 = base orb, 1..3 = overlay
+  // index+1. The live render always draws base (params) + overlays; the controls
+  // just point at whichever layer's param object is active.
+  var ACTIVE=0;
+  function activeParams(){ return (ACTIVE>0&&OVERLAYS[ACTIVE-1])?OVERLAYS[ACTIVE-1].params:params; }
+  function clampActive(){ if(ACTIVE<0||ACTIVE>OVERLAYS.length) ACTIVE=0; }
+
   /* ---------- per-param glyphs ---------- */
   var ICONS={
     radius:      '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/><path d="M12 12L18.5 8"/>',
@@ -270,7 +277,7 @@
     dlg.addEventListener('pointerdown',function(e){ downOnBackdrop=(e.target===dlg); });
     dlg.addEventListener('click',function(e){ if(e.target===dlg&&downOnBackdrop){ downOnBackdrop=false; dlg.close(); } });
   }
-  ['dlgExport','dlgImport','dlgJson','dlgHelp','dlgManager'].forEach(function(id){ wireDialog(document.getElementById(id)); });
+  ['dlgExport','dlgImport','dlgHelp','dlgManager'].forEach(function(id){ wireDialog(document.getElementById(id)); });
   function openDialog(dlg){ if(dlg&&!dlg.open){ try{ dlg.showModal(); }catch(e){} } }
 
   /* ---------- Toast (undoable actions) ---------- */
@@ -366,8 +373,9 @@
   /* ---------- Apply param ---------- */
   function setParam(c,v){
     v=snap(c,v);
-    if(v===params[c.key]) return false;
-    params[c.key]=v;
+    var P=activeParams();
+    if(v===P[c.key]) return false;
+    P[c.key]=v;
     var r=refs[c.key];
     if(r){
       r.input.value=v;
@@ -448,7 +456,7 @@
   var NO_ENGINE=false;
   function disableEngineUI(){
     NO_ENGINE=true;
-    ['crtRandomBtn','crtResetBtn','btnUndo','btnRedo','btnPlay','crtScrub','btnFull','crtWebpBtn','btnImportJson','btnExportJson'].forEach(function(id){
+    ['crtRandomBtn','crtResetBtn','btnUndo','btnRedo','btnPlay','crtScrub','btnFull','btnRollTransport','crtWebpBtn','btnImportJson'].forEach(function(id){
       var el=document.getElementById(id); if(el) el.disabled=true;
     });
     var tr=document.getElementById('transport'); if(tr) tr.classList.add('is-disabled');
@@ -482,7 +490,7 @@
   function bindStep(btn,c,dir){
     var holdTimer=null,repTimer=null,didStep=false;
     function step(){
-      var changed=setParam(c,params[c.key]+dir*c.step);
+      var changed=setParam(c,activeParams()[c.key]+dir*c.step);
       if(changed){ didStep=true; hlKick(HL_MODE[c.key]||1); }
     }
     function start(e){
@@ -499,7 +507,7 @@
       if(holdTimer){ clearTimeout(holdTimer); holdTimer=null; }
       if(repTimer){ clearTimeout(repTimer); repTimer=null; }
       if(didStep){
-        eclog('info','param.step',{key:c.key,dir:dir,value:params[c.key]},'Step '+(dir>0?'↑':'↓')+' '+c.key+' = '+fmt(c,params[c.key]));
+        eclog('info','param.step',{key:c.key,dir:dir,value:activeParams()[c.key]},'Step '+(dir>0?'↑':'↓')+' '+c.key+' = '+fmt(c,activeParams()[c.key]));
         commitHistory();
         didStep=false;
       }
@@ -513,9 +521,9 @@
     // (no pointer sequence), so perform a single step + commit here.
     btn.addEventListener('click',function(e){
       if(e.detail!==0) return;
-      if(setParam(c,params[c.key]+dir*c.step)){
+      if(setParam(c,activeParams()[c.key]+dir*c.step)){
         hlKick(HL_MODE[c.key]||1);
-        eclog('info','param.step',{key:c.key,dir:dir,value:params[c.key]},'Step '+(dir>0?'↑':'↓')+' '+c.key+' = '+fmt(c,params[c.key]));
+        eclog('info','param.step',{key:c.key,dir:dir,value:activeParams()[c.key]},'Step '+(dir>0?'↑':'↓')+' '+c.key+' = '+fmt(c,activeParams()[c.key]));
         commitHistory();
       }
     });
@@ -553,7 +561,7 @@
       var stepper=document.createElement('span'); stepper.className='stepper';
       stepper.appendChild(dec); stepper.appendChild(val); stepper.appendChild(inc);
       inp.addEventListener('input',function(){
-        var v=parseFloat(inp.value); params[c.key]=v;
+        var v=parseFloat(inp.value); activeParams()[c.key]=v;
         val.value=fmt(c,v);
         inp.style.setProperty('--p',pct(c,v)+'%');
         markDirty();
@@ -562,24 +570,24 @@
       });
       // commit history + log on release
       inp.addEventListener('change',function(){
-        eclog('info','param.commit',{key:c.key,value:params[c.key]},c.key+' = '+fmt(c,params[c.key]));
+        eclog('info','param.commit',{key:c.key,value:activeParams()[c.key]},c.key+' = '+fmt(c,activeParams()[c.key]));
         commitHistory();
       });
       function commitTyped(){
         var v=parseFloat(String(val.value).replace(',','.'));
-        if(!isFinite(v)){ val.value=fmt(c,params[c.key]); return; }
+        if(!isFinite(v)){ val.value=fmt(c,activeParams()[c.key]); return; }
         if(setParam(c,v)){
           hlKick(HL_MODE[c.key]||1);
-          eclog('info','param.type',{key:c.key,value:params[c.key]},c.key+' = '+fmt(c,params[c.key])+' (typed)');
+          eclog('info','param.type',{key:c.key,value:activeParams()[c.key]},c.key+' = '+fmt(c,activeParams()[c.key])+' (typed)');
           commitHistory();
         }
-        val.value=fmt(c,params[c.key]);
+        val.value=fmt(c,activeParams()[c.key]);
       }
       val.addEventListener('focus',function(){ val.select(); });
       val.addEventListener('blur',commitTyped);
       val.addEventListener('keydown',function(e){
         if(e.key==='Enter'){ e.preventDefault(); val.blur(); }
-        else if(e.key==='Escape'){ val.value=fmt(c,params[c.key]); val.blur(); }
+        else if(e.key==='Escape'){ val.value=fmt(c,activeParams()[c.key]); val.blur(); }
       });
       row.appendChild(ico); row.appendChild(lab); row.appendChild(inp); row.appendChild(stepper);
       bindStep(dec,c,-1); bindStep(inc,c,+1);
@@ -678,10 +686,11 @@
   syncBgUI();
 
   function syncUI(){
+    var P=activeParams();
     CONFIG.forEach(function(c){
-      var r=refs[c.key]; r.input.value=params[c.key];
-      if(document.activeElement!==r.val) r.val.value=fmt(c,params[c.key]);
-      r.input.style.setProperty('--p',pct(c,params[c.key])+'%');
+      var r=refs[c.key]; r.input.value=P[c.key];
+      if(document.activeElement!==r.val) r.val.value=fmt(c,P[c.key]);
+      r.input.style.setProperty('--p',pct(c,P[c.key])+'%');
     });
     syncSpeedSel();
   }
@@ -696,7 +705,16 @@
   }
   if(speedSel) speedSel.addEventListener('change',function(){
     var c=refs.playSpeed&&refs.playSpeed.cfg; if(!c) return;
-    setParam(c,parseFloat(speedSel.value));
+    // The transport always drives BASE playback (overlay playSpeed is inert), so
+    // write the base param directly regardless of which layer is being edited.
+    var v=snap(c,parseFloat(speedSel.value));
+    params.playSpeed=v;
+    if(ACTIVE===0){
+      var r=refs.playSpeed;
+      if(r){ r.input.value=v; if(document.activeElement!==r.val) r.val.value=fmt(c,v); r.input.style.setProperty('--p',pct(c,v)+'%'); }
+      markDirty();
+    }
+    updateAuto(); refreshExport();
     eclog('info','playback.speed',{speed:params.playSpeed},'Playback speed '+params.playSpeed+'×');
     commitHistory();
   });
@@ -736,8 +754,10 @@
       ? 'Unsaved — click to save this orb as a preset ("'+(SEED.current||'default')+'")'
       : 'Saved as "'+activePreset+'"';
   }
-  // Mark the current state as diverged from any saved preset.
+  // Mark the current state as diverged from any saved preset. Editing an overlay
+  // layer does not change the BASE preset's identity, so only the base dirties.
   function markDirty(){
+    if(ACTIVE!==0) return;
     if(activePreset!==null){ activePreset=null; buildPresetOptions(); syncPresetUI(); }
     else { presetSel.value=''; }
   }
@@ -751,6 +771,8 @@
   }
   function applyPreset(name){
     var p=PRESETS[name]; if(!p) return;
+    // Applying a preset loads the BASE orb, so edit focus returns to the base.
+    ACTIVE=0;
     // Missing keys fall back to defaults so presets saved before a parameter
     // existed still land on a deterministic look.
     applyPresetData(p);
@@ -805,40 +827,45 @@
   var EYE_OFF='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 3 18 18"/><path d="M10.6 6.1A9 9 0 0 1 12 6c6.5 0 10 6 10 6a15 15 0 0 1-3 3.4M6.6 6.6A15 15 0 0 0 2 12s3.5 7 10 7a9 9 0 0 0 4.2-1"/></svg>';
   var XMARK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>';
   var PLUS='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
-  // The layer tabs replace the old overlay pill bar: one base tab (the seed/preset
-  // identity, always rendered) plus one tab per overlay with a show/hide eye and a
-  // remove ×, then a "+ overlay" affordance (capped at 3) that opens the manager.
+  // The layer tabs are peers: the base orb (layer 0) plus one tab per overlay.
+  // Clicking a tab makes it the active edit target (the 40 controls bind to it);
+  // the eye toggles an overlay's visibility, the × removes it. The base tab is a
+  // normal selectable tab — it just can't be hidden or removed (it's the founda-
+  // tion, and the backdrop lives with it).
   function renderLayerTabs(){
     var wrap=document.getElementById('layerTabs'); if(!wrap) return;
+    clampActive();
     wrap.innerHTML='';
-    // Base identity tab
-    var base=document.createElement('span');
-    base.className='layer-tab base';
-    base.title='Base orb — seed identity for this render';
-    var bn=document.createElement('span'); bn.className='lt-name';
-    bn.textContent=(SEED.current||'default');
-    base.appendChild(bn);
-    if(activePreset===null){ var d=document.createElement('span'); d.className='lt-dirty'; d.textContent=' *'; d.title='Unsaved changes'; base.appendChild(d); }
-    wrap.appendChild(base);
-    // Overlay tabs
-    OVERLAYS.forEach(function(o,i){
-      var vis=o.visible!==false;
+    function makeTab(idx,label,kind,visible){
       var tab=document.createElement('span');
-      tab.className='layer-tab overlay'+(vis?'':' hidden-layer');
-      var label=o.name||('layer '+(i+1));
-      var eye=document.createElement('button'); eye.type='button'; eye.className='lt-eye';
-      eye.innerHTML=vis?EYE_ON:EYE_OFF;
-      eye.title=vis?'Hide this overlay (kept in the file, excluded from render + export)':'Show this overlay';
-      eye.setAttribute('aria-label',(vis?'Hide ':'Show ')+label);
-      eye.setAttribute('aria-pressed',String(vis));
-      eye.addEventListener('click',function(){ toggleOverlay(i); });
+      tab.className='layer-tab '+kind+(idx===ACTIVE?' is-active':'')+(visible===false?' hidden-layer':'');
+      tab.setAttribute('role','tab');
+      tab.setAttribute('aria-selected',String(idx===ACTIVE));
+      tab.title=(idx===0?'Base orb':'Overlay layer')+' — click to edit its parameters';
+      var dot=document.createElement('span'); dot.className='lt-dot'; tab.appendChild(dot);
+      if(kind==='overlay'){
+        var eye=document.createElement('button'); eye.type='button'; eye.className='lt-eye';
+        eye.innerHTML=visible?EYE_ON:EYE_OFF;
+        eye.title=visible?'Hide this overlay (kept in the file, excluded from render + export)':'Show this overlay';
+        eye.setAttribute('aria-label',(visible?'Hide ':'Show ')+label);
+        eye.setAttribute('aria-pressed',String(!!visible));
+        eye.addEventListener('click',function(e){ e.stopPropagation(); toggleOverlay(idx-1); });
+        tab.appendChild(eye);
+      }
       var nm=document.createElement('span'); nm.className='lt-name'; nm.textContent=label; nm.title=label;
-      var x=document.createElement('button'); x.type='button'; x.className='lt-x'; x.innerHTML=XMARK;
-      x.title='Remove this overlay'; x.setAttribute('aria-label','Remove overlay '+label);
-      x.addEventListener('click',function(){ removeOverlay(i); });
-      tab.appendChild(eye); tab.appendChild(nm); tab.appendChild(x);
+      tab.appendChild(nm);
+      if(idx===0&&activePreset===null){ var d=document.createElement('span'); d.className='lt-dirty'; d.textContent='*'; d.title='Unsaved changes'; tab.appendChild(d); }
+      if(kind==='overlay'){
+        var x=document.createElement('button'); x.type='button'; x.className='lt-x'; x.innerHTML=XMARK;
+        x.title='Remove this overlay'; x.setAttribute('aria-label','Remove overlay '+label);
+        x.addEventListener('click',function(e){ e.stopPropagation(); removeOverlay(idx-1); });
+        tab.appendChild(x);
+      }
+      tab.addEventListener('click',function(){ setActiveLayer(idx); });
       wrap.appendChild(tab);
-    });
+    }
+    makeTab(0,(SEED.current||'default'),'base',true);
+    OVERLAYS.forEach(function(o,i){ makeTab(i+1,o.name||('layer '+(i+1)),'overlay',o.visible!==false); });
     // Add-overlay affordance
     var add=document.createElement('button'); add.type='button'; add.className='lt-add'; add.innerHTML=PLUS;
     var full=OVERLAYS.length>=3;
@@ -847,6 +874,14 @@
     add.setAttribute('aria-label','Add an overlay layer');
     add.addEventListener('click',function(){ openManager('overlay'); });
     wrap.appendChild(add);
+  }
+  // Switch which layer the parameter controls edit, then reflect its values.
+  function setActiveLayer(idx){
+    if(idx<0||idx>OVERLAYS.length) idx=0;
+    if(idx===ACTIVE){ return; }
+    ACTIVE=idx;
+    syncUI(); renderLayerTabs();
+    eclog('info','layer.select',{layer:idx,name:idx===0?(SEED.current||'default'):(OVERLAYS[idx-1]&&OVERLAYS[idx-1].name)},'Editing '+(idx===0?'base orb':'overlay "'+(OVERLAYS[idx-1]&&OVERLAYS[idx-1].name||'layer')+'"'));
   }
   function toggleOverlay(i){
     if(i<0||i>=OVERLAYS.length) return;
@@ -867,7 +902,9 @@
     var q={};
     CONFIG.forEach(function(c){ q[c.key]=(src[c.key]!==undefined)?src[c.key]:c.def; });
     OVERLAYS.push({name:name,params:q,visible:true});
-    renderLayerTabs(); refreshExport();
+    // Land edit focus on the overlay just added, so its tab shows its params.
+    ACTIVE=OVERLAYS.length;
+    syncUI(); renderLayerTabs(); refreshExport();
     eclog('info','overlay.add',{name:name,count:OVERLAYS.length},'Overlaid "'+name+'"');
     commitHistory();
     return true;
@@ -875,8 +912,13 @@
   function removeOverlay(i){
     if(i<0||i>=OVERLAYS.length) return;
     var o=OVERLAYS[i];
+    var removedLayer=i+1;
     OVERLAYS.splice(i,1);
-    renderLayerTabs(); refreshExport();
+    // Keep the active-layer pointer valid: editing the removed layer falls back
+    // to the base; a layer after it shifts down by one.
+    if(ACTIVE===removedLayer) ACTIVE=0;
+    else if(ACTIVE>removedLayer) ACTIVE--;
+    syncUI(); renderLayerTabs(); refreshExport();
     eclog('info','overlay.remove',{name:o.name,count:OVERLAYS.length},'Removed overlay "'+(o.name||'layer')+'"');
     commitHistory();
   }
@@ -1316,6 +1358,82 @@
     CONFIG.forEach(function(c){ gl.uniform1f(U[c.key],(p[c.key]!==undefined)?p[c.key]:c.def); });
   }
 
+  // ---- Shared single-frame capture (used by the animated export, the static
+  // PNG/JPG export, and the in-dialog frame preview). Renders the base pass plus
+  // every visible overlay at one phase and returns top-down straight-alpha RGBA.
+  function exportSetupGL(size,T,transparent){
+    canvas.width=size; canvas.height=size;
+    gl.viewport(0,0,size,size);
+    gl.uniform2f(U.res,size,size);
+    gl.uniform1f(U.alphaMode,0.0);
+    setBgUniforms(!transparent);
+    gl.uniform1f(U.hlMode,0.0); gl.uniform1f(U.hlStrength,0.0); gl.uniform1f(U.hlPulse,0.0); gl.uniform1f(U.hlAnts,0.0);
+    gl.uniform1f(U.loop,1.0); gl.uniform1f(U.loopDur,T);
+    setPassUniforms(params);
+  }
+  function exportCapture(size,phase,T,transparent,pix){
+    gl.uniform1f(U.phase,phase); gl.uniform1f(U.time,phase*T);
+    setPassUniforms(params);
+    gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+    if(OVERLAYS.length){
+      gl.enable(gl.BLEND); gl.blendFunc(gl.ONE,gl.ONE);
+      gl.uniform1f(U.bgOn,0.0);
+      for(var oi=0;oi<OVERLAYS.length;oi++){
+        if(OVERLAYS[oi].visible===false) continue;
+        setPassUniforms(OVERLAYS[oi].params);
+        gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+      }
+      gl.disable(gl.BLEND);
+      gl.uniform1f(U.bgOn,transparent?0.0:1.0);
+    }
+    gl.readPixels(0,0,size,size,gl.RGBA,gl.UNSIGNED_BYTE,pix);
+    var out=new Uint8Array(size*size*4);
+    for(var y=0;y<size;y++){ out.set(pix.subarray((size-1-y)*size*4,(size-y)*size*4),y*size*4); }
+    if(transparent){
+      for(var i=0;i<out.length;i+=4){
+        var r=out[i],g=out[i+1],b=out[i+2];
+        var a=r>g?(r>b?r:b):(g>b?g:b);
+        out[i+3]=a;
+        if(a>0&&a<255){
+          out[i]=Math.min(255,Math.round(r*255/a));
+          out[i+1]=Math.min(255,Math.round(g*255/a));
+          out[i+2]=Math.min(255,Math.round(b*255/a));
+        }
+      }
+    }
+    return out;
+  }
+  // Render one frame to a 2D canvas at `size`, then restore the live preview.
+  // `flatten` (a #rrggbb) composites the orb over a solid backdrop (JPG has no
+  // alpha); otherwise the straight-alpha pixels are drawn as-is (PNG keeps it).
+  function renderFrameCanvas(size,phase,T,transparent,flatten){
+    exportSetupGL(size,T,transparent);
+    var pix=new Uint8Array(size*size*4);
+    var flipped=exportCapture(size,phase,T,transparent,pix);
+    var cv=document.createElement('canvas'); cv.width=cv.height=size;
+    var ctx=cv.getContext('2d');
+    if(flatten){
+      ctx.fillStyle=flatten; ctx.fillRect(0,0,size,size);
+    }
+    var img=ctx.createImageData(size,size); img.data.set(flipped);
+    if(flatten){
+      // Manual composite so the fill shows through soft alpha edges.
+      var base=ctx.getImageData(0,0,size,size);
+      for(var i=0;i<img.data.length;i+=4){
+        var a=img.data[i+3]/255;
+        base.data[i]  =Math.round(img.data[i]  *a+base.data[i]  *(1-a));
+        base.data[i+1]=Math.round(img.data[i+1]*a+base.data[i+1]*(1-a));
+        base.data[i+2]=Math.round(img.data[i+2]*a+base.data[i+2]*(1-a));
+        base.data[i+3]=255;
+      }
+      ctx.putImageData(base,0,0);
+    } else {
+      ctx.putImageData(img,0,0);
+    }
+    resize(); // restore the live preview's backing store
+    return cv;
+  }
+
   var exporting=false,estimating=false,renderQueued=false;
   function resize(){
     if(exporting||estimating) return;
@@ -1435,7 +1553,7 @@
   // Render loop is started by finishGL() once the shader program is ready.
 
   /* ---------- JSON export / import (separate dialogs) ---------- */
-  var dlgImport=document.getElementById('dlgImport'),dlgJson=document.getElementById('dlgJson');
+  var dlgImport=document.getElementById('dlgImport');
   var jsonArea=document.getElementById('crtJson'),jsonOut=document.getElementById('crtJsonOut'),statusEl=document.getElementById('crtStatus');
   function setStatus(msg,kind){ statusEl.textContent=msg; statusEl.className='status'+(kind?' '+kind:''); }
   function roundParams(src){
@@ -1468,7 +1586,12 @@
     return 'orbforge-'+seed+'-'+ts+'.'+ext;
   }
   function refreshExport(){
-    if(dlgJson&&dlgJson.open) jsonOut.value=buildJSON();
+    // Keep the in-dialog JSON + single-frame preview live as parameters change.
+    var dx=document.getElementById('dlgExport');
+    if(dx&&dx.open){
+      if(jsonOut&&document.getElementById('fldJson')&&!document.getElementById('fldJson').hidden) jsonOut.value=buildJSON();
+      if(typeof scheduleShotThumb==='function') scheduleShotThumb();
+    }
     scheduleEstimate();
   }
   // Apply a parsed config DOC (object, not text). Returns applied-count; the
@@ -1493,6 +1616,7 @@
       if(hexOk(bgIn.bottom)) BG.bottom=bgIn.bottom.toLowerCase();
     }
     OVERLAYS=Array.isArray(data.overlays)?sanitizeOverlays(data.overlays):[];
+    ACTIVE=0; // an imported config lands on the base orb
     renderLayerTabs();
     SEED.current=(typeof data.seed==='string'&&data.seed)?data.seed.slice(0,64):null;
     activePreset=(data&&data.preset&&PRESETS[data.preset])?data.preset:null;
@@ -1604,13 +1728,11 @@
     setTimeout(function(){ URL.revokeObjectURL(url); },1000);
     eclog('info','config.schema',{},'Downloaded orbforge.schema.json');
   });
-  document.getElementById('btnExportJson').addEventListener('click',function(){
-    jsonOut.value=buildJSON();
-    openDialog(dlgJson);
-    eclog('info','ui.dialog.open',{dialog:'export_json'},'Export dialog opened');
-  });
+  // JSON export now lives inside the Download dialog (Format → JSON). Copy button
+  // is shown there when JSON is the active format.
   document.getElementById('crtCopyBtn').addEventListener('click',function(){
     var btn=this;
+    jsonOut.value=buildJSON();
     function done(){
       var orig=btn.innerHTML;
       btn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Copied';
@@ -1622,21 +1744,36 @@
       navigator.clipboard.writeText(jsonOut.value).then(done,fallback);
     } else fallback();
   });
-  document.getElementById('crtDownloadBtn').addEventListener('click',function(){
+  function downloadJSON(){
     var fn=stampBase('json');
-    var blob=new Blob([jsonOut.value||buildJSON()],{type:'application/json'});
+    var txt=buildJSON();
+    jsonOut.value=txt;
+    var blob=new Blob([txt],{type:'application/json'});
     var url=URL.createObjectURL(blob);
     var a=document.createElement('a'); a.href=url; a.download=fn;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(function(){ URL.revokeObjectURL(url); },1000);
+    showResult(url,blob,'json','<b>'+fn+'</b> · '+fmtSize(blob.size)+'<br>config only — re-import to keep editing');
+    finishExport('Downloaded '+fn+' — config only','ok',{format:'json',bytes:blob.size,filename:fn});
     eclog('info','config.download',{filename:fn},'Downloaded '+fn);
-  });
+  }
 
   /* ---------- Reset & randomize ---------- */
   document.getElementById('crtResetBtn').addEventListener('click',function(){
+    if(ACTIVE>0&&OVERLAYS[ACTIVE-1]){
+      // Reset just the active overlay layer to defaults; leave the base + siblings.
+      var ov=OVERLAYS[ACTIVE-1];
+      CONFIG.forEach(function(c){ ov.params[c.key]=c.def; });
+      syncUI(); renderLayerTabs(); refreshExport();
+      HL.mode=5; HL.pulse=1;
+      eclog('info','overlay.reset',{layer:ACTIVE,name:ov.name},'Reset overlay '+ACTIVE+' to defaults');
+      commitHistory();
+      return;
+    }
+    // Base reset clears the whole orb: base params, backdrop, and all overlays.
     CONFIG.forEach(function(c){ params[c.key]=c.def; });
     BG.transparent=BG_DEF.transparent; BG.top=BG_DEF.top; BG.bottom=BG_DEF.bottom;
-    OVERLAYS=[]; renderLayerTabs();
+    OVERLAYS=[]; ACTIVE=0; renderLayerTabs();
     SEED.current=null;
     activePreset=null; syncUI(); syncBgUI(); buildPresetOptions(); refreshExport(); updateAuto(); syncPresetUI();
     HL.mode=5; HL.pulse=1;
@@ -1644,19 +1781,20 @@
     commitHistory();
   });
 
-  function tameBrightness(){
-    var load=params.exposure*1.25+params.glow*0.62+params.tracerGlow*0.58+params.burn*0.45
-            +params.fill*0.5+params.filaments*0.7
-            +Math.max(0,params.contrast-1.0)*1.6+Math.max(0,params.thickness-0.03)*4.0;
+  function tameBrightness(P){
+    P=P||params;
+    var load=P.exposure*1.25+P.glow*0.62+P.tracerGlow*0.58+P.burn*0.45
+            +P.fill*0.5+P.filaments*0.7
+            +Math.max(0,P.contrast-1.0)*1.6+Math.max(0,P.thickness-0.03)*4.0;
     var CAP=5.4;
     if(load>CAP){
       var s=CAP/load;
-      params.exposure=clamp(params.exposure*Math.pow(s,0.9),0.55,5);
-      params.glow=clamp(params.glow*s,0,6);
-      params.tracerGlow=clamp(params.tracerGlow*s,0,6);
-      params.burn=clamp(params.burn*Math.sqrt(s),0,4);
-      params.filaments=clamp(params.filaments*Math.sqrt(s),0,2);
-      params.contrast=clamp(1.0+(params.contrast-1.0)*s,0.2,3);
+      P.exposure=clamp(P.exposure*Math.pow(s,0.9),0.55,5);
+      P.glow=clamp(P.glow*s,0,6);
+      P.tracerGlow=clamp(P.tracerGlow*s,0,6);
+      P.burn=clamp(P.burn*Math.sqrt(s),0,4);
+      P.filaments=clamp(P.filaments*Math.sqrt(s),0,2);
+      P.contrast=clamp(1.0+(P.contrast-1.0)*s,0.2,3);
     }
   }
 
@@ -1689,9 +1827,10 @@
     {name:'sculpt', w:1.5, set:{fill:[0.6,1],   filaments:[0,0.1],  texStyle:[1,3],  depth3d:[1.0,1.5],gloss:[1.6,3], saturation:[0.6,1.1], vignette:[0.6,1.3], burn:[0.3,1.2], tracerCount:[0,1], radius:[0.3,0.48]}},
     {name:'aura',   w:1.5, set:{fill:[0,0.3],   filaments:[0.2,0.8],texStyle:[0,4],  thickness:[0.03,0.09], glow:[1.6,2.6], wobble:[0.04,0.12], burn:[1.2,2.2], radius:[0.26,0.44]}}
   ];
-  function seededRandomize(seed){
+  // Fill a param object P with an archetype-weighted roll for `seed`. Returns the
+  // chosen archetype. Pure w.r.t. P — no UI / SEED / BG side effects.
+  function rollInto(P,seed){
     var rng=mulberry32(xmur3(String(seed))());
-    // weighted archetype pick — part of the seed, so it reproduces too
     var totalW=0; ARCHETYPES.forEach(function(a){ totalW+=a.w; });
     var roll=rng()*totalW, arch=ARCHETYPES[0];
     for(var ai=0;ai<ARCHETYPES.length;ai++){ roll-=ARCHETYPES[ai].w; if(roll<=0){ arch=ARCHETYPES[ai]; break; } }
@@ -1700,14 +1839,19 @@
       var lo=r?r[0]:(c.rmin!==undefined?c.rmin:c.min);
       var hi=r?r[1]:(c.rmax!==undefined?c.rmax:c.max);
       var steps=Math.max(1,Math.round((hi-lo)/c.step));
-      params[c.key]=snap(c,lo+Math.round(rng()*steps)*c.step);
+      P[c.key]=snap(c,lo+Math.round(rng()*steps)*c.step);
     });
-    // Solid-body archetypes read best when the core tones with the ring.
     if(refs.coreHue&&/glass|mesh|sculpt/.test(arch.name)){
-      params.coreHue=snap(refs.coreHue.cfg,(params.hue+rng()*60-30+360)%360);
+      P.coreHue=snap(refs.coreHue.cfg,(P.hue+rng()*60-30+360)%360);
     }
-    tameBrightness();
-    CONFIG.forEach(function(c){ params[c.key]=snap(c,params[c.key]); });
+    tameBrightness(P);
+    CONFIG.forEach(function(c){ P[c.key]=snap(c,P[c.key]); });
+    arch._rng=rng; // expose the rng so the caller can keep rolling (backdrop)
+    return arch;
+  }
+  function seededRandomize(seed){
+    var arch=rollInto(params,seed);
+    var rng=arch._rng;
     // Backdrop colors ride along only when they're visible; the Transparent
     // toggle itself is never randomized.
     if(!BG.transparent){
@@ -1721,9 +1865,22 @@
     eclog('info','params.randomize',{seed:SEED.current,archetype:arch.name},'Randomized — '+arch.name+' · seed "'+SEED.current+'"');
     commitHistory();
   }
-  document.getElementById('crtRandomBtn').addEventListener('click',function(){
-    seededRandomize(newSeed());
-  });
+  // Roll the active layer: the base orb, or the selected overlay in place.
+  function rollActiveLayer(){
+    if(ACTIVE===0){ seededRandomize(newSeed()); return; }
+    var ov=OVERLAYS[ACTIVE-1]; if(!ov){ ACTIVE=0; seededRandomize(newSeed()); return; }
+    var seed=newSeed();
+    var arch=rollInto(ov.params,seed);
+    ov.name=seed;
+    syncUI(); renderLayerTabs(); refreshExport();
+    HL.mode=5; HL.pulse=1;
+    eclog('info','overlay.randomize',{layer:ACTIVE,seed:seed,archetype:arch.name},'Rolled overlay '+ACTIVE+' — '+arch.name+' · "'+seed+'"');
+    commitHistory();
+  }
+  document.getElementById('crtRandomBtn').addEventListener('click',rollActiveLayer);
+  // Transport Roll (also reachable in fullscreen) always refreshes the base orb.
+  var btnRollT=document.getElementById('btnRollTransport');
+  if(btnRollT) btnRollT.addEventListener('click',function(){ seededRandomize(newSeed()); });
 
   /* ---------- Keyboard shortcuts ---------- */
   document.addEventListener('keydown',function(e){
@@ -1761,7 +1918,9 @@
   function showResult(url,blob,ext,meta){
     if(lastBlobUrl&&lastBlobUrl!==url) URL.revokeObjectURL(lastBlobUrl);
     lastBlobUrl=url;
-    resultImg.src=url;
+    // JSON has no visual preview; every raster/animated format does.
+    if(ext==='json'){ resultImg.removeAttribute('src'); resultImg.hidden=true; }
+    else { resultImg.hidden=false; resultImg.src=url; }
     resultMeta.innerHTML=meta;
     var fn=stampBase(ext);
     manualDl.href=url; manualDl.hidden=false;
@@ -1815,6 +1974,7 @@
     setA(qualSel,qn);
   }
   function updFrameInfo(){
+    if(!isAnimated()){ if(frameInfo) frameInfo.textContent=''; return; }
     var fps=numSel(fpsSel,60),dur=currentDur(),sp=params.playSpeed||1,real=dur/sp;
     if(parseFloat(targetSel.value)>0&&formatSel.value!=='gif'){ durVal.textContent=dur.toFixed(2)+' s'; frameInfo.textContent='auto-tuned to fit '+fmtSize(parseFloat(targetSel.value)); return; }
     durVal.textContent=dur.toFixed(2)+' s';
@@ -1832,8 +1992,16 @@
     }
     updFrameInfo();
   }
+  // Format categories drive which fields show and how the render button behaves.
+  function fmtV(){ return formatSel.value; }
+  function isAnimated(){ return fmtV()==='webp'||fmtV()==='gif'; }
+  function isStaticImg(){ return fmtV()==='png'||fmtV()==='jpg'; }
+  function isRasterFmt(){ return isAnimated()||isStaticImg(); }
+  function isLossyFmt(){ return fmtV()==='webp'||fmtV()==='jpg'; }
+  function isJsonFmt(){ return fmtV()==='json'; }
+  function showField(id,on){ var el=document.getElementById(id); if(el) el.hidden=!on; }
   function syncFormatUI(){
-    var gif=formatSel.value==='gif';
+    var gif=fmtV()==='gif', animated=isAnimated();
     if(gif){
       // Park the target while GIF is selected and restore it on the way back —
       // a format round-trip must not silently discard the user's size cap.
@@ -1846,7 +2014,7 @@
     // Target mode owns resolution / frame rate / quality — grey them out and
     // show an "Auto" value so the greyed selects reflect reality, not a stale
     // manual number. After a render the Auto label updates to the picked value.
-    var coerced=!gif&&parseFloat(targetSel.value)>0;
+    var coerced=animated&&!gif&&parseFloat(targetSel.value)>0;
     [resSel,fpsSel,qualSel].forEach(function(sel){
       var has=sel.querySelector('option[value="__auto"]');
       if(coerced&&!has){
@@ -1858,6 +2026,15 @@
         if(sel.dataset.prevVal!==undefined){ sel.value=sel.dataset.prevVal; delete sel.dataset.prevVal; }
       }
     });
+    // Field visibility per format.
+    showField('fldRes',isRasterFmt());
+    showField('fldFps',animated);
+    showField('fldTarget',animated);
+    showField('fldQual',isLossyFmt());
+    showField('fldAuto',animated);
+    showField('fldDur',animated);
+    showField('fldShot',isStaticImg());
+    showField('fldJson',isJsonFmt());
     qualSel.disabled=gif||coerced;
     resSel.disabled=coerced;
     fpsSel.disabled=coerced;
@@ -1865,9 +2042,70 @@
     var autoTitle='Chosen automatically to fit the target size.';
     resSel.title=coerced?autoTitle:'Pixel size of the square output. 512 px is crisp for avatars; 192–256 px keeps files tiny.';
     fpsSel.title=coerced?autoTitle:'Frames per second. 24–30 fps looks smooth; 60 fps is silky but roughly doubles file size vs 30.';
-    qualSel.title=gif?'GIF uses a fixed 255-color palette — size is driven by resolution and frame rate instead.':(coerced?autoTitle:'WebP encoder quality. Max is near-lossless; High is usually indistinguishable at roughly half the size.');
+    qualSel.title=gif?'GIF uses a fixed 255-color palette — size is driven by resolution and frame rate instead.':(coerced?autoTitle:'Encoder quality (WebP / JPG). Max is near-lossless; High is usually indistinguishable at roughly half the size.');
     targetSel.title=gif?'Target-size auto-tuning is WebP-only.':'Hard cap on file size. When set, it takes over resolution, frame rate, and quality to fit under the cap (frame rate stays ≥ 24 fps unless nothing fits).';
+    // Render button label + JSON copy affordance.
+    var lbl=document.getElementById('crtRenderLabel'), copyBtn=document.getElementById('crtCopyBtn');
+    if(lbl) lbl.textContent=isJsonFmt()?'Download .json':(isStaticImg()?'Download frame':'Render & Download');
+    if(copyBtn) copyBtn.hidden=!isJsonFmt();
+    if(isJsonFmt()){ jsonOut.value=buildJSON(); if(frameInfo) frameInfo.textContent=''; }
+    else if(isStaticImg()){ if(frameInfo) frameInfo.textContent=''; renderShotThumb(); }
+    var hint=document.getElementById('crtExportHint');
+    if(hint) hint.textContent=isJsonFmt()
+      ? 'The full recipe — seed, parameters, background, and overlays. Re-import it here to keep editing, or keep it in your repo.'
+      : (isStaticImg()
+          ? 'A single still at the scrub point. PNG keeps true transparency; JPG is smaller but flattens onto a solid backdrop.'
+          : 'Every export loops seamlessly at any duration you pick. WebP needs Chrome, Edge, or recent Firefox; GIF plays everywhere. The seed and full recipe are baked into every downloaded file.');
   }
+
+  /* ---------- Single-frame (PNG/JPG) preview + export ---------- */
+  var shotInp=document.getElementById('crtShot'),shotVal=document.getElementById('crtShotVal'),shotCanvas=document.getElementById('crtShotCanvas');
+  function shotPhase(){ return shotInp?clamp(parseFloat(shotInp.value)||0,0,1):0.3; }
+  // JPG has no alpha; flatten a transparent orb over a dark backdrop. A baked
+  // gradient background is already opaque, so it needs no flatten.
+  function staticRenderArgs(fmt){
+    var transparent=BG.transparent, T=currentDur();
+    if(fmt==='jpg') return {T:T,transparent:transparent?true:false,flatten:transparent?'#0c0b12':null};
+    return {T:T,transparent:transparent,flatten:null}; // png keeps alpha
+  }
+  function renderShotThumb(){
+    if(!shotCanvas||exporting||estimating||!glReady) return;
+    var a=staticRenderArgs(fmtV());
+    var cv=renderFrameCanvas(160,shotPhase(),a.T,a.transparent,a.flatten);
+    var ctx=shotCanvas.getContext('2d');
+    ctx.clearRect(0,0,shotCanvas.width,shotCanvas.height);
+    ctx.drawImage(cv,0,0,shotCanvas.width,shotCanvas.height);
+  }
+  var shotTimer=null;
+  function scheduleShotThumb(){
+    if(!isStaticImg()) return;
+    clearTimeout(shotTimer); shotTimer=setTimeout(renderShotThumb,90);
+  }
+  function exportStaticFrame(fmt,size,q){
+    exporting=true; renderBtn.disabled=true; transportEl.classList.add('is-disabled');
+    resultWrap.classList.remove('on'); manualDl.hidden=true;
+    setOv('Rendering frame…',0.5);
+    eclog('info','export.start',{format:fmt,size:size,frame:+shotPhase().toFixed(3)},'Exporting frame — '+fmt.toUpperCase()+', '+size+' px');
+    try{
+      var a=staticRenderArgs(fmt);
+      var cv=renderFrameCanvas(size,shotPhase(),a.T,a.transparent,a.flatten);
+      var mime=fmt==='jpg'?'image/jpeg':'image/png';
+      cv.toBlob(function(blob){
+        if(!blob){ finishExport('Frame export returned nothing.','err',{}); return; }
+        var fn=stampBase(fmt);
+        var url=URL.createObjectURL(blob);
+        var link=document.createElement('a'); link.href=url; link.download=fn;
+        document.body.appendChild(link); link.click(); link.remove();
+        showResult(url,blob,fmt,'<b>'+fn+'</b> · '+fmtSize(blob.size)+'<br>'+size+' px · single frame'+(fmt==='png'&&BG.transparent?' · transparent':''));
+        finishExport('Exported '+fmtSize(blob.size)+' — '+size+' px, single frame','ok',{format:fmt,bytes:blob.size,size:size,frame:+shotPhase().toFixed(3)});
+      },mime,fmt==='jpg'?q:undefined);
+    }catch(e){ finishExport('Frame render failed: '+(e&&e.message||e),'err',{reason:e&&e.message||String(e)}); }
+  }
+  if(shotInp) shotInp.addEventListener('input',function(){
+    if(shotVal) shotVal.textContent=Math.round(shotPhase()*100)+'%';
+    scheduleShotThumb();
+  });
+
   autoChk.addEventListener('change',function(){ updateAuto(); scheduleEstimate(); });
   fpsSel.addEventListener('change',function(){ updFrameInfo(); scheduleEstimate(); });
   targetSel.addEventListener('change',function(){ syncFormatUI(); updFrameInfo(); scheduleEstimate(); });
@@ -1880,6 +2118,8 @@
 
   document.getElementById('crtWebpBtn').addEventListener('click',function(){
     updateAuto();
+    syncFormatUI();
+    if(shotVal) shotVal.textContent=Math.round(shotPhase()*100)+'%';
     openDialog(dlgExport);
     scheduleEstimate();
     eclog('info','ui.dialog.open',{dialog:'export'},'Export dialog opened');
@@ -1889,6 +2129,12 @@
   var estTimer=null;
   function scheduleEstimate(){
     if(!dlgExport||!dlgExport.open) return;
+    // Static + JSON formats have nothing to probe; keep the frame preview / JSON fresh.
+    if(!isAnimated()){
+      if(isStaticImg()) scheduleShotThumb();
+      else if(isJsonFmt()) jsonOut.value=buildJSON();
+      return;
+    }
     clearTimeout(estTimer);
     estTimer=setTimeout(function(){
       if(dlgExport.open&&!exporting&&!estimating) runExport(true);
@@ -2159,6 +2405,18 @@
     if(!estimateOnly&&estimating){ renderQueued=true; return; }
     var format=formatSel.value;
     var size0=numSel(resSel,512),fps0=numSel(fpsSel,60),manualQ=numSel(qualSel,1);
+    // JSON config export: no rendering at all.
+    if(format==='json'){
+      if(estimateOnly){ setWebpStatus('Config only — the full recipe as JSON. Copy it or download .json.',''); jsonOut.value=buildJSON(); return; }
+      downloadJSON();
+      return;
+    }
+    // Single-frame raster export (PNG/JPG): render the one scrubbed frame.
+    if(format==='png'||format==='jpg'){
+      if(estimateOnly){ renderShotThumb(); return; }
+      exportStaticFrame(format,size0,manualQ);
+      return;
+    }
     var T=currentDur(),transparent=BG.transparent,target=(format==='gif')?0:parseFloat(targetSel.value);
     // Playback speed bakes into the export: the seamless motion (period T) is
     // rendered across a shorter/longer real duration Treal, so frame counts and
@@ -2174,54 +2432,11 @@
       eclog('info','export.start',{format:format,size:size0,fps:fps0,quality:manualQ,duration:T,target:target||null,transparent:transparent},'Exporting — '+format.toUpperCase()+', '+size0+' px, '+fps0+' fps, '+T.toFixed(2)+' s');
     }
 
-    function setupGL(size){
-      canvas.width=size; canvas.height=size;
-      gl.viewport(0,0,size,size);
-      gl.uniform2f(U.res,size,size);
-      // Always render premultiplied light (alphaMode 0) so overlay passes can
-      // blend additively; the alpha channel is reconstructed in JS below with
-      // the same max-channel rule the shader used to apply.
-      gl.uniform1f(U.alphaMode,0.0);
-      setBgUniforms(!transparent);
-      gl.uniform1f(U.hlMode,0.0); gl.uniform1f(U.hlStrength,0.0); gl.uniform1f(U.hlPulse,0.0); gl.uniform1f(U.hlAnts,0.0);
-      gl.uniform1f(U.loop,1.0); gl.uniform1f(U.loopDur,T);
-      setPassUniforms(params);
-    }
+    // Delegate to the shared capture helpers (also used by the static + preview
+    // paths); T and transparent are bound from this export's scope.
+    function setupGL(size){ exportSetupGL(size,T,transparent); }
     function makeCtx(size){ var cv=document.createElement('canvas'); cv.width=cv.height=size; return {cv:cv,ctx:cv.getContext('2d')}; }
-    function capturePixels(size,phase,pix){
-      gl.uniform1f(U.phase,phase); gl.uniform1f(U.time,phase*T);
-      setPassUniforms(params);
-      gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
-      if(OVERLAYS.length){
-        gl.enable(gl.BLEND); gl.blendFunc(gl.ONE,gl.ONE);
-        gl.uniform1f(U.bgOn,0.0);
-        for(var oi=0;oi<OVERLAYS.length;oi++){
-          if(OVERLAYS[oi].visible===false) continue;
-          setPassUniforms(OVERLAYS[oi].params);
-          gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
-        }
-        gl.disable(gl.BLEND);
-        gl.uniform1f(U.bgOn,transparent?0.0:1.0);
-      }
-      gl.readPixels(0,0,size,size,gl.RGBA,gl.UNSIGNED_BYTE,pix);
-      var out=new Uint8Array(size*size*4);
-      for(var y=0;y<size;y++){ out.set(pix.subarray((size-1-y)*size*4,(size-y)*size*4),y*size*4); }
-      if(transparent){
-        // Reconstruct straight alpha: a = max channel (the shader's rule),
-        // color unpremultiplied so soft glow edges survive compositing.
-        for(var i=0;i<out.length;i+=4){
-          var r=out[i],g=out[i+1],b=out[i+2];
-          var a=r>g?(r>b?r:b):(g>b?g:b);
-          out[i+3]=a;
-          if(a>0&&a<255){
-            out[i]=Math.min(255,Math.round(r*255/a));
-            out[i+1]=Math.min(255,Math.round(g*255/a));
-            out[i+2]=Math.min(255,Math.round(b*255/a));
-          }
-        }
-      }
-      return out;
-    }
+    function capturePixels(size,phase,pix){ return exportCapture(size,phase,T,transparent,pix); }
     function drawToCtx(size,flipped,ctx){
       var img=ctx.createImageData(size,size);
       img.data.set(flipped);

@@ -38,9 +38,9 @@ ORBFORGE is a WebGL console that renders a living animated orb — a burning rin
 - 🔆 **Live WebGL preview**: seven surface texture styles (smoke, ridged filaments, plasma cells, banded rings, woven threads, stipple dots, wire lattice) that wrap a true 3D sphere via longitude/latitude — spinning dot, wire, and ring matrices — plus torus and sphere lighting, a volumetric core with radial plasma filaments, orbiting tracers, adjustable playback speed, glow, chromatic aberration, and a video-player transport (play, pause, scrub, speed, fullscreen) over the render.
 - 🎛️ **40 parameters in seven groups**, each with a slider, hold-to-repeat steppers, and a typeable value field. Hovering a parameter draws a pink marching-ants marquee around the exact region of the render it controls, tracked live by the shader.
 - 🎲 **Seeded, archetype-weighted randomize**: each roll picks a coherent archetype (comet ring, plasma ball, glassy sphere, wire mesh, lit sculpture, thick aura) with correlated parameter ranges, so distinct species emerge instead of uniform noise. Every roll stamps a human-readable seed (`plasma-4f2a`) that deterministically rebuilds the same orb.
-- 🧅 **Preset overlays**: stack up to 3 presets additively above the base orb for composite looks; overlays ride along in the animation and the JSON.
+- 🧅 **Editable layers**: stack up to 3 presets additively above the base orb for composite looks; each layer is a tab you can select to edit its own parameters, hide, roll, or remove — and every visible layer rides along in the animation and the JSON.
 - 🖼️ **Transparent by default**: true alpha out of the box, or bake in a solid or gradient backdrop with hex-precise colors.
-- 📤 **Animated WebP + GIF export**: browser-native WebP encoding muxed into a transparent animated file, plus a built-in median-cut, Floyd-Steinberg, LZW GIF encoder for universal playback. A target-file-size auto-tuner picks resolution, fps, and quality to fit a byte cap; the size estimate updates live; the finished file previews in-dialog.
+- 📤 **Five export formats**: animated **WebP** (browser-native, transparent) and **GIF** (built-in median-cut, Floyd-Steinberg, LZW encoder) for loops; **PNG** and **JPG** for a single frame you pick with a scrubber and preview in-dialog; and **JSON** for the re-importable recipe. A target-file-size auto-tuner picks resolution, fps, and quality to fit a byte cap; the animated size estimate updates live.
 - 💾 **12 built-in presets** plus user presets saved to `localStorage`, with undoable delete.
 - 🧾 **Event log**: every action emits an ECS-shaped JSONL record you can copy or download as `.jsonl`.
 
@@ -48,7 +48,7 @@ ORBFORGE is a WebGL console that renders a living animated orb — a burning rin
 
 ![All twelve built-in presets rendered by the engine, from Ember comet to Obsidian sculpt](docs/brand/preset-gallery.png)
 
-*12 built-ins, one dropdown.*
+*12 built-ins, in the preset manager.*
 
 ## 📦 Grab an orb
 
@@ -75,7 +75,7 @@ All 12 built-ins ship pre-exported as animated WebPs on the [latest release](htt
    python3 -m http.server 8080
    ```
 
-2. Open `http://localhost:8080`, pick a preset or hit RANDOMIZE, then click EXPORT ANIMATION.
+2. Open `http://localhost:8080`, pick a preset or hit ROLL, then click DOWNLOAD (animated WebP/GIF, a single PNG/JPG frame, or the JSON recipe).
 
 Or skip the clone: the same page is live at [orbforge.wranngle.com](https://orbforge.wranngle.com).
 

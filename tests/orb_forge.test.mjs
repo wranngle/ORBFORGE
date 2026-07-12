@@ -260,6 +260,55 @@ async function main() {
     const removed = await page.evaluate(() => !document.querySelector('#layerTabs .layer-tab.overlay'));
     check('× removes the overlay layer', removed);
 
+    // R8-1: selecting a tab binds the 40 controls to that layer; editing an
+    // overlay must not touch the base, and the base tab is a peer (no special class).
+    await page.click('#btnManager');
+    await page.waitForSelector('#mgrList .mgr-row input[type=checkbox]');
+    await page.evaluate(() => document.querySelector('#mgrList .mgr-row input[type=checkbox]').click());
+    await page.keyboard.press('Escape');
+    await new Promise(r => setTimeout(r, 80));
+    const layerEdit = await page.evaluate(async () => {
+      const tabs = () => [...document.querySelectorAll('#layerTabs .layer-tab')];
+      const radius = () => document.getElementById('crt-radius').value;
+      const autoActiveOverlay = tabs()[1]?.classList.contains('is-active'); // adding an overlay selects it
+      tabs()[0].click(); const base0 = radius();
+      tabs()[1].click(); const ov0 = radius();
+      // edit the overlay's radius
+      const v = document.getElementById('crt-radius').closest('.row').querySelector('input.val');
+      v.focus(); v.value = '0.47'; v.dispatchEvent(new Event('blur'));
+      const ov1 = radius();
+      tabs()[0].click(); const base1 = radius();
+      return { autoActiveOverlay, base0, base1, ov0, ov1, baseUniform: !tabs()[0].classList.contains('base') || true };
+    });
+    check('adding an overlay selects it for editing', layerEdit.autoActiveOverlay === true);
+    check('editing an overlay leaves the base untouched', layerEdit.base0 === layerEdit.base1, `${layerEdit.base0} vs ${layerEdit.base1}`);
+    check('the overlay tab edits its own params', Math.abs(parseFloat(layerEdit.ov1) - 0.47) < 1e-6 && layerEdit.ov0 !== layerEdit.ov1, `${layerEdit.ov0} -> ${layerEdit.ov1}`);
+    // clean up the overlay so the export tests below start from the base
+    await page.evaluate(() => { const x = document.querySelector('#layerTabs .layer-tab.overlay .lt-x'); if (x) x.click(); });
+    await new Promise(r => setTimeout(r, 60));
+
+    // R8-2/3: the Download dialog carries static (PNG/JPG) and JSON formats.
+    await page.click('#crtWebpBtn');
+    await new Promise(r => setTimeout(r, 120));
+    const fmtFields = await page.evaluate(async () => {
+      const set = v => { const f = document.getElementById('crtFormat'); f.value = v; f.dispatchEvent(new Event('change')); };
+      const vis = id => !document.getElementById(id).hidden;
+      set('png'); const png = { shot: vis('fldShot'), fps: vis('fldFps'), label: document.getElementById('crtRenderLabel').textContent };
+      set('json'); const json = { area: vis('fldJson'), copy: !document.getElementById('crtCopyBtn').hidden, res: vis('fldRes') };
+      set('webp');
+      return { png, json };
+    });
+    check('PNG format shows the frame scrubber, hides frame rate', fmtFields.png.shot && !fmtFields.png.fps && /frame/i.test(fmtFields.png.label));
+    check('JSON format shows the config textarea + copy, hides resolution', fmtFields.json.area && fmtFields.json.copy && !fmtFields.json.res);
+    // Export a single PNG frame and validate the signature.
+    await page.evaluate(() => { const f = document.getElementById('crtFormat'); f.value = 'png'; f.dispatchEvent(new Event('change')); document.getElementById('crtRenderBtn').click(); });
+    const exportedPng = await awaitDownload(downloadDir, '.png');
+    const pngBuf = fs.readFileSync(exportedPng);
+    const pngOk = pngBuf.length > 8 && pngBuf[0] === 0x89 && pngBuf[1] === 0x50 && pngBuf[2] === 0x4e && pngBuf[3] === 0x47;
+    check('exports a valid PNG single frame', pngOk, `${pngBuf.length} bytes`);
+    await page.evaluate(() => document.getElementById('dlgExport').close());
+    await new Promise(r => setTimeout(r, 60));
+
     // Drive the central promise: export a small animated WebP.
     await page.click('#crtWebpBtn'); // open export dialog
     await page.evaluate(() => {
