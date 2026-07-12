@@ -40,11 +40,10 @@
       {key:'saturation', label:'Saturation',      min:0,   max:2,   step:0.05, def:1,   rmin:0.7,rmax:1.35, desc:'Color intensity (0 = grayscale)'},
       {key:'exposure',   label:'Exposure',        min:0.1, max:5,   step:0.05, def:1.3, rmin:0.85,rmax:1.55, desc:'Overall brightness'},
       {key:'contrast',   label:'Contrast',        min:0.2, max:3,   step:0.05, def:1.15,rmin:0.9,rmax:1.4, desc:'Tonal contrast'},
-      {key:'gamma',      label:'Gamma',           min:0.3, max:2.6, step:0.05, def:1,   rmin:0.95,rmax:1.3, desc:'Mid-tone curve (lower = brighter mid-tones)'},
-      {key:'vignette',   label:'Vignette',        min:0,   max:2,   step:0.05, def:0.5, rmin:0.3,rmax:1.1, desc:'Darkens the canvas edges around the orb'}
+      {key:'gamma',      label:'Gamma',           min:0.3, max:2.6, step:0.05, def:1,   rmin:0.95,rmax:1.3, desc:'Mid-tone curve (lower = brighter mid-tones)'}
     ]},
     // Last so it tiles beside the Background group in the 2-column grid.
-    {name:'Core & volume', items:[
+    {name:'Materials', items:[
       {key:'fill',      label:'Core fill',        min:0,   max:1,   step:0.05, def:0,   rmin:0,rmax:1, desc:'Fills the ring with a volumetric, lit 3D body textured by the Texture style — 0 = hollow ring, 1 = solid orb'},
       {key:'surface3d', label:'3D surface',       min:0,   max:1,   step:0.05, def:0,   rmin:0,rmax:1, desc:'Maps the texture onto a true sphere via longitude/latitude, so dot, line, and ring matrices wrap a 3D globe instead of a flat disc'},
       {key:'spin3d',    label:'Globe spin',       min:-4,  max:4,   step:0.05, def:0.6, rmin:-1.5,rmax:1.5, desc:'Longitude rotation of the 3D surface — the globe turns on its axis (loop-safe). Negative reverses.'},
@@ -57,9 +56,28 @@
   ];
   var CONFIG=[]; GROUPS.forEach(function(g){ g.items.forEach(function(it){ CONFIG.push(it); }); });
 
-  /* ---------- Background (not a slider param — checkbox + colors) ---------- */
+  /* ---------- Background (not a slider param — checkbox + colors + vignette) ---------- */
+  // Vignette is a post-mask that crops the render to a shape. Off by default;
+  // when on, the default is a circle that crops to transparent outside it.
+  // Sizes are in uv space: the fragment uv spans ±0.5 (canvas corner at ~0.707),
+  // so a circle radius ~0.48 crops just outside the orb, 0.7 ≈ no crop.
+  var VIG_DEF={on:false,shape:0,size:0.48,blur:0.06,color:'#000000',transparent:true};
   var BG_DEF={transparent:true,top:'#0b0916',bottom:'#050409'};
-  var BG={transparent:BG_DEF.transparent,top:BG_DEF.top,bottom:BG_DEF.bottom};
+  var BG={transparent:BG_DEF.transparent,top:BG_DEF.top,bottom:BG_DEF.bottom,
+    vig:{on:VIG_DEF.on,shape:VIG_DEF.shape,size:VIG_DEF.size,blur:VIG_DEF.blur,color:VIG_DEF.color,transparent:VIG_DEF.transparent}};
+  // Normalize a (partial/undefined) vignette object into a clean, clamped one.
+  function normVig(v){
+    v=v||{};
+    var hex=(typeof v.color==='string'&&/^#[0-9a-fA-F]{6}$/.test(v.color))?v.color.toLowerCase():VIG_DEF.color;
+    return {
+      on:!!v.on,
+      shape:(v.shape===1||v.shape==='1')?1:0,
+      size:isFinite(+v.size)?Math.min(0.72,Math.max(0.2,+v.size)):VIG_DEF.size,
+      blur:isFinite(+v.blur)?Math.min(0.3,Math.max(0,+v.blur)):VIG_DEF.blur,
+      color:hex,
+      transparent:v.transparent===false?false:true
+    };
+  }
 
   /* ---------- Overlay layers ----------
      Each overlay is a full param snapshot rendered additively above the base
@@ -393,7 +411,7 @@
     var s={};
     CONFIG.forEach(function(c){ s[c.key]=params[c.key]; });
     s.__preset=presetSel.value||'';
-    s.__bgT=BG.transparent; s.__bgTop=BG.top; s.__bgBot=BG.bottom;
+    s.__bgT=BG.transparent; s.__bgTop=BG.top; s.__bgBot=BG.bottom; s.__vig=JSON.stringify(BG.vig);
     s.__ov=JSON.stringify(OVERLAYS);
     return s;
   }
@@ -403,6 +421,7 @@
     if(s.__bgT!==undefined){ BG.transparent=!!s.__bgT; }
     if(hexOk(s.__bgTop)) BG.top=s.__bgTop;
     if(hexOk(s.__bgBot)) BG.bottom=s.__bgBot;
+    if(typeof s.__vig==='string'){ try{ BG.vig=normVig(JSON.parse(s.__vig)); }catch(e){} }
     if(typeof s.__ov==='string'){
       try{ OVERLAYS=sanitizeOverlays(JSON.parse(s.__ov)); }catch(e){}
       renderLayerTabs();
@@ -666,7 +685,54 @@
 
     var top=mkColorRow('bgTop','Backdrop top','top','Top of the baked-in gradient backdrop (used when Transparent is off). Type a hex value or pick.');
     var bot=mkColorRow('bgBottom','Backdrop bottom','bottom','Bottom of the baked-in gradient backdrop. Set both the same for a solid color.');
-    bgRefs={chk:chk,top:top,bot:bot};
+
+    /* ---- Vignette: a post-mask that crops the render to a shape ---- */
+    function vigCommit(msg,data){ eclog('info','background.vignette',data||{},msg||'Vignette changed'); commitHistory(); }
+    function vigLive(){ hlKick(6); markDirty(); refreshExport(); }
+    var vigRows=[];
+    // enable toggle
+    var rowVig=mkRow('vignette','Vignette','A post-mask that frames the render. Off by default. When on, a circle crops the orb — transparent outside by default — with size, blur, shape, and color below.');
+    var ctlV=document.createElement('span'); ctlV.className='check-ctl ctl';
+    var vchk=document.createElement('input'); vchk.type='checkbox'; vchk.id='crtVig'; vchk.checked=!!BG.vig.on; vchk.setAttribute('aria-label','Enable vignette');
+    ctlV.appendChild(vchk); rowVig.appendChild(ctlV); rowVig.appendChild(document.createElement('span'));
+    vchk.addEventListener('change',function(){ BG.vig.on=vchk.checked; vigLive(); syncBgUI(); vigCommit('Vignette '+(BG.vig.on?'on':'off'),{on:BG.vig.on}); });
+    // shape select
+    var rowShape=mkRow('vignette','Vig shape','Circle (default) or rounded square.'); vigRows.push(rowShape);
+    var vshape=document.createElement('select'); vshape.className='vig-sel';
+    ['Circle','Rounded'].forEach(function(t,i){ var o=document.createElement('option'); o.value=i; o.textContent=t; vshape.appendChild(o); });
+    vshape.value=BG.vig.shape||0;
+    var ctlSh=document.createElement('span'); ctlSh.className='ctl'; ctlSh.appendChild(vshape);
+    rowShape.appendChild(ctlSh); rowShape.appendChild(document.createElement('span'));
+    vshape.addEventListener('change',function(){ BG.vig.shape=parseInt(vshape.value,10)||0; vigLive(); vigCommit('Vignette shape',{shape:BG.vig.shape}); });
+    // size + blur sliders
+    function vigSlider(label,key,min,max,step,tip){
+      var row=mkRow('vignette',label,tip); vigRows.push(row);
+      var inp=document.createElement('input'); inp.type='range'; inp.min=min; inp.max=max; inp.step=step; inp.value=BG.vig[key];
+      var val=document.createElement('span'); val.className='vig-val'; val.textContent=Number(BG.vig[key]).toFixed(2);
+      row.appendChild(inp); row.appendChild(val);
+      inp.addEventListener('input',function(){ BG.vig[key]=parseFloat(inp.value); val.textContent=Number(BG.vig[key]).toFixed(2); vigLive(); });
+      inp.addEventListener('change',function(){ var d={}; d[key]=BG.vig[key]; vigCommit('Vignette '+key,d); });
+      return {row:row,inp:inp,val:val};
+    }
+    var vsize=vigSlider('Vig size','size',0.2,0.72,0.01,'Radius of the crop shape (smaller = tighter frame around the orb).');
+    var vblur=vigSlider('Vig blur','blur',0,0.3,0.01,'Feather softness of the crop edge — 0 = hard edge.');
+    // transparent-outside toggle
+    var rowVT=mkRow('vignette','Transparent','Outside the shape is transparent (default). Turn off to fill it with the color below instead.'); vigRows.push(rowVT);
+    var ctlVT=document.createElement('span'); ctlVT.className='check-ctl ctl';
+    var vtchk=document.createElement('input'); vtchk.type='checkbox'; vtchk.checked=BG.vig.transparent!==false; vtchk.setAttribute('aria-label','Vignette transparent outside');
+    ctlVT.appendChild(vtchk); rowVT.appendChild(ctlVT); rowVT.appendChild(document.createElement('span'));
+    vtchk.addEventListener('change',function(){ BG.vig.transparent=vtchk.checked; vigLive(); syncBgUI(); vigCommit('Vignette transparent '+(BG.vig.transparent?'on':'off'),{transparent:BG.vig.transparent}); });
+    // fill color
+    var rowVC=mkRow('vignette','Vig color','Color that fills outside the shape when Transparent (above) is off.'); vigRows.push(rowVC);
+    var ctlVC=document.createElement('span'); ctlVC.className='color-ctl ctl';
+    var vcol=document.createElement('input'); vcol.type='color'; vcol.value=BG.vig.color;
+    var vhex=document.createElement('input'); vhex.type='text'; vhex.className='hex'; vhex.value=BG.vig.color; vhex.setAttribute('maxlength','7'); vhex.setAttribute('spellcheck','false');
+    ctlVC.appendChild(vcol); ctlVC.appendChild(vhex); rowVC.appendChild(ctlVC); rowVC.appendChild(document.createElement('span'));
+    vcol.addEventListener('input',function(){ BG.vig.color=vcol.value; vhex.value=vcol.value; vigLive(); });
+    vcol.addEventListener('change',function(){ vigCommit('Vignette color',{color:BG.vig.color}); });
+    vhex.addEventListener('blur',function(){ var v=vhex.value.trim(); if(v&&v[0]!=='#')v='#'+v; if(hexOk(v)){ BG.vig.color=v.toLowerCase(); vcol.value=BG.vig.color; vhex.value=BG.vig.color; vigLive(); vigCommit('Vignette color',{color:BG.vig.color}); } else vhex.value=BG.vig.color; });
+
+    bgRefs={chk:chk,top:top,bot:bot,vchk:vchk,vshape:vshape,vsize:vsize,vblur:vblur,vtchk:vtchk,vcol:vcol,vhex:vhex,vigRows:vigRows,rowVC:rowVC};
 
     chk.addEventListener('change',function(){
       BG.transparent=chk.checked;
@@ -682,6 +748,19 @@
     bgRefs.bot.col.value=BG.bottom; bgRefs.bot.hex.value=BG.bottom;
     bgRefs.top.row.classList.toggle('is-off',BG.transparent);
     bgRefs.bot.row.classList.toggle('is-off',BG.transparent);
+    // Vignette controls
+    var v=BG.vig||VIG_DEF;
+    if(bgRefs.vchk){
+      bgRefs.vchk.checked=!!v.on;
+      bgRefs.vshape.value=v.shape||0;
+      bgRefs.vsize.inp.value=v.size; bgRefs.vsize.val.textContent=Number(v.size).toFixed(2);
+      bgRefs.vblur.inp.value=v.blur; bgRefs.vblur.val.textContent=Number(v.blur).toFixed(2);
+      bgRefs.vtchk.checked=v.transparent!==false;
+      bgRefs.vcol.value=v.color; bgRefs.vhex.value=v.color;
+      // Sub-rows dim when vignette is off; the color row hides when cropping transparent.
+      bgRefs.vigRows.forEach(function(r){ r.classList.toggle('is-off',!v.on); });
+      bgRefs.rowVC.classList.toggle('is-off',!v.on||v.transparent!==false);
+    }
   }
   syncBgUI();
 
@@ -767,6 +846,7 @@
       BG.transparent=!!p._bg.transparent;
       if(hexOk(p._bg.top)) BG.top=p._bg.top;
       if(hexOk(p._bg.bottom)) BG.bottom=p._bg.bottom;
+      BG.vig=normVig(p._bg.vig); // presets without a vignette load the default (off)
     }
   }
   function applyPreset(name){
@@ -805,7 +885,7 @@
   function snapshotPreset(){
     var snapP={};
     CONFIG.forEach(function(c){ snapP[c.key]=c.step>=1?Math.round(params[c.key]):parseFloat(Number(params[c.key]).toFixed(Math.max(decimals(c.step),3))); });
-    snapP._bg={transparent:BG.transparent,top:BG.top,bottom:BG.bottom};
+    snapP._bg={transparent:BG.transparent,top:BG.top,bottom:BG.bottom,vig:normVig(BG.vig)};
     snapP._seed=SEED.current||null;
     return snapP;
   }
@@ -929,28 +1009,55 @@
     commitHistory();
   }
 
-  /* ---------- Preset Manager modal ---------- */
+  /* ---------- Preset Manager modal — rendered gallery ---------- */
   var dlgManager=document.getElementById('dlgManager');
+  var THUMB=132;
+  // One tile animates at a time (on hover); still frame otherwise.
+  var mgrAnim=null;
+  function stopTileAnim(){ if(mgrAnim){ mgrAnim.stop=true; if(mgrAnim.timer) clearTimeout(mgrAnim.timer); mgrAnim=null; } }
+  function startTileAnim(disp,p){
+    stopTileAnim();
+    var a={stop:false,phase:0.32}; mgrAnim=a;
+    (function step(){
+      if(a.stop||!disp.isConnected) return;
+      a.phase=(a.phase+0.02)%1;
+      var cv=renderParamsThumb(p,THUMB,a.phase);
+      if(cv) disp.getContext('2d').drawImage(cv,0,0);
+      a.timer=setTimeout(step,80); // ~12fps, one tile at a time
+    })();
+  }
   function renderManager(){
     var list=document.getElementById('mgrList'); if(!list) return;
+    stopTileAnim();
     list.innerHTML='';
     function group(label){ var g=document.createElement('div'); g.className='mgr-group'; g.textContent=label; list.appendChild(g); }
-    function row(name,editable){
-      var r=document.createElement('div'); r.className='mgr-row'+(activePreset===name?' is-active':'');
-      var cb=document.createElement('input'); cb.type='checkbox';
-      cb.checked=overlayIndexByName(name)>=0;
-      cb.disabled=(!cb.checked&&OVERLAYS.length>=3);
-      cb.title='Overlay this preset above the base orb';
-      cb.setAttribute('aria-label','Overlay '+name);
+    function tile(name,editable){
+      var p=PRESETS[name]||{};
+      var t=document.createElement('div'); t.className='mgr-tile'+(activePreset===name?' is-active':'');
+      var thumb=document.createElement('div'); thumb.className='mgr-thumb'; thumb.title='Load "'+name+'"';
+      var disp=document.createElement('canvas'); disp.width=disp.height=THUMB; disp.className='mgr-canvas';
+      thumb.appendChild(disp);
+      var still=renderParamsThumb(p,THUMB,0.32); if(still) disp.getContext('2d').drawImage(still,0,0);
+      thumb.addEventListener('pointerenter',function(){ startTileAnim(disp,p); });
+      thumb.addEventListener('pointerleave',function(){ stopTileAnim(); var s=renderParamsThumb(p,THUMB,0.32); if(s) disp.getContext('2d').drawImage(s,0,0); });
+      thumb.addEventListener('click',function(){ applyPreset(name); renderManager(); });
+      // overlay checkbox in the corner
+      var ov=document.createElement('label'); ov.className='mgr-ov'; ov.title='Overlay above the base orb (up to 3)';
+      var cb=document.createElement('input'); cb.type='checkbox'; cb.checked=overlayIndexByName(name)>=0;
+      cb.disabled=(!cb.checked&&OVERLAYS.length>=3); cb.setAttribute('aria-label','Overlay '+name);
+      cb.addEventListener('click',function(e){ e.stopPropagation(); });
       cb.addEventListener('change',function(){
         if(cb.checked){ if(!pushOverlay(name,PRESETS[name])) cb.checked=false; }
         else { var idx=overlayIndexByName(name); if(idx>=0) removeOverlay(idx); }
         renderManager();
       });
-      var nm=document.createElement('button'); nm.type='button'; nm.className='mgr-name'; nm.textContent=name;
-      nm.title='Load "'+name+'" as the base orb';
+      ov.appendChild(cb); thumb.appendChild(ov);
+      t.appendChild(thumb);
+      // name + actions
+      var bar=document.createElement('div'); bar.className='mgr-tile-bar';
+      var nm=document.createElement('button'); nm.type='button'; nm.className='mgr-name'; nm.textContent=name; nm.title='Load "'+name+'"';
       nm.addEventListener('click',function(){ if(nm.classList.contains('editing')) return; applyPreset(name); renderManager(); });
-      r.appendChild(cb); r.appendChild(nm);
+      bar.appendChild(nm);
       if(editable){
         var ren=document.createElement('button'); ren.type='button'; ren.className='mgr-act'; ren.title='Rename';
         ren.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
@@ -958,15 +1065,16 @@
         var del=document.createElement('button'); del.type='button'; del.className='mgr-act danger'; del.title='Delete (undoable)';
         del.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>';
         del.addEventListener('click',function(){ deletePreset(name); renderManager(); });
-        r.appendChild(ren); r.appendChild(del);
+        bar.appendChild(ren); bar.appendChild(del);
       }
-      list.appendChild(r);
+      t.appendChild(bar);
+      list.appendChild(t);
     }
     // Yours on top, built-ins below.
     var mine=Object.keys(USER_PRESETS);
-    if(mine.length){ group('Yours'); mine.forEach(function(n){ row(n,true); }); }
+    if(mine.length){ group('Yours'); mine.forEach(function(n){ tile(n,true); }); }
     group('Built-in');
-    Object.keys(BUILTIN_PRESETS).forEach(function(n){ row(n,false); });
+    Object.keys(BUILTIN_PRESETS).forEach(function(n){ tile(n,false); });
   }
   function beginRename(nmEl,name){
     var inp=document.createElement('input'); inp.type='text'; inp.value=name; inp.maxLength=40;
@@ -1014,6 +1122,9 @@
     var btn=document.getElementById('btnManager');
     if(!btn||!dlgManager) return;
     btn.addEventListener('click',function(){ openManager('button'); });
+    // Any close path (Escape, backdrop, ×) must halt a running hover animation —
+    // otherwise it keeps resizing the live canvas against hidden tiles.
+    dlgManager.addEventListener('close',stopTileAnim);
     document.getElementById('mgrSaveCurrent').addEventListener('click',function(){
       savePreset(uniquePresetName(SEED.current||'default')); renderManager();
     });
@@ -1073,7 +1184,8 @@
   'uniform float u_fill,u_filaments,u_coreHue;',
   'uniform float u_surface3d,u_spin3d,u_tiltLat,u_matrix,u_matrixDensity;',
   'uniform float u_tracerCount,u_tracerSpeed,u_cometHead,u_tailLength,u_cometBulge,u_tracerGlow,u_sparkle;',
-  'uniform float u_hue,u_tracerHue,u_saturation,u_exposure,u_contrast,u_gamma,u_vignette,u_alphaMode;',
+  'uniform float u_hue,u_tracerHue,u_saturation,u_exposure,u_contrast,u_gamma,u_alphaMode;',
+  'uniform float u_vigOn,u_vigShape,u_vigSize,u_vigBlur,u_vigTransparent;uniform vec3 u_vigColor;',
   'uniform float u_loop,u_phase,u_loopDur;',
   'uniform float u_bgOn;uniform vec3 u_bgA,u_bgB;',
   'uniform float u_hlMode,u_hlStrength,u_hlPulse,u_hlAnts;',
@@ -1259,7 +1371,6 @@
   '  col+=(fil*reach*1.5+nucleusHot*2.2)*u_filaments*filCol;',
   ' }',
   ' col*=(0.82+(pulse*0.5+0.5)*0.36);',
-  ' col*=1.0-clamp(u_vignette,0.0,2.0)*0.5*smoothstep(0.55,1.15,dist);',
   ' col*=u_exposure;',
   ' float lum=dot(col,vec3(0.299,0.587,0.114));',
   ' col=mix(vec3(lum),col,u_saturation);',
@@ -1310,7 +1421,18 @@
   // Opaque outline on top.
   '  col=mix(col,antCol,clamp(ringOutline*pop*S,0.0,0.98));',
   ' }',
+  // Vignette mask (Background group): crop or fill the render to a shape.
+  ' float vigFill=0.0;',
+  ' if(u_vigOn>0.5){',
+  '  float vm;',
+  '  if(u_vigShape<0.5){ vm=1.0-smoothstep(u_vigSize-u_vigBlur,u_vigSize+u_vigBlur,dist); }',
+  '  else { vec2 q=abs(uv)-vec2(u_vigSize*0.92); float bd=length(max(q,vec2(0.0)))+min(max(q.x,q.y),0.0)-0.03; vm=1.0-smoothstep(-u_vigBlur,u_vigBlur,bd); }',
+  '  vm=clamp(vm,0.0,1.0);',
+  '  if(u_vigTransparent>0.5){ col*=vm; }',            // crop to transparent outside
+  '  else { col=col*vm+u_vigColor*(1.0-vm); vigFill=1.0-vm; }', // fill outside with a color
+  ' }',
   ' float oa=clamp(max(col.r,max(col.g,col.b)),0.0,1.0);',
+  ' oa=max(oa,vigFill);',
   ' vec3 oc=col/max(oa,0.0025);',
   ' if(u_alphaMode>0.5){ gl_FragColor=vec4(clamp(oc,0.0,1.0),oa); }',
   ' else if(u_bgOn>0.5){',
@@ -1355,6 +1477,9 @@
     U.alphaMode=gl.getUniformLocation(prog,'u_alphaMode'); U.loop=gl.getUniformLocation(prog,'u_loop');
     U.phase=gl.getUniformLocation(prog,'u_phase'); U.loopDur=gl.getUniformLocation(prog,'u_loopDur');
     U.bgOn=gl.getUniformLocation(prog,'u_bgOn'); U.bgA=gl.getUniformLocation(prog,'u_bgA'); U.bgB=gl.getUniformLocation(prog,'u_bgB');
+    U.vigOn=gl.getUniformLocation(prog,'u_vigOn'); U.vigShape=gl.getUniformLocation(prog,'u_vigShape');
+    U.vigSize=gl.getUniformLocation(prog,'u_vigSize'); U.vigBlur=gl.getUniformLocation(prog,'u_vigBlur');
+    U.vigTransparent=gl.getUniformLocation(prog,'u_vigTransparent'); U.vigColor=gl.getUniformLocation(prog,'u_vigColor');
     U.hlMode=gl.getUniformLocation(prog,'u_hlMode'); U.hlStrength=gl.getUniformLocation(prog,'u_hlStrength');
     U.hlPulse=gl.getUniformLocation(prog,'u_hlPulse'); U.hlAnts=gl.getUniformLocation(prog,'u_hlAnts');
     CONFIG.forEach(function(c){ U[c.key]=gl.getUniformLocation(prog,'u_'+c.key); });
@@ -1379,6 +1504,14 @@
     var a=hexToRgbF(BG.top),b=hexToRgbF(BG.bottom);
     gl.uniform3f(U.bgA,a[0],a[1],a[2]);
     gl.uniform3f(U.bgB,b[0],b[1],b[2]);
+    // Vignette mask
+    var v=BG.vig||VIG_DEF;
+    gl.uniform1f(U.vigOn,v.on?1.0:0.0);
+    gl.uniform1f(U.vigShape,v.shape||0);
+    gl.uniform1f(U.vigSize,(v.size!==undefined?v.size:0.92));
+    gl.uniform1f(U.vigBlur,(v.blur!==undefined?v.blur:0.12));
+    gl.uniform1f(U.vigTransparent,v.transparent===false?0.0:1.0);
+    var vc=hexToRgbF(v.color||'#000000'); gl.uniform3f(U.vigColor,vc[0],vc[1],vc[2]);
   }
   // One render pass = one full param set (the base orb or an overlay layer).
   function setPassUniforms(p){
@@ -1458,6 +1591,29 @@
       ctx.putImageData(img,0,0);
     }
     resize(); // restore the live preview's backing store
+    return cv;
+  }
+
+  // Render an arbitrary param set to a small 2D canvas at a given loop phase, for
+  // the preset gallery. Single pass, transparent, no vignette — a clean orb chip.
+  function renderParamsThumb(p,size,phase){
+    if(!glReady||exporting||estimating) return null;
+    canvas.width=size; canvas.height=size; gl.viewport(0,0,size,size);
+    gl.uniform2f(U.res,size,size); gl.uniform1f(U.alphaMode,0.0);
+    gl.uniform1f(U.bgOn,0.0); gl.uniform1f(U.vigOn,0.0);
+    gl.uniform1f(U.hlMode,0.0); gl.uniform1f(U.hlStrength,0.0); gl.uniform1f(U.hlPulse,0.0); gl.uniform1f(U.hlAnts,0.0);
+    gl.uniform1f(U.loop,1.0); gl.uniform1f(U.loopDur,3.0);
+    gl.uniform1f(U.phase,phase); gl.uniform1f(U.time,phase*3.0);
+    setPassUniforms(p);
+    gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+    var pix=new Uint8Array(size*size*4); gl.readPixels(0,0,size,size,gl.RGBA,gl.UNSIGNED_BYTE,pix);
+    var out=new Uint8Array(size*size*4);
+    for(var y=0;y<size;y++){ out.set(pix.subarray((size-1-y)*size*4,(size-y)*size*4),y*size*4); }
+    for(var i=0;i<out.length;i+=4){ var r=out[i],g=out[i+1],bl=out[i+2]; var a=r>g?(r>bl?r:bl):(g>bl?g:bl); out[i+3]=a;
+      if(a>0&&a<255){ out[i]=Math.min(255,Math.round(r*255/a)); out[i+1]=Math.min(255,Math.round(g*255/a)); out[i+2]=Math.min(255,Math.round(bl*255/a)); } }
+    var cv=document.createElement('canvas'); cv.width=cv.height=size; var ctx=cv.getContext('2d');
+    var img=ctx.createImageData(size,size); img.data.set(out); ctx.putImageData(img,0,0);
+    resize();
     return cv;
   }
 
@@ -1598,7 +1754,7 @@
       exportedAt:new Date().toISOString(),
       seed:SEED.current,
       preset:activePreset||null,
-      background:{transparent:BG.transparent,top:BG.top,bottom:BG.bottom},
+      background:{transparent:BG.transparent,top:BG.top,bottom:BG.bottom,vignette:normVig(BG.vig)},
       parameters:roundParams(params)
     };
     if(OVERLAYS.length) doc.overlays=OVERLAYS.map(function(o){ return {name:o.name,visible:o.visible!==false,parameters:roundParams(o.params)}; });
@@ -1641,6 +1797,7 @@
       if(typeof bgIn.transparent==='boolean') BG.transparent=bgIn.transparent;
       if(hexOk(bgIn.top)) BG.top=bgIn.top.toLowerCase();
       if(hexOk(bgIn.bottom)) BG.bottom=bgIn.bottom.toLowerCase();
+      if(bgIn.vignette) BG.vig=normVig(bgIn.vignette);
     }
     OVERLAYS=Array.isArray(data.overlays)?sanitizeOverlays(data.overlays):[];
     ACTIVE=0; // an imported config lands on the base orb
@@ -1742,7 +1899,7 @@
       title:'ORBFORGE orb config', type:'object',
       properties:{
         effect:{type:'string'}, version:{type:'integer'}, seed:{type:['string','null']}, preset:{type:['string','null']},
-        background:{type:'object',properties:{transparent:{type:'boolean'},top:{type:'string',pattern:'^#[0-9a-fA-F]{6}$'},bottom:{type:'string',pattern:'^#[0-9a-fA-F]{6}$'}}},
+        background:{type:'object',properties:{transparent:{type:'boolean'},top:{type:'string',pattern:'^#[0-9a-fA-F]{6}$'},bottom:{type:'string',pattern:'^#[0-9a-fA-F]{6}$'},vignette:{type:'object',properties:{on:{type:'boolean'},shape:{type:'integer'},size:{type:'number'},blur:{type:'number'},color:{type:'string',pattern:'^#[0-9a-fA-F]{6}$'},transparent:{type:'boolean'}}}}},
         parameters:{type:'object',required:CONFIG.map(function(c){return c.key;}),properties:props},
         overlays:{type:'array',maxItems:3,items:{type:'object',properties:{name:{type:'string'},visible:{type:'boolean'},parameters:{type:'object',properties:props}}}}
       },
@@ -1792,7 +1949,7 @@
     // per-layer reset read as "the button does nothing" when an overlay tab was
     // active, until the operator deleted the overlays.)
     CONFIG.forEach(function(c){ params[c.key]=c.def; });
-    BG.transparent=BG_DEF.transparent; BG.top=BG_DEF.top; BG.bottom=BG_DEF.bottom;
+    BG.transparent=BG_DEF.transparent; BG.top=BG_DEF.top; BG.bottom=BG_DEF.bottom; BG.vig=normVig(VIG_DEF);
     OVERLAYS=[]; ACTIVE=0; renderLayerTabs();
     SEED.current=null;
     activePreset=null; syncUI(); syncBgUI(); buildPresetOptions(); refreshExport(); updateAuto(); syncPresetUI();
@@ -2148,6 +2305,30 @@
     scheduleEstimate();
     eclog('info','ui.dialog.open',{dialog:'export'},'Export dialog opened');
   });
+
+  // One-click screenshot (camera button): pause, then download THIS frame as a
+  // 512 px PNG with good defaults (keeps transparency). No dialog.
+  (function(){
+    var sc=document.getElementById('btnScreenshot'); if(!sc) return;
+    sc.addEventListener('click',function(){
+      if(!glReady||exporting||estimating) return;
+      setPlayingQuiet(false); // pause on the current frame
+      var phase=scrub?clamp(parseFloat(scrub.value)||0,0,1):0.3;
+      var transparent=BG.transparent, T=currentDur();
+      try{
+        var cv=renderFrameCanvas(512,phase,T,transparent,null); // PNG keeps alpha
+        cv.toBlob(function(blob){
+          if(!blob){ showToast('Screenshot failed'); return; }
+          var fn=stampBase('png'), url=URL.createObjectURL(blob);
+          var a=document.createElement('a'); a.href=url; a.download=fn;
+          document.body.appendChild(a); a.click(); a.remove();
+          setTimeout(function(){ URL.revokeObjectURL(url); },1000);
+          showToast('Saved '+fn);
+          eclog('info','screenshot',{size:512,frame:+phase.toFixed(3),transparent:transparent},'Screenshot → '+fn);
+        },'image/png');
+      }catch(e){ showToast('Screenshot failed'); }
+    });
+  })();
 
   /* ---------- Auto size estimate (no button — debounced on change) ---------- */
   var estTimer=null;

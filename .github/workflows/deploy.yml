@@ -8,6 +8,7 @@ on:
       - app.js
       - assets/orb.webp
       - assets/og.png
+      - assets/favicon.webp
       - assets/favicon.png
       - assets/favicon-32.png
       - robots.txt
@@ -40,7 +41,7 @@ jobs:
         run: |
           mkdir -p dist/assets
           cp index.html app.js robots.txt llms.txt sitemap.xml _headers _redirects dist/
-          cp assets/orb.webp assets/og.png assets/favicon.png assets/favicon-32.png dist/assets/
+          cp assets/orb.webp assets/og.png assets/favicon.webp assets/favicon.png assets/favicon-32.png dist/assets/
           # Cache-bust the engine: stale cached app.js paired with fresh markup
           # dead-ends every control. The ?v=dev sentinel becomes the commit SHA.
           sed -i "s|/app.js?v=dev|/app.js?v=${GITHUB_SHA::7}|" dist/index.html
@@ -71,5 +72,5 @@ jobs:
             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
             -H "Content-Type: application/json" \
             "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/purge_cache" \
-            --data "{\"files\":[\"$O/\",\"$O/index.html\",\"$O/app.js\",\"$O/app.js?v=${V}\",\"$O/assets/og.png\",\"$O/assets/orb.webp\",\"$O/assets/favicon.png\",\"$O/assets/favicon-32.png\",\"$O/og.png\",\"$O/orb.webp\",\"$O/robots.txt\",\"$O/llms.txt\",\"$L/\",\"$L/index.html\",\"$L/app.js\",\"$L/app.js?v=${V}\"]}" \
+            --data "{\"files\":[\"$O/\",\"$O/index.html\",\"$O/app.js\",\"$O/app.js?v=${V}\",\"$O/assets/og.png\",\"$O/assets/orb.webp\",\"$O/assets/favicon.webp\",\"$O/assets/favicon.png\",\"$O/assets/favicon-32.png\",\"$O/og.png\",\"$O/orb.webp\",\"$O/robots.txt\",\"$O/llms.txt\",\"$L/\",\"$L/index.html\",\"$L/app.js\",\"$L/app.js?v=${V}\"]}" \
             | grep -q '"success": *true' && echo "cache purged"

@@ -39,6 +39,7 @@
   }
 }
 </script>
+<link rel="icon" type="image/webp" href="/assets/favicon.webp">
 <link rel="icon" type="image/png" sizes="128x128" href="/assets/favicon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
 <link rel="apple-touch-icon" href="/assets/favicon.png">
@@ -188,7 +189,7 @@ button,select,input,textarea{font-family:inherit;color:inherit}
 .brand-home{color:var(--text-dim);text-decoration:none;border-bottom:1px solid var(--line)}
 .brand-home:hover,.brand-home:focus-visible{color:var(--sunset-500);border-bottom-color:var(--sunset-500)}
 
-.topbar-actions{display:inline-flex;align-items:center;gap:6px;flex-wrap:nowrap;flex:0 0 auto}
+.topbar-actions{display:inline-flex;align-items:center;gap:5px;flex-wrap:wrap;justify-content:flex-end}
 .topbar-divider{width:1px;height:22px;background:var(--line)}
 .ic-btn{
   width:var(--btn-h);height:var(--btn-h);padding:0;
@@ -301,32 +302,39 @@ select option,select optgroup{background-color:#16151f;color:var(--text)}
 }
 
 /* ============================================================
-   Param header — layer tabs + roll/save/manager/reset actions
+   Layer tabs — true browser-style tabs that peek out of the top of the
+   parameter panel; the active tab connects seamlessly into the panel below.
    ============================================================ */
-/* Stacked: action buttons on the top row, layer tabs on the bottom row. */
-.param-header{
-  display:flex;flex-direction:column;gap:7px;
-  margin:0 0 9px;padding:6px 8px;
-  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-md);
+.layer-tabs{display:flex;align-items:flex-end;gap:3px;flex-wrap:wrap;min-width:0;padding:0 4px;position:relative;z-index:1}
+.params-panel{
+  background:var(--panel);border:1px solid var(--line);border-radius:0 var(--radius-md) var(--radius-md) var(--radius-md);
+  padding:10px 10px 4px;margin-top:-1px;
 }
-.param-actions{display:flex;align-items:center;gap:5px;justify-content:flex-start}
-.layer-tabs{display:flex;align-items:center;gap:5px;flex-wrap:wrap;min-width:0}
-.param-header .layer-tabs{padding-top:7px;border-top:1px solid var(--line)}
-/* Tabs are peers: same chip, distinguished only by a small accent dot and the
-   active-selection ring. Click a tab to edit its layer's parameters. */
+/* Each tab is a browser tab: rounded top, flat bottom, sitting on the panel. */
 .layer-tab{
   display:inline-flex;align-items:center;gap:6px;
-  padding:4px 7px;max-width:190px;
-  background:rgba(255,255,255,.02);border:1px solid var(--line);border-radius:var(--radius-sm);
-  cursor:pointer;transition:all var(--duration-fast) var(--ease-out);
+  padding:5px 9px 6px;max-width:190px;
+  background:var(--night-900);border:1px solid var(--line);border-bottom:0;
+  border-radius:var(--radius-sm) var(--radius-sm) 0 0;
+  cursor:pointer;transition:background var(--duration-fast) var(--ease-out),color var(--duration-fast) var(--ease-out);
+  position:relative;top:1px;
 }
-.layer-tab:hover{border-color:var(--line-strong);background:rgba(255,255,255,.045)}
-.layer-tab.is-active{border-color:var(--sunset-500);background:rgba(255,95,0,.1);box-shadow:0 0 0 1px var(--sunset-500) inset}
+.layer-tab:hover{background:var(--night-800)}
+/* Active tab: same fill as the panel, and it overlaps the panel's top border by
+   1px so there is no seam — the tab "connects to the whole parameter area". */
+.layer-tab.is-active{
+  background:var(--panel);border-color:var(--line);
+  box-shadow:0 -2px 0 var(--sunset-500) inset; /* accent lip along the tab top */
+  z-index:2;
+}
+.layer-tab.is-active::after{
+  content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--panel);
+}
 .layer-tab .lt-dot{width:6px;height:6px;flex:0 0 6px;border-radius:50%;background:var(--text-faint)}
 .layer-tab.base .lt-dot{background:var(--sunset-500)}
 .layer-tab.overlay .lt-dot{background:var(--violet-500)}
 .layer-tab.hidden-layer{opacity:.5}
-.layer-tab .lt-name{font-family:var(--font-mono);font-size:10.5px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px}
+.layer-tab .lt-name{font-family:var(--font-mono);font-size:10.5px;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px}
 .layer-tab.is-active .lt-name{color:var(--sunset-100)}
 .layer-tab .lt-dirty{color:var(--sunset-300);font-weight:700;margin-left:-3px}
 .layer-tab .lt-eye,.layer-tab .lt-x{
@@ -345,8 +353,10 @@ select option,select optgroup{background-color:#16151f;color:var(--text)}
 .lt-add:hover:not(:disabled){border-color:var(--violet-500);color:var(--violet-300)}
 .lt-add:disabled{opacity:.3;cursor:not-allowed}
 .lt-add svg{width:14px;height:14px}
-.param-actions .btn--dice{padding:0 10px}
-.param-actions .btn--dice span{font-size:10px}
+.lt-add{position:relative;top:1px}
+/* Roll button now lives in the topbar next to the icon utilities. */
+.topbar-actions .btn--dice{padding:0 9px}
+.topbar-actions .btn--dice span{font-size:10px}
 
 /* ============================================================
    Parameters column — 2-column groups via CSS columns
@@ -456,6 +466,15 @@ input.val:focus{outline:none;border-color:var(--sunset-500);box-shadow:0 0 0 2px
   padding:3px 6px;color:var(--text);
 }
 .color-ctl input.hex:focus{outline:none;border-color:var(--sunset-500);box-shadow:0 0 0 2px var(--color-action-glow)}
+/* Vignette sub-controls in the Background group */
+.vig-val{font-family:var(--font-mono);font-size:10px;color:var(--text-dim);text-align:right;min-width:34px}
+.vig-sel{
+  font-family:var(--font-mono);font-size:10.5px;
+  background:rgba(255,255,255,.025);border:1px solid var(--line);border-radius:var(--radius-sm);
+  padding:3px 6px;color:var(--text);cursor:pointer;
+}
+.vig-sel:focus{outline:none;border-color:var(--sunset-500);box-shadow:0 0 0 2px var(--color-action-glow)}
+.row.is-off{opacity:.4;pointer-events:none}
 
 /* hue rails */
 .row.is-hue input[type=range]::-webkit-slider-runnable-track{
@@ -576,7 +595,10 @@ input[type=range]:focus-visible::-moz-range-thumb{
 .crt-fallback-orb{width:220px;max-width:56%;height:auto}
 .crt-fallback p{margin:0;max-width:34ch;line-height:1.6}
 
-.actions{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.actions{display:flex;gap:6px}
+.actions .btn--primary,.actions .btn--ghost{flex:1}
+.btn--icon{flex:0 0 auto;padding:0 12px}
+.btn--icon svg{width:16px;height:16px}
 
 /* ============================================================
    Dialogs
@@ -734,31 +756,41 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
 .or-line{display:flex;align-items:center;gap:10px;margin:12px 0 8px;color:var(--text-faint);font-size:10.5px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em}
 .or-line::before,.or-line::after{content:'';flex:1;height:1px;background:var(--line)}
 /* Preset rows: a compact 2-up grid so they don't span the whole dialog. */
-.mgr-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;max-height:44vh;overflow-y:auto;padding-right:2px}
-.mgr-group{grid-column:1/-1;font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:var(--text-faint);margin:6px 2px 1px}
+/* Preset gallery: rendered orb thumbnail tiles (hover animates one at a time). */
+.mgr-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:10px;max-height:56vh;overflow-y:auto;padding:2px 2px 4px}
+.mgr-group{grid-column:1/-1;font-family:var(--font-mono);font-size:9px;text-transform:uppercase;letter-spacing:.09em;color:var(--text-faint);margin:9px 2px 1px}
 .mgr-group:first-child{margin-top:0}
-.mgr-row{
-  display:flex;align-items:center;gap:6px;padding:4px 7px;min-width:0;
-  border:1px solid var(--line);border-radius:var(--radius-sm);background:rgba(255,255,255,.015);
+.mgr-tile{
+  display:flex;flex-direction:column;min-width:0;
+  border:1px solid var(--line);border-radius:var(--radius-md);background:var(--night-900);overflow:hidden;
+  transition:border-color var(--duration-fast) var(--ease-out),transform var(--duration-fast) var(--ease-out);
 }
-.mgr-row.is-active{border-color:var(--sunset-500);background:rgba(255,95,0,.06)}
-.mgr-row input[type=checkbox]{
-  appearance:none;-webkit-appearance:none;flex:0 0 15px;width:15px;height:15px;border-radius:3px;
-  border:1px solid var(--line-strong);background:rgba(255,255,255,.02);cursor:pointer;position:relative;
+.mgr-tile:hover{border-color:var(--line-strong);transform:translateY(-1px)}
+.mgr-tile.is-active{border-color:var(--sunset-500);box-shadow:0 0 0 1px var(--sunset-500)}
+.mgr-thumb{
+  position:relative;aspect-ratio:1;cursor:pointer;overflow:hidden;
+  background-image:linear-gradient(45deg,#17151f 25%,transparent 25%),linear-gradient(-45deg,#17151f 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#17151f 75%),linear-gradient(-45deg,transparent 75%,#17151f 75%);
+  background-size:16px 16px;background-position:0 0,0 8px,8px -8px,-8px 0;background-color:#0b0a12;
 }
-.mgr-row input[type=checkbox]:checked{background:var(--violet-500);border-color:var(--violet-500)}
-.mgr-row input[type=checkbox]:checked::after{content:'';position:absolute;left:4px;top:1px;width:5px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
-.mgr-row input[type=checkbox]:disabled{opacity:.35;cursor:not-allowed}
+.mgr-canvas{width:100%;height:100%;display:block}
+.mgr-ov{position:absolute;top:6px;left:6px;display:inline-flex}
+.mgr-ov input[type=checkbox]{
+  appearance:none;-webkit-appearance:none;width:17px;height:17px;border-radius:4px;
+  border:1px solid rgba(255,255,255,.5);background:rgba(8,7,13,.7);backdrop-filter:blur(4px);cursor:pointer;position:relative;
+}
+.mgr-ov input[type=checkbox]:checked{background:var(--violet-500);border-color:var(--violet-500)}
+.mgr-ov input[type=checkbox]:checked::after{content:'';position:absolute;left:5px;top:2px;width:5px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+.mgr-ov input[type=checkbox]:disabled{opacity:.35;cursor:not-allowed}
+.mgr-tile-bar{display:flex;align-items:center;gap:3px;padding:5px 6px;border-top:1px solid var(--line)}
 .mgr-name{flex:1;min-width:0;text-align:left;background:none;border:0;color:var(--text);cursor:pointer;
-  font-family:var(--font-mono);font-size:11px;padding:2px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  font-family:var(--font-mono);font-size:10.5px;padding:2px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mgr-name:hover{color:var(--sunset-200)}
 .mgr-name.editing{background:#0c0b13;border:1px solid var(--sunset-500);border-radius:3px;padding:2px 6px;cursor:text}
-.mgr-row .mgr-act{width:24px;height:24px;padding:0;flex:0 0 24px;border:1px solid var(--line);border-radius:4px;
+.mgr-act{width:22px;height:22px;padding:0;flex:0 0 22px;border:1px solid var(--line);border-radius:4px;
   background:rgba(255,255,255,.02);color:var(--text-dim);cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
-.mgr-row .mgr-act:hover{border-color:var(--sunset-500);color:var(--sunset-200)}
-.mgr-row .mgr-act.danger:hover{border-color:var(--text-danger);color:var(--text-danger)}
-.mgr-row .mgr-act svg{width:13px;height:13px}
-.mgr-row .mgr-act[hidden]{display:none}
+.mgr-act:hover{border-color:var(--sunset-500);color:var(--sunset-200)}
+.mgr-act.danger:hover{border-color:var(--text-danger);color:var(--text-danger)}
+.mgr-act svg{width:12px;height:12px}
 
 .toast{
   position:fixed;left:50%;bottom:60px;transform:translateX(-50%);z-index:var(--z-toast);
@@ -899,8 +931,22 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
     </div>
     <div class="topbar-actions">
       <!-- Preset select kept as a hidden internal source of truth; the visible
-           layer control is the tab strip in the param header. -->
+           layer control is the tab strip in the parameter panel. -->
       <select id="crtPreset" class="sr-only" tabindex="-1" aria-hidden="true"></select>
+      <button class="btn btn--dice" id="crtRandomBtn" type="button" title="Randomize every parameter within curated ranges — each roll gets a seed you can re-enter to rebuild it">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="15.5" cy="15.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="15.5" cy="8.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="8.5" cy="15.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/></svg>
+        <span>Roll</span>
+      </button>
+      <button class="ic-btn" id="btnSavePreset" type="button" title="Save the current orb as a preset (named by its seed)" aria-label="Save current orb as a preset">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+      </button>
+      <button class="ic-btn" id="btnManager" type="button" title="Preset manager — apply, overlay, rename, delete" aria-label="Preset manager">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+      </button>
+      <button class="ic-btn" id="crtResetBtn" type="button" title="Reset the whole orb — every parameter, backdrop, and overlay — to defaults" aria-label="Reset to defaults">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+      </button>
+      <span class="topbar-divider"></span>
       <button class="ic-btn" id="btnUndo" type="button" title="Undo last change (⌘/Ctrl+Z)" disabled aria-label="Undo">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-4"/></svg>
       </button>
@@ -953,6 +999,9 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
       </div>
 
       <div class="actions">
+        <button class="btn btn--icon" id="btnScreenshot" type="button" title="Screenshot — pause and download this frame as a PNG (transparent, 512 px)" aria-label="Screenshot this frame as PNG">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        </button>
         <button class="btn btn--primary" id="crtWebpBtn" type="button" title="Download — animated WebP or GIF, a single PNG/JPG frame, or the JSON recipe (seed + full config baked in)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
           Download
@@ -964,29 +1013,14 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
       </div>
     </aside>
 
-    <!-- RIGHT on mobile / LEFT on desktop: parameters -->
+    <!-- RIGHT on mobile / LEFT on desktop: parameters. The layer tabs peek out
+         of the top of the parameter panel like browser tabs; the active tab
+         connects seamlessly into the panel below it. -->
     <section class="params" aria-label="Parameters">
-      <!-- Param header: action buttons on the top row, layer tabs (base + up to
-           3 overlays) on the bottom row. -->
-      <div class="param-header" id="paramHeader">
-        <div class="param-actions">
-          <button class="btn btn--dice" id="crtRandomBtn" type="button" title="Randomize every parameter within curated ranges — each roll gets a seed you can re-enter to rebuild it">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="15.5" cy="15.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="15.5" cy="8.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="8.5" cy="15.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/></svg>
-            <span>Roll</span>
-          </button>
-          <button class="ic-btn" id="btnSavePreset" type="button" title="Save the current orb as a preset (named by its seed)" aria-label="Save current orb as a preset">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-          </button>
-          <button class="ic-btn" id="btnManager" type="button" title="Preset manager — apply, overlay, rename, delete" aria-label="Preset manager">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
-          </button>
-          <button class="ic-btn" id="crtResetBtn" type="button" title="Reset the whole orb — every parameter, backdrop, and overlay — to defaults" aria-label="Reset to defaults">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
-          </button>
-        </div>
-        <div class="layer-tabs" id="layerTabs" role="tablist" aria-label="Orb layers"></div>
+      <div class="layer-tabs" id="layerTabs" role="tablist" aria-label="Orb layers"></div>
+      <div class="params-panel">
+        <div id="crtControls"></div>
       </div>
-      <div id="crtControls"></div>
     </section>
   </div>
 

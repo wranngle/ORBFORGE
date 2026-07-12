@@ -163,14 +163,14 @@ async function main() {
       const glyphBg = getComputedStyle(document.querySelector('.brand-glyph')).backgroundImage;
       const opt = document.querySelector('#dlgExport select option');
       return {
-        sliders: document.querySelectorAll('#crtControls .row input[type=range]').length,
+        sliders: document.querySelectorAll('#crtControls .row input[type=range][id^="crt-"]').length,
         presetOptions: document.querySelectorAll('#crtPreset option').length,
         // F002: the visible preset control is gone; #crtPreset survives only as a
         // hidden (sr-only) source of truth feeding the layer tabs.
         presetHidden: document.querySelector('#crtPreset')?.classList.contains('sr-only') === true,
         layerBaseTab: !!document.querySelector('#layerTabs .layer-tab.base'),
         headerActionsPresent: ['crtRandomBtn','btnSavePreset','btnManager','crtResetBtn']
-          .every(id => !!document.querySelector('.param-header .param-actions #' + id)),
+          .every(id => !!document.querySelector('.topbar .topbar-actions #' + id)),
         transparentDefault: !!document.getElementById('crtTransp')?.checked,
         termCollapsed: !!document.querySelector('#term.is-collapsed'),
         logLines: document.querySelectorAll('#logConsole .tline').length,
@@ -184,13 +184,13 @@ async function main() {
     check('boot screen clears after load', await page.evaluate(() => !document.getElementById('boot') || document.getElementById('boot').classList.contains('gone')));
     check('WebGL context initializes', lit >= 0);
     check('orb renders non-empty pixels', lit > 1000, `${lit} lit px`);
-    check('all 40 parameter sliders present', load.sliders === 40, `${load.sliders}`);
+    check('all 39 parameter sliders present', load.sliders === 39, `${load.sliders}`);
     check('preset dropdown lists built-ins + seed row', load.presetOptions >= 13, `${load.presetOptions} options`);
     // F002: layer tabs replace the visible preset dropdown; the select is hidden,
     // the base layer tab renders, and Roll/Save/Manager/Reset live in the header.
     check('preset select is a hidden source of truth', load.presetHidden);
     check('base layer tab renders in the param header', load.layerBaseTab);
-    check('roll/save/manager/reset moved into the param header', load.headerActionsPresent);
+    check('roll/save/manager/reset live in the top header', load.headerActionsPresent);
     check('transparent background is the default', load.transparentDefault);
     // F007: the event log starts collapsed.
     check('event log is collapsed by default', load.termCollapsed);
@@ -244,8 +244,8 @@ async function main() {
     // F002: overlay a preset via the manager → a layer tab with eye + × appears;
     // toggling the eye hides the layer; the × removes it.
     await page.click('#btnManager');
-    await page.waitForSelector('#mgrList .mgr-row input[type=checkbox]');
-    await page.evaluate(() => document.querySelector('#mgrList .mgr-row input[type=checkbox]').click());
+    await page.waitForSelector('#mgrList .mgr-tile input[type=checkbox]');
+    await page.evaluate(() => document.querySelector('#mgrList .mgr-tile input[type=checkbox]').click());
     await page.keyboard.press('Escape'); // close the modal so the header tabs are interactive
     await new Promise(r => setTimeout(r, 60));
     const tabAdded = await page.evaluate(() => {
@@ -263,8 +263,8 @@ async function main() {
     // R8-1: selecting a tab binds the 40 controls to that layer; editing an
     // overlay must not touch the base, and the base tab is a peer (no special class).
     await page.click('#btnManager');
-    await page.waitForSelector('#mgrList .mgr-row input[type=checkbox]');
-    await page.evaluate(() => document.querySelector('#mgrList .mgr-row input[type=checkbox]').click());
+    await page.waitForSelector('#mgrList .mgr-tile input[type=checkbox]');
+    await page.evaluate(() => document.querySelector('#mgrList .mgr-tile input[type=checkbox]').click());
     await page.keyboard.press('Escape');
     await new Promise(r => setTimeout(r, 80));
     const layerEdit = await page.evaluate(async () => {
@@ -296,11 +296,11 @@ async function main() {
 
     // R10-7: "default" is reserved — the manager rename must refuse it.
     await page.evaluate(() => document.getElementById('btnManager').click());
-    await page.waitForSelector('#mgrList .mgr-row input[type=checkbox]');
+    await page.waitForSelector('#mgrList .mgr-tile input[type=checkbox]');
     const guardDefault = await page.evaluate(() => {
       // save a user preset, then try to rename it to "default"
       document.getElementById('mgrSaveCurrent').click();
-      const row = [...document.querySelectorAll('#mgrList .mgr-row')].find(r => r.querySelector('.mgr-act'));
+      const row = [...document.querySelectorAll('#mgrList .mgr-tile')].find(r => r.querySelector('.mgr-act'));
       if (!row) return { ok: false, why: 'no user preset row' };
       row.querySelector('.mgr-act').click(); // rename
       const inp = document.querySelector('#mgrList input.mgr-name.editing');
@@ -313,6 +313,22 @@ async function main() {
     });
     check('rename to "default" is rejected', guardDefault.ok, JSON.stringify(guardDefault).slice(0, 120));
     check('manager has an Import affordance', await page.evaluate(() => !!document.getElementById('mgrImport')));
+    // F007: the manager is a gallery — every tile renders a live orb thumbnail
+    // (not an empty/transparent canvas). Verify a built-in tile has lit pixels.
+    const gallery = await page.evaluate(() => {
+      const tiles = [...document.querySelectorAll('#mgrList .mgr-tile')];
+      const canvases = tiles.map(t => t.querySelector('canvas.mgr-canvas')).filter(Boolean);
+      if (!canvases.length) return { ok: false, why: 'no thumbnail canvases' };
+      // Count tiles whose thumbnail has any non-transparent pixel.
+      let lit = 0;
+      for (const c of canvases) {
+        const ctx = c.getContext('2d');
+        const d = ctx.getImageData(0, 0, c.width, c.height).data;
+        for (let i = 3; i < d.length; i += 4) { if (d[i] > 8) { lit++; break; } }
+      }
+      return { ok: lit === canvases.length, tiles: tiles.length, canvases: canvases.length, lit };
+    });
+    check('preset gallery renders an orb thumbnail per tile', gallery.ok, `${gallery.lit}/${gallery.canvases} lit`);
     await page.keyboard.press('Escape');
     await new Promise(r => setTimeout(r, 60));
     // clean up the overlay so the export tests below start from the base

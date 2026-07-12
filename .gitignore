@@ -9,6 +9,7 @@ dist/
 !assets/orb.webp
 !assets/hero-demo.webp
 !assets/orbs/*.webp
+!assets/favicon.webp
 orb-forge.json
 orb-forge.events.jsonl
 
