@@ -140,12 +140,17 @@ button,select,input,textarea{font-family:inherit;color:inherit}
   animation:wmShift 3s ease-in-out infinite alternate;
 }
 .boot-sub{font-family:var(--font-mono);font-size:11px;color:var(--text-dim);letter-spacing:.06em;text-transform:uppercase}
-.boot-bar{width:200px;height:4px;border-radius:2px;background:rgba(255,255,255,.08);overflow:hidden}
-/* Determinate fill: JS advances the width at each boot milestone so the bar
-   visibly climbs instead of looping an indeterminate slider. */
-.boot-bar span{display:block;height:100%;width:0%;border-radius:2px;background:linear-gradient(90deg,var(--sunset-300),var(--sunset-500));box-shadow:0 0 10px rgba(255,95,0,.6);transition:width .45s var(--ease-out)}
+.boot-bar{width:220px;height:5px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden;position:relative}
+/* Determinate fill: a JS rAF loop eases the width every frame and trickles it
+   forward, so the bar climbs smoothly and continuously. A short transition
+   softens the discrete milestone jumps without re-introducing a visible stall;
+   a travelling sheen keeps it feeling alive (a small dopaminergic reward). */
+.boot-bar span{display:block;height:100%;width:0%;border-radius:3px;background:linear-gradient(90deg,var(--sunset-300),var(--sunset-500));box-shadow:0 0 10px rgba(255,95,0,.6);transition:width .16s linear;position:relative;overflow:hidden}
+.boot-bar span::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.45),transparent);transform:translateX(-100%);animation:bootSheen 1.15s ease-in-out infinite}
+@keyframes bootSheen{0%{transform:translateX(-100%)}60%,100%{transform:translateX(100%)}}
 .boot-sub{transition:opacity .3s var(--ease-out)}
-@media (prefers-reduced-motion:reduce){.boot-orb,.boot-word{animation:none}.boot-bar span{transition:none}}
+.boot-warn{max-width:260px;margin:14px 0 0;font-family:var(--font-mono);font-size:9.5px;line-height:1.5;letter-spacing:.04em;color:var(--text-faint);text-align:center;text-transform:uppercase}
+@media (prefers-reduced-motion:reduce){.boot-orb,.boot-word{animation:none}.boot-bar span{transition:none}.boot-bar span::after{animation:none;opacity:0}}
 
 /* ============================================================
    App shell
@@ -330,9 +335,14 @@ select option,select optgroup{background-color:#16151f;color:var(--text)}
 .layer-tab.is-active::after{
   content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--panel);
 }
-.layer-tab .lt-dot{width:6px;height:6px;flex:0 0 6px;border-radius:50%;background:var(--text-faint)}
-.layer-tab.base .lt-dot{background:var(--sunset-500)}
-.layer-tab.overlay .lt-dot{background:var(--violet-500)}
+/* Live orb favicon per tab (F002): a small canvas previewing that layer's orb,
+   like a browser tab's favicon. Animates on hover; still frame otherwise. */
+.layer-tab .lt-fav{width:16px;height:16px;flex:0 0 16px;border-radius:50%;display:block;box-shadow:inset 0 0 0 1px rgba(255,255,255,.07)}
+/* Before GL is ready the canvas is blank — fall back to the accent dot so a
+   tab never shows an empty square. */
+.layer-tab .lt-fav.lt-fav-empty{box-shadow:none;background:radial-gradient(circle at 50% 50%,var(--text-faint) 0 40%,transparent 46%)}
+.layer-tab.base .lt-fav.lt-fav-empty{background:radial-gradient(circle at 50% 50%,var(--sunset-500) 0 40%,transparent 46%)}
+.layer-tab.overlay .lt-fav.lt-fav-empty{background:radial-gradient(circle at 50% 50%,var(--violet-500) 0 40%,transparent 46%)}
 .layer-tab.hidden-layer{opacity:.5}
 .layer-tab .lt-name{font-family:var(--font-mono);font-size:10.5px;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px}
 .layer-tab.is-active .lt-name{color:var(--sunset-100)}
@@ -438,6 +448,17 @@ input.val:focus{outline:none;border-color:var(--sunset-500);box-shadow:0 0 0 2px
 .step:hover{border-color:var(--sunset-500);color:var(--sunset-200);background:rgba(255,95,0,.10)}
 .step:active{transform:scale(.9);background:rgba(255,95,0,.18);color:#fff}
 .step:focus-visible{outline:none;border-color:var(--sunset-500);box-shadow:0 0 0 3px var(--color-action-glow)}
+/* Hue-row color swatch (F001): a live chip that opens the OS color picker; the
+   picked color's hue drives the param. Sits at the head of the stepper. */
+.hue-swatch{
+  position:relative;width:20px;height:20px;padding:0;margin-right:3px;flex:0 0 20px;
+  border:1px solid var(--line-strong);border-radius:5px;cursor:pointer;overflow:hidden;
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.35);
+  transition:transform var(--duration-fast) var(--ease-out),border-color var(--duration-fast) var(--ease-out);
+}
+.hue-swatch:hover{border-color:var(--sunset-300);transform:scale(1.08)}
+.hue-swatch:focus-within{outline:none;border-color:var(--sunset-500);box-shadow:0 0 0 3px var(--color-action-glow)}
+.hue-swatch-input{position:absolute;inset:0;width:100%;height:100%;opacity:0;border:0;padding:0;margin:0;cursor:pointer}
 
 /* background rows: checkbox + color swatches */
 .row .check-ctl{display:inline-flex;align-items:center}
@@ -912,6 +933,7 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
   <div class="boot-word">ORBFORGE</div>
   <div class="boot-sub" id="bootSub">warming the forge…</div>
   <div class="boot-bar"><span id="bootFill"></span></div>
+  <p class="boot-warn" role="note">Photosensitivity warning — ORBFORGE renders flashing, pulsing, and strobing light. If you have photosensitive epilepsy, view with care.</p>
 </div>
 
 <div class="app">
@@ -1183,10 +1205,10 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
     <button class="ic-btn dlg-x" type="button" data-close title="Close" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
   </div>
   <div class="dlg-body">
-    <label class="dropzone" id="importDrop" for="importFile" title="Upload or drop a .json, .webp, or .gif — ORBFORGE exports carry their full recipe in the file, and even plain files are parsed from their filename seed">
+    <label class="dropzone" id="importDrop" for="importFile" title="Upload or drop a .json, .webp, .gif, .png, or .jpg — ORBFORGE exports carry their full recipe in the file, and even plain files are parsed from their filename seed">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 8l5-5 5 5"/><path d="M12 3v12"/></svg>
-      <span><b>Drop a file or browse</b> — .json, .webp, or .gif</span>
-      <input type="file" id="importFile" accept=".json,.webp,.gif,application/json,image/webp,image/gif" hidden>
+      <span><b>Drop a file or browse</b> — .json, .webp, .gif, .png, or .jpg</span>
+      <input type="file" id="importFile" accept=".json,.webp,.gif,.png,.jpg,.jpeg,application/json,image/webp,image/gif,image/png,image/jpeg" hidden>
     </label>
     <div class="or-line"><span>or paste a config / seed</span></div>
     <textarea id="crtJson" spellcheck="false" aria-label="Paste a JSON parameter config or a seed" placeholder='Paste an ORBFORGE config JSON, or just a seed like "plasma-4f2a"'></textarea>
@@ -1201,7 +1223,7 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
       </button>
     </div>
     <div class="status" id="crtStatus" aria-live="polite"></div>
-    <p class="hint">A seed rebuilds the exact orb it was rolled from. Dropped WebP/GIF exports carry their full recipe in the file; a plain file falls back to its filename seed. Unknown keys are ignored and values clamp to range.</p>
+    <p class="hint">A seed rebuilds the exact orb it was rolled from. Dropped WebP, GIF, PNG, and JPG exports carry their full recipe in the file; a plain file falls back to its filename seed. Unknown keys are ignored and values clamp to range.</p>
   </div>
 </dialog>
 

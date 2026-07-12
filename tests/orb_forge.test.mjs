@@ -162,8 +162,22 @@ async function main() {
     const load = await page.evaluate(() => {
       const glyphBg = getComputedStyle(document.querySelector('.brand-glyph')).backgroundImage;
       const opt = document.querySelector('#dlgExport select option');
+      // F003/F004/F005: the parameter group headers.
+      const groupTitles = [...document.querySelectorAll('#crtControls .group-head .title')].map(t => t.textContent.trim());
+      // F001: every hue row exposes a color swatch (hex/color-picker entry).
+      const hueRows = [...document.querySelectorAll('#crtControls .row.is-hue')];
+      const hueSwatches = hueRows.filter(r => r.querySelector('.hue-swatch')).length;
+      // F002: a layer tab renders a live orb favicon (canvas) with lit pixels.
+      const favLit = (() => {
+        const c = document.querySelector('#layerTabs .layer-tab .lt-fav');
+        if (!c || !c.getContext) return -1;
+        const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+        let n = 0; for (let i = 3; i < d.length; i += 4) if (d[i] > 8) n++;
+        return n;
+      })();
       return {
         sliders: document.querySelectorAll('#crtControls .row input[type=range][id^="crt-"]').length,
+        groupTitles, hueRows: hueRows.length, hueSwatches, favLit,
         presetOptions: document.querySelectorAll('#crtPreset option').length,
         // F002: the visible preset control is gone; #crtPreset survives only as a
         // hidden (sr-only) source of truth feeding the layer tabs.
@@ -185,6 +199,27 @@ async function main() {
     check('WebGL context initializes', lit >= 0);
     check('orb renders non-empty pixels', lit > 1000, `${lit} lit px`);
     check('all 39 parameter sliders present', load.sliders === 39, `${load.sliders}`);
+    // F003/F004/F005: single-noun group headers (no "& …" compounds).
+    check('group headers are single nouns Motion/Texture/Color', ['Motion','Texture','Color'].every(n => load.groupTitles.includes(n)) && !load.groupTitles.some(t => /&/.test(t)), load.groupTitles.join(' · '));
+    // F001: each hue row carries a color swatch so a color option can be set by hex/picker.
+    check('every hue row has a color swatch (F001)', load.hueRows === 3 && load.hueSwatches === 3, `${load.hueSwatches}/${load.hueRows}`);
+    // F002: the layer tab favicon is a live orb, not a flat dot.
+    check('layer tab renders a live orb favicon (F002)', load.favLit > 4, `${load.favLit} lit px`);
+    // F006: the photosensitivity warning is actually VISIBLE on the loading
+    // screen (not just present in markup). A throwaway page delays app.js so the
+    // loader paints before the engine clears it, then we assert real geometry.
+    const bootPage = await browser.newPage();
+    await bootPage.setRequestInterception(true);
+    bootPage.on('request', req => { if (/app\.js/.test(req.url())) setTimeout(() => req.continue(), 3000); else req.continue(); });
+    await bootPage.goto(base, { waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => {});
+    const bootWarn = await bootPage.evaluate(() => {
+      const w = document.querySelector('#boot .boot-warn');
+      if (!w) return { ok: false, why: 'no .boot-warn' };
+      const cs = getComputedStyle(w);
+      return { ok: w.offsetHeight > 0 && cs.visibility !== 'hidden' && cs.display !== 'none' && /photosensit|seizure|epilep/i.test(w.textContent), h: w.offsetHeight, txt: w.textContent.slice(0, 40) };
+    });
+    await bootPage.close();
+    check('loading screen shows a visible photosensitivity warning (F006)', bootWarn.ok, JSON.stringify(bootWarn));
     check('preset dropdown lists built-ins + seed row', load.presetOptions >= 13, `${load.presetOptions} options`);
     // F002: layer tabs replace the visible preset dropdown; the select is hidden,
     // the base layer tab renders, and Roll/Save/Manager/Reset live in the header.
@@ -246,6 +281,37 @@ async function main() {
       return { slider: slider.value, display: val.value };
     });
     check('typed param value applies to the slider', Math.abs(parseFloat(typed.slider) - 0.5) < 1e-9, `${typed.slider} / "${typed.display}"`);
+
+    // F001: typing a #hex into a hue value field derives + applies the hue, and
+    // both the swatch AND the color-picker seed track the resulting hue.
+    const hueHex = await page.evaluate(() => {
+      const rgb2hue = (r, g, b) => {
+        r /= 255; g /= 255; b /= 255;
+        const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+        if (d < 1e-6) return -1;
+        let h; if (mx === r) h = ((g - b) / d) % 6; else if (mx === g) h = (b - r) / d + 2; else h = (r - g) / d + 4;
+        h *= 60; return h < 0 ? h + 360 : h;
+      };
+      const slider = document.getElementById('crt-coreHue');
+      const row = slider.closest('.row');
+      const val = row.querySelector('input.val');
+      val.focus(); val.value = '#3f7fff'; // a blue → hue ≈ 220°
+      val.dispatchEvent(new Event('blur'));
+      const sw = row.querySelector('.hue-swatch');
+      const pick = row.querySelector('.hue-swatch-input');
+      const bg = getComputedStyle(sw).backgroundColor.match(/\d+/g).map(Number);
+      const px = pick.value; // #rrggbb
+      return {
+        hue: parseFloat(slider.value),
+        swatchHue: rgb2hue(bg[0], bg[1], bg[2]),
+        pickHue: rgb2hue(parseInt(px.slice(1, 3), 16), parseInt(px.slice(3, 5), 16), parseInt(px.slice(5, 7), 16)),
+      };
+    });
+    check('typing a #hex into a hue field sets the hue (F001)', hueHex.hue >= 210 && hueHex.hue <= 230, `hue=${hueHex.hue}`);
+    // the swatch color's OWN hue must match the applied hue — not merely "is a color".
+    check('the hue swatch color tracks the applied hue (F001)', Math.abs(hueHex.swatchHue - hueHex.hue) < 8, `swatchHue=${hueHex.swatchHue.toFixed(0)} vs ${hueHex.hue}`);
+    // the native color picker's seed resyncs so reopening it shows the current hue.
+    check('the color picker seed resyncs to the applied hue (F001)', Math.abs(hueHex.pickHue - hueHex.hue) < 8, `pickHue=${hueHex.pickHue.toFixed(0)} vs ${hueHex.hue}`);
 
     // F002: overlay a preset via the manager → a layer tab with eye + × appears;
     // toggling the eye hides the layer; the × removes it.
@@ -354,14 +420,74 @@ async function main() {
     });
     check('PNG format shows the frame scrubber, hides frame rate', fmtFields.png.shot && !fmtFields.png.fps && /frame/i.test(fmtFields.png.label));
     check('JSON format shows the config textarea + copy, hides resolution', fmtFields.json.area && fmtFields.json.copy && !fmtFields.json.res);
-    // Export a single PNG frame and validate the signature.
-    await page.evaluate(() => { const f = document.getElementById('crtFormat'); f.value = 'png'; f.dispatchEvent(new Event('change')); document.getElementById('crtRenderBtn').click(); });
+    // Export a single PNG frame at a distinctive radius, then time it — the PNG
+    // path must not hang (F007) and must embed the recipe (F008).
+    await page.evaluate(() => {
+      const s = document.getElementById('crt-radius'); const v = s.closest('.row').querySelector('input.val');
+      v.focus(); v.value = '0.61'; v.dispatchEvent(new Event('blur'));
+      const f = document.getElementById('crtFormat'); f.value = 'png'; f.dispatchEvent(new Event('change'));
+    });
+    const pngT0 = Date.now();
+    await page.evaluate(() => document.getElementById('crtRenderBtn').click());
     const exportedPng = await awaitDownload(downloadDir, '.png');
+    const pngMs = Date.now() - pngT0;
     const pngBuf = fs.readFileSync(exportedPng);
     const pngOk = pngBuf.length > 8 && pngBuf[0] === 0x89 && pngBuf[1] === 0x50 && pngBuf[2] === 0x4e && pngBuf[3] === 0x47;
     check('exports a valid PNG single frame', pngOk, `${pngBuf.length} bytes`);
+    // F007: PNG export completes promptly — it must not freeze the app for ~30s.
+    check('PNG export completes without freezing (F007)', pngMs < 15000, `${pngMs} ms`);
+    // F008: the exported PNG carries its full ORBFORGE recipe (re-importable).
+    check('exported PNG embeds the ORBFORGE recipe (F008)', pngBuf.includes(Buffer.from('ORBFORGE:{')), 'marker present');
     await page.evaluate(() => document.getElementById('dlgExport').close());
     await new Promise(r => setTimeout(r, 60));
+
+    // F008 + F009 round-trip: change the radius, then import the exported PNG.
+    // The recipe restores the exported radius (0.61), the modal closes, and a
+    // success toast appears over the preview.
+    await page.evaluate(() => {
+      const s = document.getElementById('crt-radius'); const v = s.closest('.row').querySelector('input.val');
+      v.focus(); v.value = '0.20'; v.dispatchEvent(new Event('blur'));
+      document.getElementById('btnImportJson').click();
+    });
+    await page.waitForSelector('#importFile');
+    const importInput = await page.$('#importFile');
+    await importInput.uploadFile(exportedPng);
+    await new Promise(r => setTimeout(r, 400));
+    const roundTrip = await page.evaluate(() => ({
+      radius: parseFloat(document.getElementById('crt-radius').value),
+      dialogOpen: document.getElementById('dlgImport').open,
+      toastVisible: !document.getElementById('toast').hidden,
+      toastMsg: document.getElementById('toastMsg').textContent,
+    }));
+    check('importing a PNG restores its recipe (F008)', Math.abs(roundTrip.radius - 0.61) < 1e-6, `radius=${roundTrip.radius}`);
+    check('a successful import closes the modal (F009)', roundTrip.dialogOpen === false);
+    check('a successful import shows an on-screen toast (F009)', roundTrip.toastVisible && /import|rebuil|applied/i.test(roundTrip.toastMsg), roundTrip.toastMsg);
+    // reset for the animated-export tests below
+    await page.evaluate(() => document.getElementById('crtResetBtn').click());
+    await new Promise(r => setTimeout(r, 60));
+
+    // F007: the actual hardening is the toBlob→toDataURL fallback. Stub toBlob to
+    // yield null (the failure mode behind the reported freeze) and assert a valid
+    // PNG still lands via the fallback — deleting the fallback would fail this.
+    for (const f of fs.readdirSync(downloadDir).filter(n => n.endsWith('.png'))) fs.unlinkSync(path.join(downloadDir, f));
+    await page.click('#crtWebpBtn');
+    await new Promise(r => setTimeout(r, 120));
+    await page.evaluate(() => {
+      window.__origToBlob = HTMLCanvasElement.prototype.toBlob;
+      HTMLCanvasElement.prototype.toBlob = function (cb) { setTimeout(() => cb(null), 0); }; // simulate a failing encoder
+      const f = document.getElementById('crtFormat'); f.value = 'png'; f.dispatchEvent(new Event('change'));
+      document.getElementById('crtRenderBtn').click();
+    });
+    let fallbackOk = false, fallbackDetail = 'no file';
+    try {
+      const fbPng = await awaitDownload(downloadDir, '.png', 20000);
+      const fb = fs.readFileSync(fbPng);
+      fallbackOk = fb.length > 8 && fb[0] === 0x89 && fb[1] === 0x50 && fb.includes(Buffer.from('ORBFORGE:{'));
+      fallbackDetail = `${fb.length} bytes`;
+    } catch (e) { fallbackDetail = e.message; }
+    await page.evaluate(() => { HTMLCanvasElement.prototype.toBlob = window.__origToBlob; document.getElementById('dlgExport').close(); });
+    await new Promise(r => setTimeout(r, 60));
+    check('PNG export falls back to toDataURL when toBlob fails (F007)', fallbackOk, fallbackDetail);
 
     // Drive the central promise: export a small animated WebP.
     await page.click('#crtWebpBtn'); // open export dialog

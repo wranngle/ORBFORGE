@@ -3,7 +3,7 @@
   // rmin/rmax bound RANDOMIZE only (sliders keep the full min/max range) —
   // tuned so a roll lands on a usable orb, not a blown-out extreme.
   var GROUPS=[
-    {name:'Ring & motion', items:[
+    {name:'Motion', items:[
       {key:'radius',     label:'Radius',          min:0.08,max:0.72,step:0.01, def:0.40, desc:'Distance from canvas center to the ring (0–1 of canvas)'},
       {key:'thickness',  label:'Outline'         ,min:0.005,max:0.22,step:0.005,def:0.025,rmin:0.01,rmax:0.06, desc:'Width of the ring band — thicker = more presence'},
       {key:'rotSpeed',   label:'Rotation',        min:-6,  max:6,   step:0.1,  def:0.4,  rmin:-2,rmax:2, desc:'Ring angular speed in rad/s. Negative reverses direction.'},
@@ -14,7 +14,7 @@
       {key:'jitterRate', label:'Jitter rate',     min:0.2, max:10,  step:0.1,  def:2,   rmin:0.5,rmax:6, desc:'How fast the time warp oscillates (only matters when Time jitter > 0)'},
       {key:'playSpeed',  label:'Speed',  min:0.1, max:3,   step:0.05, def:1,   rmin:0.6,rmax:1.6, desc:'Time multiplier for the whole animation — 0.5 = half speed, 2 = double. Bakes into the export and can be overridden live from the scrubber.'}
     ]},
-    {name:'Surface & texture', items:[
+    {name:'Texture', items:[
       {key:'burn',       label:'Burn',  min:0,   max:4,   step:0.05, def:1,   rmin:0.2,rmax:2.0, desc:'Strength of the noise-driven surface texture on the ring'},
       {key:'noiseScale', label:'Texture scale',   min:0.5, max:50,  step:0.5,  def:8,   rmin:2,rmax:28, desc:'How fine vs coarse the surface pattern is'},
       {key:'texStyle',   label:'Texture style',   min:0,   max:6,   step:1,    def:0,   desc:'Surface material: 0 smoke · 1 ridged filaments · 2 plasma cells · 3 banded rings · 4 woven threads · 5 stipple dots · 6 wire lattice'},
@@ -34,7 +34,7 @@
       {key:'tracerGlow', label:'Brightness',      min:0,   max:6,   step:0.1,  def:2.2, rmin:0.6,rmax:2.2, desc:'Brightness of tracers vs the ring'},
       {key:'sparkle',    label:'Flicker',         min:0,   max:1.5, step:0.05, def:0.5, desc:'Random ember shimmer along each tail'}
     ]},
-    {name:'Color & post', items:[
+    {name:'Color', items:[
       {key:'hue',        label:'Ring hue',        min:0,   max:360, step:1,    def:24,  hue:true, desc:'Hue of the ring (0–360°)'},
       {key:'tracerHue',  label:'Tracer hue',      min:0,   max:360, step:1,    def:40,  hue:true, desc:'Hue of the tracers (0–360°)'},
       {key:'saturation', label:'Saturation',      min:0,   max:2,   step:0.05, def:1,   rmin:0.7,rmax:1.35, desc:'Color intensity (0 = grayscale)'},
@@ -225,6 +225,23 @@
     var f=function(n){ var c=l-a*Math.max(-1,Math.min(k(n)-3,Math.min(9-k(n),1))); return Math.round(c*255).toString(16).padStart(2,'0'); };
     return '#'+f(0)+f(8)+f(4);
   }
+  // Derive the HSL hue (0–360) from a #rrggbb string, for the hue-row color
+  // picker (F001) — a color option that thinks in hex, not degrees. Grays
+  // (r==g==b) have no hue; keep the current value by returning null.
+  function hexToHue(hex){
+    if(!hexOk(hex)) return null;
+    var r=parseInt(hex.slice(1,3),16)/255, g=parseInt(hex.slice(3,5),16)/255, b=parseInt(hex.slice(5,7),16)/255;
+    var mx=Math.max(r,g,b), mn=Math.min(r,g,b), d=mx-mn;
+    if(d<1e-6) return null; // achromatic — no meaningful hue
+    var h;
+    if(mx===r) h=((g-b)/d)%6;
+    else if(mx===g) h=(b-r)/d+2;
+    else h=(r-g)/d+4;
+    h*=60; if(h<0) h+=360;
+    return Math.round(h);
+  }
+  // A saturated swatch color for a hue value, so the chip shows the hue it sets.
+  function hueSwatchHex(h){ return hslToHex(((h%360)+360)%360,90,55); }
 
   /* ---------- ECS / JSONL log ---------- */
   var TERM_BODY, BUFFER=[], MAX_LINES=300;
@@ -399,6 +416,7 @@
       r.input.value=v;
       if(document.activeElement!==r.val) r.val.value=fmt(c,v);
       r.input.style.setProperty('--p',pct(c,v)+'%');
+      if(r.swatch){ r.swatch.style.background=hueSwatchHex(v); r.swPick.value=hueSwatchHex(v); }
     }
     markDirty();
     updateAuto(); refreshExport();
@@ -572,17 +590,44 @@
       // typed value input — click and type an exact number
       var val=document.createElement('input'); val.className='val'; val.type='text';
       val.value=fmt(c,c.def); val.setAttribute('inputmode','decimal');
-      val.setAttribute('aria-label',c.label+' value'); val.setAttribute('title','Type an exact value · Enter applies · Esc cancels');
+      val.setAttribute('aria-label',c.label+' value'); val.setAttribute('title',(c.hue?'Type a value or a #hex color · Enter applies · Esc cancels':'Type an exact value · Enter applies · Esc cancels'));
       var dec=document.createElement('button'); dec.type='button'; dec.className='step step--dec';
       dec.setAttribute('aria-label','Decrement '+c.label); dec.setAttribute('title','−'+c.step+' · hold to repeat'); dec.textContent='−';
       var inc=document.createElement('button'); inc.type='button'; inc.className='step step--inc';
       inc.setAttribute('aria-label','Increment '+c.label); inc.setAttribute('title','+'+c.step+' · hold to repeat'); inc.textContent='+';
       var stepper=document.createElement('span'); stepper.className='stepper';
+      // Hue rows are color options — offer a hex swatch + native picker (F001).
+      // The chip shows the hue it sets; clicking opens the OS color picker and
+      // the picked color's hue drives the param (a color, not a raw degree).
+      var swatch=null,swPick=null;
+      if(c.hue){
+        // A span frame showing the current hue; the color input (transparent,
+        // overlaid) captures clicks + keyboard and opens the OS picker. A bare
+        // input-in-a-span (not a button) keeps the markup valid + accessible.
+        swatch=document.createElement('span'); swatch.className='hue-swatch';
+        swatch.style.background=hueSwatchHex(c.def);
+        swPick=document.createElement('input'); swPick.type='color'; swPick.className='hue-swatch-input'; swPick.value=hueSwatchHex(c.def);
+        swPick.setAttribute('aria-label',c.label+' — pick a color'); swPick.title='Pick a color (its hue is applied) · or type a #hex in the value';
+        swatch.appendChild(swPick);
+        function applyPickedHue(commit){
+          var h=hexToHue(swPick.value);
+          if(h==null) return;
+          if(setParam(c,h)){
+            swatch.style.background=hueSwatchHex(activeParams()[c.key]);
+            hlKick(HL_MODE[c.key]||1);
+            if(commit){ eclog('info','param.color',{key:c.key,value:activeParams()[c.key],hex:swPick.value},c.key+' = '+fmt(c,activeParams()[c.key])+' (from '+swPick.value+')'); commitHistory(); }
+          }
+        }
+        swPick.addEventListener('input',function(){ applyPickedHue(false); });
+        swPick.addEventListener('change',function(){ applyPickedHue(true); });
+        stepper.appendChild(swatch);
+      }
       stepper.appendChild(dec); stepper.appendChild(val); stepper.appendChild(inc);
       inp.addEventListener('input',function(){
         var v=parseFloat(inp.value); activeParams()[c.key]=v;
         val.value=fmt(c,v);
         inp.style.setProperty('--p',pct(c,v)+'%');
+        if(swatch){ swatch.style.background=hueSwatchHex(v); swPick.value=hueSwatchHex(v); }
         markDirty();
         hlKick(HL_MODE[c.key]||1);
         updateAuto(); refreshExport();
@@ -593,7 +638,20 @@
         commitHistory();
       });
       function commitTyped(){
-        var v=parseFloat(String(val.value).replace(',','.'));
+        var raw=String(val.value).trim();
+        // Hue rows accept a #hex color too — derive the hue from it (F001).
+        if(c.hue&&/^#?[0-9a-fA-F]{6}$/.test(raw)){
+          var h=hexToHue(raw[0]==='#'?raw:'#'+raw);
+          if(h!=null&&setParam(c,h)){
+            if(swatch) swatch.style.background=hueSwatchHex(activeParams()[c.key]);
+            hlKick(HL_MODE[c.key]||1);
+            eclog('info','param.color',{key:c.key,value:activeParams()[c.key],hex:(raw[0]==='#'?raw:'#'+raw).toLowerCase()},c.key+' = '+fmt(c,activeParams()[c.key])+' (from hex)');
+            commitHistory();
+          }
+          val.value=fmt(c,activeParams()[c.key]);
+          return;
+        }
+        var v=parseFloat(raw.replace(',','.'));
         if(!isFinite(v)){ val.value=fmt(c,activeParams()[c.key]); return; }
         if(setParam(c,v)){
           hlKick(HL_MODE[c.key]||1);
@@ -616,7 +674,7 @@
       row.addEventListener('focusin',function(){ hlHover(mode,true); });
       row.addEventListener('focusout',function(){ hlHover(mode,false); });
       body.appendChild(row);
-      refs[c.key]={input:inp,val:val,cfg:c};
+      refs[c.key]={input:inp,val:val,cfg:c,swatch:swatch,swPick:swPick};
     });
   });
 
@@ -770,6 +828,7 @@
       var r=refs[c.key]; r.input.value=P[c.key];
       if(document.activeElement!==r.val) r.val.value=fmt(c,P[c.key]);
       r.input.style.setProperty('--p',pct(c,P[c.key])+'%');
+      if(r.swatch){ r.swatch.style.background=hueSwatchHex(P[c.key]); r.swPick.value=hueSwatchHex(P[c.key]); }
     });
     syncSpeedSel();
   }
@@ -918,9 +977,34 @@
   // the eye toggles an overlay's visibility, the × removes it. The base tab is a
   // normal selectable tab — it just can't be hidden or removed (it's the founda-
   // tion, and the backdrop lives with it).
+  // A tab's leading glyph is a live "favicon" of that layer's orb (F002) — like
+  // a browser tab, it previews its own page. One favicon animates at a time on
+  // hover; the rest hold a still frame. Falls back to a CSS dot before GL is up.
+  var FAV=18; // favicon backing px
+  var favAnim=null;
+  function stopFavAnim(){ if(favAnim){ favAnim.stop=true; if(favAnim.timer) clearTimeout(favAnim.timer); favAnim=null; } }
+  function paintFav(cv,P,phase){
+    var t=renderParamsThumb(P,FAV,phase);
+    if(t){ var x=cv.getContext('2d'); x.clearRect(0,0,FAV,FAV); x.drawImage(t,0,0,FAV,FAV); cv.classList.remove('lt-fav-empty'); return true; }
+    cv.classList.add('lt-fav-empty'); // GL not ready — keep the accent-dot fallback
+    return false;
+  }
+  function startFavAnim(cv,P){
+    stopFavAnim();
+    if(typeof stopTileAnim==='function') stopTileAnim(); // never animate a favicon + a gallery tile at once (they share the GL canvas)
+    if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+    var a={stop:false,phase:0.15}; favAnim=a;
+    (function step(){
+      if(a.stop||!cv.isConnected){ return; }
+      a.phase=(a.phase+0.02)%1;
+      paintFav(cv,P,a.phase);
+      a.timer=setTimeout(step,90); // ~11fps, one favicon at a time
+    })();
+  }
   function renderLayerTabs(){
     var wrap=document.getElementById('layerTabs'); if(!wrap) return;
     clampActive();
+    stopFavAnim();
     wrap.innerHTML='';
     function makeTab(idx,label,kind,visible){
       var tab=document.createElement('span');
@@ -928,7 +1012,14 @@
       tab.setAttribute('role','tab');
       tab.setAttribute('aria-selected',String(idx===ACTIVE));
       tab.title=(idx===0?'Base orb':'Overlay layer')+' — click to edit its parameters';
-      var dot=document.createElement('span'); dot.className='lt-dot'; tab.appendChild(dot);
+      // Live orb favicon for this layer; the .lt-fav-empty accent dot is the fallback.
+      var P=(idx===0)?params:(OVERLAYS[idx-1]&&OVERLAYS[idx-1].params)||params;
+      var dot=document.createElement('canvas'); dot.className='lt-fav '+kind; dot.width=dot.height=FAV;
+      dot.setAttribute('aria-hidden','true');
+      paintFav(dot,P,0.15); // paints a still frame, or marks the accent-dot fallback if GL isn't up yet
+      tab.addEventListener('pointerenter',function(){ startFavAnim(dot,P); });
+      tab.addEventListener('pointerleave',function(){ stopFavAnim(); paintFav(dot,P,0.15); });
+      tab.appendChild(dot);
       if(kind==='overlay'){
         var eye=document.createElement('button'); eye.type='button'; eye.className='lt-eye';
         eye.innerHTML=visible?EYE_ON:EYE_OFF;
@@ -1017,6 +1108,7 @@
   function stopTileAnim(){ if(mgrAnim){ mgrAnim.stop=true; if(mgrAnim.timer) clearTimeout(mgrAnim.timer); mgrAnim=null; } }
   function startTileAnim(disp,p){
     stopTileAnim();
+    if(typeof stopFavAnim==='function') stopFavAnim(); // gallery + tab favicon share the GL canvas — one animates at a time
     var a={stop:false,phase:0.32}; mgrAnim=a;
     (function step(){
       if(a.stop||!disp.isConnected) return;
@@ -1028,6 +1120,7 @@
   }
   function renderManager(){
     var list=document.getElementById('mgrList'); if(!list) return;
+    stopFavAnim(); // the gallery is about to drive the shared GL canvas
     stopTileAnim();
     list.innerHTML='';
     function group(label){ var g=document.createElement('div'); g.className='mgr-group'; g.textContent=label; list.appendChild(g); }
@@ -1142,24 +1235,44 @@
   // milestones, so the bar is always moving — it never parks at one number while
   // a slow step (shader compile) runs. The label narrates the current stage.
   var bootShown=0, bootTarget=0, bootRaf=0, bootFinished=false;
+  // Cosmetic faux load lines (F006): forge-flavored narration that cycles
+  // between real milestones so the sub-line is always moving — the copy carries
+  // the sense of progress even while a slow shader compile blocks a milestone.
+  var BOOT_FAUX=['stoking the coals…','drawing out the filaments…','quenching the glass…','coaxing the plasma…','tempering the rings…','aligning the tracers…','polishing the sheen…','breathing on the embers…'];
+  var bootFauxI=0, bootLastReal=0, bootFauxTimer=0;
+  function bootNow(){ return (window.performance&&performance.now)?performance.now():+new Date(); }
+  function bootSetSub(msg){ var sub=document.getElementById('bootSub'); if(sub&&msg) sub.textContent=msg; }
+  function bootFauxTick(){
+    if(bootFinished) return;
+    // Hold a real milestone message ~700ms before letting faux copy resume, so
+    // the technical stage is readable but gaps never sit on a frozen line.
+    if(bootNow()-bootLastReal>700){ bootSetSub(BOOT_FAUX[bootFauxI++%BOOT_FAUX.length]); }
+    bootFauxTimer=setTimeout(bootFauxTick,900);
+  }
   function bootPaint(){ var f=document.getElementById('bootFill'); if(f) f.style.width=bootShown.toFixed(1)+'%'; }
   function bootTick(){
     if(bootFinished) return;
     // Trickle toward a 92% soft ceiling; the nudge shrinks as it climbs, so the
     // bar decelerates naturally without ever fully stalling.
-    if(bootTarget<92){ bootTarget=Math.min(92,bootTarget+Math.max(0.03,(92-bootTarget)*0.006)); }
-    bootShown+=(bootTarget-bootShown)*0.1;
+    if(bootTarget<92){ bootTarget=Math.min(92,bootTarget+Math.max(0.05,(92-bootTarget)*0.008)); }
+    bootShown+=(bootTarget-bootShown)*0.12;
     if(bootShown>99) bootShown=99; // reserve the last sliver for the real "ready"
     bootPaint();
     bootRaf=requestAnimationFrame(bootTick);
   }
   function bootStep(pct,msg){
     if(pct>bootTarget) bootTarget=pct;
-    var sub=document.getElementById('bootSub'); if(sub&&msg) sub.textContent=msg;
+    if(msg){ bootLastReal=bootNow(); bootSetSub(msg); }
   }
-  function bootFinish(){ bootFinished=true; if(bootRaf) cancelAnimationFrame(bootRaf); bootTarget=100; bootShown=100; bootPaint(); }
+  function bootFinish(){
+    bootFinished=true;
+    if(bootRaf) cancelAnimationFrame(bootRaf);
+    if(bootFauxTimer) clearTimeout(bootFauxTimer);
+    bootTarget=100; bootShown=100; bootPaint();
+  }
   bootRaf=requestAnimationFrame(bootTick);
   bootStep(8,'starting the forge…');
+  bootFauxTimer=setTimeout(bootFauxTick,900);
   var canvas=document.getElementById('crtCanvas');
   var glOpts={alpha:true,preserveDrawingBuffer:true,antialias:true,premultipliedAlpha:false};
   var gl=canvas.getContext('webgl',glOpts)||canvas.getContext('experimental-webgl',glOpts);
@@ -1729,7 +1842,7 @@
       var T=currentDur(),sp=playSpeed(),played=T/sp;
       if(playing&&!scrubActive) scrub.value=String((((elapsed%played)/played)).toFixed(3));
       if(timeEl) timeEl.textContent=(elapsed%played).toFixed(2)+' / '+played.toFixed(2)+' s';
-      if(!bootHidden){ bootHidden=true; bootStep(100,'ready'); bootFinish(); bootDone(); } // first real frame is up — clear the boot screen
+      if(!bootHidden){ bootHidden=true; bootStep(100,'ready'); bootFinish(); bootDone(); renderLayerTabs(); } // first real frame is up — clear the boot screen + fill the tab favicons now GL is live
     }
     requestAnimationFrame(frame);
   }
@@ -1739,6 +1852,15 @@
   var dlgImport=document.getElementById('dlgImport');
   var jsonArea=document.getElementById('crtJson'),jsonOut=document.getElementById('crtJsonOut'),statusEl=document.getElementById('crtStatus');
   function setStatus(msg,kind){ statusEl.textContent=msg; statusEl.className='status'+(kind?' '+kind:''); }
+  // A successful import closes the modal and confirms on-screen (F009): the
+  // success signal lands over the preview — the thing that just changed —
+  // instead of staying buried behind the dialog. Errors stay in-dialog so the
+  // user can fix the paste/file without losing context.
+  function onImportSuccess(msg){
+    if(dlgImport&&dlgImport.open) dlgImport.close();
+    setStatus('',''); if(jsonArea) jsonArea.value='';
+    showToast(msg);
+  }
   function roundParams(src){
     var p={};
     CONFIG.forEach(function(c){
@@ -1761,6 +1883,64 @@
     return doc;
   }
   function buildJSON(){ return JSON.stringify(buildDoc(),null,2); }
+  // ---- Embed the ORBFORGE recipe into a static export so a re-imported PNG/JPG
+  // carries its full state, exactly like WebP (XMP) / GIF (comment) (F008). The
+  // marker is the same "ORBFORGE:{…}" string scanEmbeddedJSON() reads back.
+  var CRC_TABLE=(function(){ var t=new Uint32Array(256); for(var n=0;n<256;n++){ var c=n; for(var k=0;k<8;k++){ c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1); } t[n]=c>>>0; } return t; })();
+  function crc32(bytes,start,end){ var c=0xFFFFFFFF; for(var i=start;i<end;i++){ c=CRC_TABLE[(c^bytes[i])&0xFF]^(c>>>8); } return (c^0xFFFFFFFF)>>>0; }
+  // Insert a valid tEXt chunk (keyword\0text) immediately after IHDR. IHDR is
+  // always the first chunk and always 13 bytes of data, so it ends at offset 33
+  // (8 sig + 4 len + 4 type + 13 data + 4 crc).
+  function pngWithMeta(u8,jsonStr){
+    try{
+      if(u8.length<33||u8[0]!==0x89||u8[1]!==0x50) return u8; // not a PNG — leave it
+      var text='orbforge\x00'+'ORBFORGE:'+jsonStr; // keyword \0 text
+      var data=strToBytes(text);
+      var chunk=new Uint8Array(12+data.length);
+      var dv=new DataView(chunk.buffer);
+      dv.setUint32(0,data.length);
+      chunk[4]=0x74;chunk[5]=0x45;chunk[6]=0x58;chunk[7]=0x74; // "tEXt"
+      chunk.set(data,8);
+      dv.setUint32(8+data.length,crc32(chunk,4,8+data.length));
+      var out=new Uint8Array(u8.length+chunk.length);
+      out.set(u8.subarray(0,33),0);
+      out.set(chunk,33);
+      out.set(u8.subarray(33),33+chunk.length);
+      return out;
+    }catch(e){ return u8; }
+  }
+  // Insert a JPEG COM (0xFFFE) marker with the recipe AFTER the leading APPn
+  // segments (JFIF APP0 etc.) so strict JPEG tooling that expects APP0 right
+  // after SOI stays happy — browsers accept it either way.
+  function jpegWithMeta(u8,jsonStr){
+    try{
+      if(u8.length<4||u8[0]!==0xFF||u8[1]!==0xD8) return u8; // not a JPEG
+      var payload=strToBytes('ORBFORGE:'+jsonStr);
+      if(payload.length>65533) return u8; // recipe is ~1–2 KB; a single COM segment always fits
+      var at=2; // walk past SOI, then skip any leading APPn (0xFFE0–0xFFEF) segments
+      while(at+4<=u8.length&&u8[at]===0xFF&&u8[at+1]>=0xE0&&u8[at+1]<=0xEF){
+        at+=2+((u8[at+2]<<8)|u8[at+3]);
+      }
+      if(at>u8.length) at=2; // malformed — fall back to right after SOI
+      var seg=new Uint8Array(4+payload.length);
+      seg[0]=0xFF;seg[1]=0xFE; // COM
+      seg[2]=((payload.length+2)>>8)&0xFF; seg[3]=(payload.length+2)&0xFF; // length includes the 2 length bytes
+      seg.set(payload,4);
+      var out=new Uint8Array(u8.length+seg.length);
+      out.set(u8.subarray(0,at),0);
+      out.set(seg,at);
+      out.set(u8.subarray(at),at+seg.length);
+      return out;
+    }catch(e){ return u8; }
+  }
+  // Blob → augmented Blob carrying the recipe, for PNG/JPG single-frame exports.
+  function embedStaticRecipe(blob,fmt){
+    return blob.arrayBuffer().then(function(buf){
+      var u8=new Uint8Array(buf), json=buildJSON();
+      var out=fmt==='jpg'?jpegWithMeta(u8,json):pngWithMeta(u8,json);
+      return new Blob([out],{type:blob.type});
+    });
+  }
   // Filenames + embedded metadata carry the seed and a timestamp so an export
   // is self-describing and re-importable. Stamped at export time.
   function stampBase(ext){
@@ -1817,14 +1997,14 @@
     if(txt[0]!=='{'){
       if(!/^[\w.-]{1,64}$/.test(txt)){ setSt('That is neither JSON nor a valid seed (letters, numbers, dots, dashes).','err'); return false; }
       seededRandomize(txt);
-      setSt('Rebuilt orb from seed "'+txt+'".','ok');
+      onImportSuccess('Rebuilt orb from seed "'+txt+'".');
       return true;
     }
     var data; try{ data=JSON.parse(txt); }catch(e){ setSt('Invalid JSON — '+e.message,'err'); eclog('error','config.import_error',{reason:e.message},'Invalid JSON'); return false; }
     var applied=applyDoc(data);
     if(!applied){ setSt('No matching parameter keys found.','err'); return false; }
     var cl=applyDoc._clamped||0;
-    setSt('Applied '+applied+' of '+CONFIG.length+' parameters'+(cl?' ('+cl+' clamped)':'')+(OVERLAYS.length?' + '+OVERLAYS.length+' overlay'+(OVERLAYS.length===1?'':'s'):'')+'.','ok');
+    onImportSuccess('Applied '+applied+' of '+CONFIG.length+' parameters'+(cl?' ('+cl+' clamped)':'')+(OVERLAYS.length?' + '+OVERLAYS.length+' overlay'+(OVERLAYS.length===1?'':'s'):'')+'.');
     eclog('info','config.import',{applied:applied,clamped:cl,overlays:OVERLAYS.length,preset:activePreset},'Imported '+applied+' parameters');
     return true;
   }
@@ -1844,7 +2024,7 @@
     return null;
   }
   function seedFromName(name){
-    var m=/orbforge-([\w.]+?)-\d{8}T/i.exec(name)||/([\w.]{2,32})\.(webp|gif|json)$/i.exec(name);
+    var m=/orbforge-([\w.]+?)-\d{8}T/i.exec(name)||/([\w.]{2,32})\.(webp|gif|json|png|jpe?g)$/i.exec(name);
     return m?m[1]:null;
   }
   function parseImportFile(file,cb){
@@ -1869,11 +2049,11 @@
       var applied=applyDoc(res.doc);
       if(!applied){ setSt('The file had no recognizable parameters.','err'); return; }
       var cl=applyDoc._clamped||0;
-      setSt('Imported from '+res.source+' — '+applied+' parameters'+(cl?' ('+cl+' clamped)':'')+'.','ok');
+      onImportSuccess('Imported from '+res.source+' — '+applied+' parameters'+(cl?' ('+cl+' clamped)':'')+'.');
       eclog('info','config.import_file',{source:res.source,applied:applied},'Imported from '+res.source);
     } else if(res.seed){
       seededRandomize(res.seed);
-      setSt('Rebuilt from '+res.source+' "'+res.seed+'".','ok');
+      onImportSuccess('Rebuilt from '+res.source+' "'+res.seed+'".');
     }
   }
   document.getElementById('crtApplyBtn').addEventListener('click',function(){ importJSONText(jsonArea.value,setStatus); });
@@ -2225,6 +2405,9 @@
     var lbl=document.getElementById('crtRenderLabel'), copyBtn=document.getElementById('crtCopyBtn');
     if(lbl) lbl.textContent=isJsonFmt()?'Download .json':(isStaticImg()?'Download frame':'Render & Download');
     if(copyBtn) copyBtn.hidden=!isJsonFmt();
+    // Leaving an animated format: clear the stale "≈ N MB estimated · fps · frames"
+    // line so a single PNG/JPG frame or JSON never shows an animated-size estimate.
+    if(!isAnimated()) setWebpStatus('','');
     if(isJsonFmt()){ jsonOut.value=buildJSON(); if(frameInfo) frameInfo.textContent=''; }
     else if(isStaticImg()){ if(frameInfo) frameInfo.textContent=''; renderShotThumb(); }
     var hint=document.getElementById('crtExportHint');
@@ -2262,25 +2445,58 @@
     if(shotRaf) return;
     shotRaf=requestAnimationFrame(function(){ shotRaf=0; renderShotThumb(); });
   }
+  function dataURLToBlob(durl){
+    var i=durl.indexOf(','), head=durl.slice(0,i), body=durl.slice(i+1);
+    var mime=(head.match(/data:([^;]+)/)||[])[1]||'application/octet-stream';
+    var bin=atob(body), n=bin.length, u8=new Uint8Array(n);
+    for(var k=0;k<n;k++) u8[k]=bin.charCodeAt(k);
+    return new Blob([u8],{type:mime});
+  }
+  // Encode a canvas to a Blob with a toDataURL fallback + an 8s watchdog. Some
+  // engines return null (or stall) on a large transparent-PNG toBlob, which
+  // reads to the user as a frozen app — the fallback guarantees a file (F007).
+  function canvasToBlob(cv,mime,q){
+    return new Promise(function(resolve,reject){
+      var settled=false;
+      var wd=setTimeout(function(){ if(settled) return; settled=true;
+        try{ resolve(dataURLToBlob(cv.toDataURL(mime,q))); }catch(e){ reject(e); } },8000);
+      try{
+        cv.toBlob(function(blob){
+          if(settled) return; settled=true; clearTimeout(wd);
+          if(blob) resolve(blob);
+          else { try{ resolve(dataURLToBlob(cv.toDataURL(mime,q))); }catch(e){ reject(e); } }
+        },mime,q);
+      }catch(e){ if(!settled){ settled=true; clearTimeout(wd); reject(e); } }
+    });
+  }
   function exportStaticFrame(fmt,size,q){
+    if(exporting||estimating) return; // re-entry guard — one export at a time (F007)
     exporting=true; renderBtn.disabled=true; transportEl.classList.add('is-disabled');
     resultWrap.classList.remove('on'); manualDl.hidden=true;
     setOv('Rendering frame…',0.5);
     eclog('info','export.start',{format:fmt,size:size,frame:+shotPhase().toFixed(3)},'Exporting frame — '+fmt.toUpperCase()+', '+size+' px');
-    try{
-      var a=staticRenderArgs(fmt);
-      var cv=renderFrameCanvas(size,shotPhase(),a.T,a.transparent,a.flatten);
-      var mime=fmt==='jpg'?'image/jpeg':'image/png';
-      cv.toBlob(function(blob){
-        if(!blob){ finishExport('Frame export returned nothing.','err',{}); return; }
-        var fn=stampBase(fmt);
-        var url=URL.createObjectURL(blob);
-        var link=document.createElement('a'); link.href=url; link.download=fn;
-        document.body.appendChild(link); link.click(); link.remove();
-        showResult(url,blob,fmt,'<b>'+fn+'</b> · '+fmtSize(blob.size)+'<br>'+size+' px · single frame'+(fmt==='png'&&BG.transparent?' · transparent':''));
-        finishExport('Exported '+fmtSize(blob.size)+' — '+size+' px, single frame','ok',{format:fmt,bytes:blob.size,size:size,frame:+shotPhase().toFixed(3)});
-      },mime,fmt==='jpg'?q:undefined);
-    }catch(e){ finishExport('Frame render failed: '+(e&&e.message||e),'err',{reason:e&&e.message||String(e)}); }
+    // Defer the heavy GL render + encode past two frames so the "Rendering…"
+    // overlay actually paints first — the app never looks frozen, even on a
+    // slow large PNG encode (F007).
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){
+      try{
+        var a=staticRenderArgs(fmt);
+        var cv=renderFrameCanvas(size,shotPhase(),a.T,a.transparent,a.flatten);
+        var mime=fmt==='jpg'?'image/jpeg':'image/png';
+        canvasToBlob(cv,mime,fmt==='jpg'?q:undefined)
+          .then(function(raw){ return embedStaticRecipe(raw,fmt); }) // bake in the recipe (F008)
+          .then(function(blob){
+            if(!blob){ finishExport('Frame export returned nothing.','err',{}); return; }
+            var fn=stampBase(fmt);
+            var url=URL.createObjectURL(blob);
+            var link=document.createElement('a'); link.href=url; link.download=fn;
+            document.body.appendChild(link); link.click(); link.remove();
+            showResult(url,blob,fmt,'<b>'+fn+'</b> · '+fmtSize(blob.size)+'<br>'+size+' px · single frame'+(fmt==='png'&&BG.transparent?' · transparent':''));
+            finishExport('Exported '+fmtSize(blob.size)+' — '+size+' px, single frame','ok',{format:fmt,bytes:blob.size,size:size,frame:+shotPhase().toFixed(3)});
+          })
+          .catch(function(e){ finishExport('Frame encode failed: '+(e&&e.message||e),'err',{reason:e&&e.message||String(e)}); });
+      }catch(e){ finishExport('Frame render failed: '+(e&&e.message||e),'err',{reason:e&&e.message||String(e)}); }
+    }); });
   }
   if(shotInp) shotInp.addEventListener('input',function(){
     if(shotVal) shotVal.textContent=Math.round(shotPhase()*100)+'%';
