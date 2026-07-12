@@ -8,6 +8,8 @@ on:
       - app.js
       - assets/orb.webp
       - assets/og.png
+      - assets/favicon.png
+      - assets/favicon-32.png
       - robots.txt
       - llms.txt
       - _headers
@@ -38,7 +40,7 @@ jobs:
         run: |
           mkdir -p dist/assets
           cp index.html app.js robots.txt llms.txt sitemap.xml _headers _redirects dist/
-          cp assets/orb.webp assets/og.png dist/assets/
+          cp assets/orb.webp assets/og.png assets/favicon.png assets/favicon-32.png dist/assets/
           # Cache-bust the engine: stale cached app.js paired with fresh markup
           # dead-ends every control. The ?v=dev sentinel becomes the commit SHA.
           sed -i "s|/app.js?v=dev|/app.js?v=${GITHUB_SHA::7}|" dist/index.html

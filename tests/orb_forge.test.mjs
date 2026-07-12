@@ -283,6 +283,38 @@ async function main() {
     check('adding an overlay selects it for editing', layerEdit.autoActiveOverlay === true);
     check('editing an overlay leaves the base untouched', layerEdit.base0 === layerEdit.base1, `${layerEdit.base0} vs ${layerEdit.base1}`);
     check('the overlay tab edits its own params', Math.abs(parseFloat(layerEdit.ov1) - 0.47) < 1e-6 && layerEdit.ov0 !== layerEdit.ov1, `${layerEdit.ov0} -> ${layerEdit.ov1}`);
+
+    // R10-4: Reset is a FULL reset even when an overlay tab is active (the prior
+    // per-layer reset read as "the button does nothing" with overlays present).
+    const resetWithOverlay = await page.evaluate(() => {
+      const overlayTab = document.querySelector('#layerTabs .layer-tab.overlay');
+      if (overlayTab) overlayTab.click(); // make the overlay the active edit layer
+      document.getElementById('crtResetBtn').click();
+      return { overlays: document.querySelectorAll('#layerTabs .layer-tab.overlay').length, radius: document.getElementById('crt-radius').value };
+    });
+    check('Reset clears overlays + restores defaults even with an overlay active', resetWithOverlay.overlays === 0 && Math.abs(parseFloat(resetWithOverlay.radius) - 0.4) < 1e-6, JSON.stringify(resetWithOverlay));
+
+    // R10-7: "default" is reserved — the manager rename must refuse it.
+    await page.evaluate(() => document.getElementById('btnManager').click());
+    await page.waitForSelector('#mgrList .mgr-row input[type=checkbox]');
+    const guardDefault = await page.evaluate(() => {
+      // save a user preset, then try to rename it to "default"
+      document.getElementById('mgrSaveCurrent').click();
+      const row = [...document.querySelectorAll('#mgrList .mgr-row')].find(r => r.querySelector('.mgr-act'));
+      if (!row) return { ok: false, why: 'no user preset row' };
+      row.querySelector('.mgr-act').click(); // rename
+      const inp = document.querySelector('#mgrList input.mgr-name.editing');
+      if (!inp) return { ok: false, why: 'no rename input' };
+      inp.value = 'default';
+      inp.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      // a preset literally named "default" must NOT exist
+      const names = [...document.querySelectorAll('#mgrList .mgr-name')].map(n => n.textContent);
+      return { ok: !names.includes('default'), names };
+    });
+    check('rename to "default" is rejected', guardDefault.ok, JSON.stringify(guardDefault).slice(0, 120));
+    check('manager has an Import affordance', await page.evaluate(() => !!document.getElementById('mgrImport')));
+    await page.keyboard.press('Escape');
+    await new Promise(r => setTimeout(r, 60));
     // clean up the overlay so the export tests below start from the base
     await page.evaluate(() => { const x = document.querySelector('#layerTabs .layer-tab.overlay .lt-x'); if (x) x.click(); });
     await new Promise(r => setTimeout(r, 60));

@@ -4,17 +4,17 @@
 <meta charset="utf-8">
 <title>ORBFORGE — create a distinctive AI agent avatar | Wranngle</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="Create a distinctive AI agent avatar with ORBFORGE. Shape a burning comet-ring orb with live WebGL controls and export it as an animated WebP or GIF — free, in-browser, no login.">
+<meta name="description" content="Create a distinctive AI agent avatar with ORBFORGE. Shape a living WebGL orb — 40 parameters, seeded archetypes, editable layers — and export it as an animated WebP or GIF, a single PNG or JPG frame, or a JSON recipe. Free, in-browser, no login.">
 <meta name="theme-color" content="#ff5f00">
 <meta name="color-scheme" content="dark">
 <meta property="og:title" content="ORBFORGE — create a distinctive AI agent avatar | Wranngle">
-<meta property="og:description" content="Create a distinctive AI agent avatar with ORBFORGE. Shape a burning comet-ring orb with live WebGL controls and export it as an animated WebP or GIF — free, in-browser, no login.">
+<meta property="og:description" content="Create a distinctive AI agent avatar with ORBFORGE. Shape a living WebGL orb — 40 parameters, seeded archetypes, editable layers — and export it as an animated WebP or GIF, a single PNG or JPG frame, or a JSON recipe. Free, in-browser, no login.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://orbforge.wranngle.com/">
 <meta property="og:image" content="https://orbforge.wranngle.com/assets/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="ORBFORGE — a burning comet-ring orb rendered in WebGL">
+<meta property="og:image:alt" content="ORBFORGE — a living orb rendered in WebGL">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://orbforge.wranngle.com/assets/og.png">
 <link rel="canonical" href="https://orbforge.wranngle.com/">
@@ -25,7 +25,7 @@
   "name": "ORBFORGE",
   "alternateName": "Wranngle Agent Avatar Maker",
   "url": "https://orbforge.wranngle.com/",
-  "description": "Create a distinctive AI agent avatar with ORBFORGE. Shape a burning comet-ring orb with live WebGL controls and export it as an animated WebP or GIF — free, in-browser, no login.",
+  "description": "Create a distinctive AI agent avatar with ORBFORGE. Shape a living WebGL orb — 40 parameters, seeded archetypes, editable layers — and export it as an animated WebP or GIF, a single PNG or JPG frame, or a JSON recipe. Free, in-browser, no login.",
   "applicationCategory": "DesignApplication",
   "operatingSystem": "Any",
   "browserRequirements": "Requires WebGL",
@@ -39,7 +39,9 @@
   }
 }
 </script>
-<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Cdefs%3E%3CradialGradient%20id='g'%20cx='38%25'%20cy='32%25'%20r='75%25'%3E%3Cstop%20offset='0'%20stop-color='%23ffd5a8'/%3E%3Cstop%20offset='.38'%20stop-color='%23ff7f00'/%3E%3Cstop%20offset='.78'%20stop-color='%239f3000'/%3E%3Cstop%20offset='1'%20stop-color='%232d0914'/%3E%3C/radialGradient%3E%3C/defs%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%230a0910'/%3E%3Ccircle%20cx='16'%20cy='16'%20r='10'%20fill='url(%23g)'/%3E%3C/svg%3E">
+<link rel="icon" type="image/png" sizes="128x128" href="/assets/favicon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32.png">
+<link rel="apple-touch-icon" href="/assets/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
@@ -296,12 +298,15 @@ select option,select optgroup{background-color:#16151f;color:var(--text)}
 /* ============================================================
    Param header — layer tabs + roll/save/manager/reset actions
    ============================================================ */
+/* Stacked: action buttons on the top row, layer tabs on the bottom row. */
 .param-header{
-  display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
-  margin:0 0 9px;padding:5px 8px;
+  display:flex;flex-direction:column;gap:7px;
+  margin:0 0 9px;padding:6px 8px;
   background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-md);
 }
-.layer-tabs{display:flex;align-items:center;gap:5px;flex-wrap:wrap;min-width:0;flex:1 1 auto}
+.param-actions{display:flex;align-items:center;gap:5px;justify-content:flex-start}
+.layer-tabs{display:flex;align-items:center;gap:5px;flex-wrap:wrap;min-width:0}
+.param-header .layer-tabs{padding-top:7px;border-top:1px solid var(--line)}
 /* Tabs are peers: same chip, distinguished only by a small accent dot and the
    active-selection ring. Click a tab to edit its layer's parameters. */
 .layer-tab{
@@ -335,7 +340,6 @@ select option,select optgroup{background-color:#16151f;color:var(--text)}
 .lt-add:hover:not(:disabled){border-color:var(--violet-500);color:var(--violet-300)}
 .lt-add:disabled{opacity:.3;cursor:not-allowed}
 .lt-add svg{width:14px;height:14px}
-.param-actions{display:inline-flex;align-items:center;gap:5px;flex:0 0 auto}
 .param-actions .btn--dice{padding:0 10px}
 .param-actions .btn--dice span{font-size:10px}
 
@@ -568,7 +572,6 @@ input[type=range]:focus-visible::-moz-range-thumb{
 .crt-fallback p{margin:0;max-width:34ch;line-height:1.6}
 
 .actions{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.actions .btn--primary{grid-column:1/-1}
 
 /* ============================================================
    Dialogs
@@ -653,7 +656,7 @@ dialog[open]{animation:dlgIn .22s var(--ease-out);display:flex;flex-direction:co
 .shot-scrub .dur-val{font-family:var(--font-mono);font-size:10.5px;text-align:right;color:var(--text);padding:2px 6px;background:rgba(255,255,255,.025);border:1px solid var(--line);border-radius:var(--radius-sm)}
 .shot-preview{flex:0 0 auto}
 .shot-preview canvas{
-  width:96px;height:96px;display:block;border-radius:var(--radius-sm);
+  width:132px;height:132px;display:block;border-radius:var(--radius-sm);
   border:1px solid var(--line-strong);
   /* checkerboard so transparency reads at a glance */
   background-image:linear-gradient(45deg,#1a1822 25%,transparent 25%),linear-gradient(-45deg,#1a1822 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#1a1822 75%),linear-gradient(-45deg,transparent 75%,#1a1822 75%);
@@ -773,16 +776,33 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
    Footer
    ============================================================ */
 .footer{
-  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-lg);
-  padding:13px 16px;display:flex;flex-direction:column;gap:7px;
-  color:var(--text-dim);font-size:11.5px;line-height:1.6;
+  background:linear-gradient(180deg,rgba(255,95,0,.03),transparent 40%),var(--panel);
+  border:1px solid var(--line);border-radius:var(--radius-lg);
+  padding:20px 22px 16px;color:var(--text-dim);font-size:11.5px;line-height:1.6;
 }
-.foot-row{display:flex;justify-content:space-between;align-items:baseline;gap:14px;flex-wrap:wrap}
-.foot-row b{color:var(--text);font-family:var(--font-display);font-weight:700}
-.foot-links{display:flex;gap:14px;flex-wrap:wrap;font-family:var(--font-mono);font-size:10.5px}
-.footer a{color:var(--sunset-200);text-decoration:none;border-bottom:1px solid transparent;transition:all var(--duration-fast) var(--ease-out)}
-.footer a:hover{color:var(--sunset-300);border-bottom-color:var(--sunset-500)}
-.foot-beg{margin:0;color:var(--text-dim);font-size:10.5px}
+.foot-main{display:flex;justify-content:space-between;gap:28px;flex-wrap:wrap;align-items:flex-start}
+.foot-brand{display:flex;align-items:flex-start;gap:11px;max-width:340px;min-width:220px}
+.foot-glyph{
+  width:30px;height:30px;flex:0 0 30px;border-radius:50%;
+  background:#1a0808 url("/assets/orb.webp") center/cover no-repeat;
+  box-shadow:0 0 0 1px rgba(255,158,51,.4), 0 0 14px rgba(255,95,0,.3);
+}
+.foot-name{font-family:var(--font-display);font-weight:800;font-size:14px;letter-spacing:.01em;color:var(--text);line-height:1}
+.foot-tag{margin:5px 0 0;font-size:11px;line-height:1.55;color:var(--text-dim)}
+.foot-cols{display:flex;gap:36px;flex-wrap:wrap}
+.foot-col{display:flex;flex-direction:column;gap:7px}
+.foot-h{font-family:var(--font-mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-faint);margin-bottom:1px}
+.footer a{color:var(--text-dim);text-decoration:none;transition:color var(--duration-fast) var(--ease-out)}
+.foot-col a{font-size:11.5px}
+.footer a:hover{color:var(--sunset-300)}
+.foot-legal{
+  display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;
+  margin-top:18px;padding-top:13px;border-top:1px solid var(--line);
+  font-family:var(--font-mono);font-size:10px;letter-spacing:.03em;color:var(--text-faint);
+}
+.foot-star{display:inline-flex;align-items:center;gap:6px;color:var(--sunset-200)!important}
+.foot-star svg{width:12px;height:12px;color:var(--sunset-300)}
+.foot-star:hover{color:var(--sunset-300)!important}
 
 /* ============================================================
    Pinned bottom event log — ECS / JSONL
@@ -865,10 +885,7 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
   <header class="topbar">
     <div class="brand">
       <div class="brand-glyph" aria-hidden="true"></div>
-      <div>
-        <div class="brand-title">ORBFORGE</div>
-        <div class="brand-sub">AI Agent Avatar Synthesizer · <a class="brand-home" href="https://wranngle.com" title="Wranngle Systems — AI call coverage, automation, and websites">wranngle.com</a></div>
-      </div>
+      <div class="brand-title">ORBFORGE</div>
     </div>
     <div class="topbar-actions">
       <!-- Preset select kept as a hidden internal source of truth; the visible
@@ -930,7 +947,7 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
       </div>
 
       <div class="actions">
-        <button class="btn btn--primary" id="crtWebpBtn" type="button" title="Download the animation as WebP (recommended) or GIF — the seed and full recipe are baked into the file">
+        <button class="btn btn--primary" id="crtWebpBtn" type="button" title="Download — animated WebP or GIF, a single PNG/JPG frame, or the JSON recipe (seed + full config baked in)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
           Download
         </button>
@@ -943,10 +960,9 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
 
     <!-- RIGHT on mobile / LEFT on desktop: parameters -->
     <section class="params" aria-label="Parameters">
-      <!-- Param header: layer tabs (base + up to 3 overlays) on the left,
-           preset/roll actions on the right. -->
+      <!-- Param header: action buttons on the top row, layer tabs (base + up to
+           3 overlays) on the bottom row. -->
       <div class="param-header" id="paramHeader">
-        <div class="layer-tabs" id="layerTabs" role="tablist" aria-label="Orb layers"></div>
         <div class="param-actions">
           <button class="btn btn--dice" id="crtRandomBtn" type="button" title="Randomize every parameter within curated ranges — each roll gets a seed you can re-enter to rebuild it">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="15.5" cy="15.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="15.5" cy="8.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="8.5" cy="15.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/></svg>
@@ -958,10 +974,11 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
           <button class="ic-btn" id="btnManager" type="button" title="Preset manager — apply, overlay, rename, delete" aria-label="Preset manager">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
           </button>
-          <button class="ic-btn" id="crtResetBtn" type="button" title="Reset every parameter to its default value" aria-label="Reset to defaults">
+          <button class="ic-btn" id="crtResetBtn" type="button" title="Reset the whole orb — every parameter, backdrop, and overlay — to defaults" aria-label="Reset to defaults">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
           </button>
         </div>
+        <div class="layer-tabs" id="layerTabs" role="tablist" aria-label="Orb layers"></div>
       </div>
       <div id="crtControls"></div>
     </section>
@@ -971,15 +988,38 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
        Footer
        ============================================================ -->
   <footer class="footer">
-    <div class="foot-row">
-      <span><b>ORBFORGE</b> gives your agent a face. Free, in your browser, nothing leaves the tab.</span>
-      <nav class="foot-links" aria-label="Footer">
-        <a href="https://github.com/wranngle/ORBFORGE" target="_blank" rel="noopener">★ Star on GitHub</a>
-        <a href="https://wranngle.com" title="Wranngle Systems — AI call coverage, automation, and websites">wranngle.com</a>
-        <span>MIT © Wranngle Systems</span>
+    <div class="foot-main">
+      <div class="foot-brand">
+        <div class="foot-glyph" aria-hidden="true"></div>
+        <div>
+          <div class="foot-name">ORBFORGE</div>
+          <p class="foot-tag">A living orb avatar for your AI agent — forged in your browser, nothing leaves the tab.</p>
+        </div>
+      </div>
+      <nav class="foot-cols" aria-label="Footer">
+        <div class="foot-col">
+          <span class="foot-h">Product</span>
+          <a href="https://orbforge.wranngle.com">Open the forge</a>
+          <a href="https://github.com/wranngle/ORBFORGE/releases" target="_blank" rel="noopener">Grab an orb</a>
+        </div>
+        <div class="foot-col">
+          <span class="foot-h">Project</span>
+          <a href="https://github.com/wranngle/ORBFORGE" target="_blank" rel="noopener">GitHub</a>
+          <a href="https://github.com/sponsors/wranngle" target="_blank" rel="noopener">Sponsor</a>
+        </div>
+        <div class="foot-col">
+          <span class="foot-h">Wranngle</span>
+          <a href="https://wranngle.com" target="_blank" rel="noopener">wranngle.com</a>
+        </div>
       </nav>
     </div>
-    <p class="foot-beg">One star is the whole tip jar — it’s how the next person finds this.</p>
+    <div class="foot-legal">
+      <span>MIT © 2026 Wranngle Systems LLC</span>
+      <a class="foot-star" href="https://github.com/wranngle/ORBFORGE/stargazers" target="_blank" rel="noopener" title="Star ORBFORGE on GitHub">
+        <svg viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><path d="M12 2l2.9 6.26L21.5 9.27l-4.75 4.37L18.18 20 12 16.56 5.82 20l1.43-6.36L2.5 9.27l6.6-1.01z"/></svg>
+        Star on GitHub
+      </a>
+    </div>
   </footer>
 </div>
 
@@ -1009,7 +1049,9 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
           <option value="256" title="Small — inline avatars">256 px</option>
           <option value="360" title="Medium — profile pictures">360 px</option>
           <option value="480" title="Large — hero placements">480 px</option>
-          <option value="512" selected title="Largest — crispest, biggest file">512 px</option>
+          <option value="512" selected title="Crisp for avatars">512 px</option>
+          <option value="768" title="Extra large — print + hi-DPI; best for a single PNG/JPG frame">768 px</option>
+          <option value="1024" title="Maximum — a single PNG/JPG frame; animated files get very large">1024 px</option>
         </select>
       </div>
       <div class="field" id="fldFps" title="Frames per second. 24–30 fps looks smooth for a glowing loop; 60 fps is silky but roughly doubles the file size vs 30. GIF tops out near 50 fps by format design.">
@@ -1056,7 +1098,7 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
         <span class="dur-val" id="crtShotVal">30%</span>
       </div>
       <div class="shot-preview" title="The exact frame that will be exported at this scrub point">
-        <canvas id="crtShotCanvas" width="128" height="128" aria-label="Export frame preview"></canvas>
+        <canvas id="crtShotCanvas" width="256" height="256" aria-label="Export frame preview"></canvas>
       </div>
     </div>
     <!-- JSON config export -->
@@ -1135,6 +1177,10 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
       <button class="btn btn--primary" id="mgrSaveCurrent" type="button" title="Save the current orb as a new preset">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
         Save current orb
+      </button>
+      <button class="btn" id="mgrImport" type="button" title="Import a preset — drop a .json / .webp / .gif, or paste JSON or a seed">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 8l5-5 5 5"/><path d="M12 3v12"/></svg>
+        Import
       </button>
     </div>
     <div class="mgr-list" id="mgrList" aria-label="Presets"></div>

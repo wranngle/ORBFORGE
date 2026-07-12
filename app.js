@@ -5,22 +5,22 @@
   var GROUPS=[
     {name:'Ring & motion', items:[
       {key:'radius',     label:'Radius',          min:0.08,max:0.72,step:0.01, def:0.40, desc:'Distance from canvas center to the ring (0–1 of canvas)'},
-      {key:'thickness',  label:'Border thickness',min:0.005,max:0.22,step:0.005,def:0.025,rmin:0.01,rmax:0.06, desc:'Width of the ring band — thicker = more presence'},
+      {key:'thickness',  label:'Outline'         ,min:0.005,max:0.22,step:0.005,def:0.025,rmin:0.01,rmax:0.06, desc:'Width of the ring band — thicker = more presence'},
       {key:'rotSpeed',   label:'Rotation',        min:-6,  max:6,   step:0.1,  def:0.4,  rmin:-2,rmax:2, desc:'Ring angular speed in rad/s. Negative reverses direction.'},
       {key:'pulseSpeed', label:'Pulse speed',     min:0,   max:14,  step:0.1,  def:2.2,  rmin:0,rmax:8, desc:'How quickly the ring breathes / pulses'},
       {key:'pulseAmount',label:'Pulse amount',    min:0,   max:0.45,step:0.01, def:0.07,rmin:0,rmax:0.15, desc:'How much the radius pulses (0 = none)'},
-      {key:'wobble',     label:'Wobble / warp',   min:0,   max:0.25,step:0.01, def:0.04, rmin:0,rmax:0.12, desc:'How much the ring distorts into non-circular shapes'},
-      {key:'timeJitter', label:'Time jitter',     min:0,   max:0.8, step:0.01, def:0,   rmin:0,rmax:0.3, desc:'Warps time back and forth within the loop — motion surges forward and briefly reverses. 0 = steady time.'},
+      {key:'wobble',     label:'Wobble',   min:0,   max:0.25,step:0.01, def:0.04, rmin:0,rmax:0.12, desc:'How much the ring distorts into non-circular shapes'},
+      {key:'timeJitter', label:'Jitter',     min:0,   max:0.8, step:0.01, def:0,   rmin:0,rmax:0.3, desc:'Warps time back and forth within the loop — motion surges forward and briefly reverses. 0 = steady time.'},
       {key:'jitterRate', label:'Jitter rate',     min:0.2, max:10,  step:0.1,  def:2,   rmin:0.5,rmax:6, desc:'How fast the time warp oscillates (only matters when Time jitter > 0)'},
-      {key:'playSpeed',  label:'Playback speed',  min:0.1, max:3,   step:0.05, def:1,   rmin:0.6,rmax:1.6, desc:'Time multiplier for the whole animation — 0.5 = half speed, 2 = double. Bakes into the export and can be overridden live from the scrubber.'}
+      {key:'playSpeed',  label:'Speed',  min:0.1, max:3,   step:0.05, def:1,   rmin:0.6,rmax:1.6, desc:'Time multiplier for the whole animation — 0.5 = half speed, 2 = double. Bakes into the export and can be overridden live from the scrubber.'}
     ]},
     {name:'Surface & texture', items:[
-      {key:'burn',       label:'Burn intensity',  min:0,   max:4,   step:0.05, def:1,   rmin:0.2,rmax:2.0, desc:'Strength of the noise-driven surface texture on the ring'},
+      {key:'burn',       label:'Burn',  min:0,   max:4,   step:0.05, def:1,   rmin:0.2,rmax:2.0, desc:'Strength of the noise-driven surface texture on the ring'},
       {key:'noiseScale', label:'Texture scale',   min:0.5, max:50,  step:0.5,  def:8,   rmin:2,rmax:28, desc:'How fine vs coarse the surface pattern is'},
       {key:'texStyle',   label:'Texture style',   min:0,   max:6,   step:1,    def:0,   desc:'Surface material: 0 smoke · 1 ridged filaments · 2 plasma cells · 3 banded rings · 4 woven threads · 5 stipple dots · 6 wire lattice'},
       {key:'flowSpeed',  label:'Flow speed',      min:0,   max:5,   step:0.1,  def:1,   rmin:0,rmax:3, desc:'How fast the surface texture drifts'},
       {key:'glow',       label:'Glow intensity',  min:0,   max:6,   step:0.1,  def:1.3, rmin:0.4,rmax:2.2, desc:'Brightness of the soft halo around the ring'},
-      {key:'chroma',     label:'Chromatic aberration',min:0,max:0.16,step:0.002,def:0.014,rmin:0.002,rmax:0.05, desc:'RGB channel separation — bigger = more rainbow fringing'},
+      {key:'chroma',     label:'Chroma',min:0,max:0.16,step:0.002,def:0.014,rmin:0.002,rmax:0.05, desc:'RGB channel separation — bigger = more rainbow fringing'},
       {key:'depth3d',    label:'3D shading',      min:0,   max:1.5, step:0.05, def:0,   rmin:0,rmax:1.0, desc:'Torus-style diffuse lighting — sculpts the ring into a lit 3D form (0 = flat emissive)'},
       {key:'lightAngle', label:'Light angle',     min:0,   max:360, step:1,    def:132, desc:'Direction the 3D light comes from, in degrees (only visible with 3D shading or Gloss)'},
       {key:'gloss',      label:'Gloss',           min:0,   max:3,   step:0.05, def:1,   rmin:0.4,rmax:2, desc:'Specular shine — 0 matte, high = wet / metallic highlight'}
@@ -49,7 +49,7 @@
       {key:'surface3d', label:'3D surface',       min:0,   max:1,   step:0.05, def:0,   rmin:0,rmax:1, desc:'Maps the texture onto a true sphere via longitude/latitude, so dot, line, and ring matrices wrap a 3D globe instead of a flat disc'},
       {key:'spin3d',    label:'Globe spin',       min:-4,  max:4,   step:0.05, def:0.6, rmin:-1.5,rmax:1.5, desc:'Longitude rotation of the 3D surface — the globe turns on its axis (loop-safe). Negative reverses.'},
       {key:'tiltLat',   label:'Axis tilt',        min:-1.2,max:1.2, step:0.05, def:0.35,rmin:-0.7,rmax:0.7, desc:'Tilts the 3D globe’s pole toward or away from you'},
-      {key:'matrix',    label:'Surface matrix',   min:0,   max:3,   step:1,    def:0,   desc:'3D surface lattice: 0 off · 1 dot grid · 2 wire mesh · 3 stacked rings — vector matrices that ride the globe’s longitude/latitude'},
+      {key:'matrix',    label:'Surface',   min:0,   max:3,   step:1,    def:0,   desc:'3D surface lattice: 0 off · 1 dot grid · 2 wire mesh · 3 stacked rings — vector matrices that ride the globe’s longitude/latitude'},
       {key:'matrixDensity',label:'Matrix density',min:4,   max:48,  step:1,    def:18,  rmin:8,rmax:34, desc:'Cells around the 3D surface matrix (only matters when Surface matrix is on)'},
       {key:'filaments', label:'Filaments',        min:0,   max:2,   step:0.05, def:0,   rmin:0,rmax:1.4, desc:'Radial plasma strands arcing from a hot nucleus to the shell — the plasma-ball look'},
       {key:'coreHue',   label:'Core hue',         min:0,   max:360, step:1,    def:200, hue:true, desc:'Hue of the core body and filaments (0–360°)'}
@@ -790,10 +790,16 @@
   buildPresetOptions(); syncPresetUI();
 
   /* ---------- Save (silent — no dialog; named by seed) ---------- */
+  // "default" is the reserved name of the reset state — never a saveable preset,
+  // never a rename target, never overwritten. Built-ins are reserved too.
+  function isReservedName(name){
+    return String(name||'').trim().toLowerCase()==='default'
+      || Object.prototype.hasOwnProperty.call(BUILTIN_PRESETS,name);
+  }
   function uniquePresetName(base){
     base=(base||'custom').slice(0,40);
-    if(!PRESETS[base]&&!Object.prototype.hasOwnProperty.call(BUILTIN_PRESETS,base)) return base;
-    for(var i=2;i<999;i++){ var n=base+'-'+i; if(!PRESETS[n]) return n; }
+    if(!PRESETS[base]&&!isReservedName(base)) return base;
+    for(var i=2;i<999;i++){ var n=base+'-'+i; if(!PRESETS[n]&&!isReservedName(n)) return n; }
     return base+'-'+Date.now();
   }
   function snapshotPreset(){
@@ -805,8 +811,8 @@
   }
   function savePreset(name){
     // Overwrite in place when saving over your own preset; otherwise mint a new
-    // seed-named entry. Built-ins are never overwritten.
-    if(Object.prototype.hasOwnProperty.call(BUILTIN_PRESETS,name)) name=uniquePresetName(name);
+    // seed-named entry. Built-ins and "default" are reserved and never overwritten.
+    if(isReservedName(name)) name=uniquePresetName(name);
     var snapP=snapshotPreset();
     USER_PRESETS[name]=snapP; PRESETS[name]=snapP;
     var persisted=persistUserPresets();
@@ -968,7 +974,8 @@
     nmEl.replaceWith(inp); inp.focus(); inp.select();
     function commit(apply){
       var nv=inp.value.trim();
-      if(apply&&nv&&nv!==name&&!PRESETS[nv]&&!Object.prototype.hasOwnProperty.call(BUILTIN_PRESETS,nv)){
+      if(apply&&nv&&nv.toLowerCase()==='default'){ showToast('“default” is reserved — pick another name'); renderManager(); return; }
+      if(apply&&nv&&nv!==name&&!PRESETS[nv]&&!isReservedName(nv)){
         USER_PRESETS[nv]=USER_PRESETS[name]; PRESETS[nv]=PRESETS[name];
         delete USER_PRESETS[name]; delete PRESETS[name];
         if(activePreset===name) activePreset=nv;
@@ -1009,6 +1016,11 @@
     btn.addEventListener('click',function(){ openManager('button'); });
     document.getElementById('mgrSaveCurrent').addEventListener('click',function(){
       savePreset(uniquePresetName(SEED.current||'default')); renderManager();
+    });
+    var mgrImp=document.getElementById('mgrImport');
+    if(mgrImp) mgrImp.addEventListener('click',function(){
+      if(dlgManager) dlgManager.close();
+      document.getElementById('btnImportJson').click(); // reuse the Import dialog flow
     });
   })();
   renderLayerTabs();
@@ -1760,17 +1772,10 @@
 
   /* ---------- Reset & randomize ---------- */
   document.getElementById('crtResetBtn').addEventListener('click',function(){
-    if(ACTIVE>0&&OVERLAYS[ACTIVE-1]){
-      // Reset just the active overlay layer to defaults; leave the base + siblings.
-      var ov=OVERLAYS[ACTIVE-1];
-      CONFIG.forEach(function(c){ ov.params[c.key]=c.def; });
-      syncUI(); renderLayerTabs(); refreshExport();
-      HL.mode=5; HL.pulse=1;
-      eclog('info','overlay.reset',{layer:ACTIVE,name:ov.name},'Reset overlay '+ACTIVE+' to defaults');
-      commitHistory();
-      return;
-    }
-    // Base reset clears the whole orb: base params, backdrop, and all overlays.
+    // Reset is a FULL reset of the whole orb — base params, backdrop, and every
+    // overlay layer — regardless of which layer is being edited. (A prior
+    // per-layer reset read as "the button does nothing" when an overlay tab was
+    // active, until the operator deleted the overlays.)
     CONFIG.forEach(function(c){ params[c.key]=c.def; });
     BG.transparent=BG_DEF.transparent; BG.top=BG_DEF.top; BG.bottom=BG_DEF.bottom;
     OVERLAYS=[]; ACTIVE=0; renderLayerTabs();
@@ -2071,15 +2076,19 @@
   function renderShotThumb(){
     if(!shotCanvas||exporting||estimating||!glReady) return;
     var a=staticRenderArgs(fmtV());
-    var cv=renderFrameCanvas(160,shotPhase(),a.T,a.transparent,a.flatten);
+    // Render at the canvas backing resolution (256px) for a crisp preview.
+    var cv=renderFrameCanvas(shotCanvas.width,shotPhase(),a.T,a.transparent,a.flatten);
     var ctx=shotCanvas.getContext('2d');
     ctx.clearRect(0,0,shotCanvas.width,shotCanvas.height);
     ctx.drawImage(cv,0,0,shotCanvas.width,shotCanvas.height);
   }
-  var shotTimer=null;
+  // Live scrub: coalesce to one render per animation frame while the scrubber is
+  // dragged, so the preview tracks the frame in real time without thrashing.
+  var shotRaf=0;
   function scheduleShotThumb(){
     if(!isStaticImg()) return;
-    clearTimeout(shotTimer); shotTimer=setTimeout(renderShotThumb,90);
+    if(shotRaf) return;
+    shotRaf=requestAnimationFrame(function(){ shotRaf=0; renderShotThumb(); });
   }
   function exportStaticFrame(fmt,size,q){
     exporting=true; renderBtn.disabled=true; transportEl.classList.add('is-disabled');
