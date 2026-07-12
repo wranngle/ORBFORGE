@@ -280,13 +280,18 @@ select option,select optgroup{background-color:#16151f;color:var(--text)}
 /* ============================================================
    Main grid
    ============================================================ */
-.grid{display:grid;grid-template-columns:minmax(700px,1.35fr) minmax(420px,500px);gap:16px;align-items:start}
-.params{grid-column:1;grid-row:1;min-width:0}
-.stage-col{grid-column:2;grid-row:1}
+/* The topbar lives INSIDE the grid, spanning only the params column, so the
+   preview column rises to the very top beside it (header is params-width, not
+   full-width) — this lifts the whole preview up for a comfortable 110%-zoom fit. */
+.grid{display:grid;grid-template-columns:minmax(700px,1.35fr) minmax(420px,500px);gap:6px 16px;align-items:start}
+.grid>.topbar{grid-column:1;grid-row:1;margin:0}
+.params{grid-column:1;grid-row:2;min-width:0}
+.stage-col{grid-column:2;grid-row:1 / 3}
 /* Breakpoint = grid min (700+16+420) + .app padding (36): below it the minmax floors overflow.
-   Single column puts the preview (first in DOM) above the parameters. */
+   Single column stacks header → preview → parameters. */
 @media (max-width:1171px){
   .grid{grid-template-columns:1fr}
+  .grid>.topbar{grid-column:1;grid-row:auto}
   .params{grid-column:1;grid-row:auto}
   /* Cap the preview in single-column (half-window / vertical) so the square
      doesn't eat the whole viewport and the params stay reachable. */
@@ -880,8 +885,13 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
 <div class="app">
 
   <!-- ============================================================
-       Topbar
+       Main grid — the topbar spans only the params column (grid col 1),
+       so the preview column rises to the top beside it. Preview is early in
+       the source so it leads on mobile.
        ============================================================ -->
+  <div class="grid">
+
+  <!-- Topbar (grid col 1, row 1) -->
   <header class="topbar">
     <div class="brand">
       <div class="brand-glyph" aria-hidden="true"></div>
@@ -908,10 +918,6 @@ dialog input[type=text].wide:focus{outline:none;border-color:var(--sunset-500);b
     </div>
   </header>
 
-  <!-- ============================================================
-       Main grid — preview first in DOM so it leads on mobile
-       ============================================================ -->
-  <div class="grid">
     <aside class="stage-col">
       <div class="stage-frame" id="stageFrame">
         <div class="stage">

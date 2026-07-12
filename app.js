@@ -1026,25 +1026,41 @@
   renderLayerTabs();
 
   /* ---------- WEBGL ---------- */
-  // Boot progress: the bar climbs through named milestones so the load reads as
-  // real work, not a spinner. pct is monotonic; the label narrates the stage.
-  var bootPct=0;
+  // Boot progress: a continuously-easing bar. Milestones set a target; a rAF
+  // loop eases the shown value toward it AND trickles the target forward between
+  // milestones, so the bar is always moving — it never parks at one number while
+  // a slow step (shader compile) runs. The label narrates the current stage.
+  var bootShown=0, bootTarget=0, bootRaf=0, bootFinished=false;
+  function bootPaint(){ var f=document.getElementById('bootFill'); if(f) f.style.width=bootShown.toFixed(1)+'%'; }
+  function bootTick(){
+    if(bootFinished) return;
+    // Trickle toward a 92% soft ceiling; the nudge shrinks as it climbs, so the
+    // bar decelerates naturally without ever fully stalling.
+    if(bootTarget<92){ bootTarget=Math.min(92,bootTarget+Math.max(0.03,(92-bootTarget)*0.006)); }
+    bootShown+=(bootTarget-bootShown)*0.1;
+    if(bootShown>99) bootShown=99; // reserve the last sliver for the real "ready"
+    bootPaint();
+    bootRaf=requestAnimationFrame(bootTick);
+  }
   function bootStep(pct,msg){
-    bootPct=Math.max(bootPct,pct);
-    var fill=document.getElementById('bootFill'); if(fill) fill.style.width=bootPct+'%';
+    if(pct>bootTarget) bootTarget=pct;
     var sub=document.getElementById('bootSub'); if(sub&&msg) sub.textContent=msg;
   }
+  function bootFinish(){ bootFinished=true; if(bootRaf) cancelAnimationFrame(bootRaf); bootTarget=100; bootShown=100; bootPaint(); }
+  bootRaf=requestAnimationFrame(bootTick);
   bootStep(8,'starting the forge…');
   var canvas=document.getElementById('crtCanvas');
   var glOpts={alpha:true,preserveDrawingBuffer:true,antialias:true,premultipliedAlpha:false};
   var gl=canvas.getContext('webgl',glOpts)||canvas.getContext('experimental-webgl',glOpts);
   if(!gl){
+    bootFinished=true; if(bootRaf) cancelAnimationFrame(bootRaf);
     document.getElementById('crtFallback').style.display='flex';
     disableEngineUI();
     var bEl=document.getElementById('boot'); if(bEl&&bEl.parentNode) bEl.parentNode.removeChild(bEl);
     setTimeout(function(){ eclog('error','gl.unavailable',{},'WebGL not available'); },0);
     return;
   }
+  bootStep(16,'acquiring WebGL…');
 
   var VERT='attribute vec2 a_pos;void main(){gl_Position=vec4(a_pos,0.0,1.0);}';
   var FRAG=[
@@ -1342,19 +1358,18 @@
     U.hlMode=gl.getUniformLocation(prog,'u_hlMode'); U.hlStrength=gl.getUniformLocation(prog,'u_hlStrength');
     U.hlPulse=gl.getUniformLocation(prog,'u_hlPulse'); U.hlAnts=gl.getUniformLocation(prog,'u_hlAnts');
     CONFIG.forEach(function(c){ U[c.key]=gl.getUniformLocation(prog,'u_'+c.key); });
-    bootStep(92,'binding parameters…');
+    bootStep(88,'binding parameters…');
     glReady=true;
     requestAnimationFrame(frame);
   }
   // Yield one paint so the boot screen shows, then wait for the parallel
-  // compile to finish (or run immediately if the extension is unavailable).
-  // Each poll nudges the bar toward 88% so the wait reads as progress, not a stall.
+  // compile to finish (or run immediately if the extension is unavailable). The
+  // trickle keeps the bar moving during the wait; we just narrate the stage.
   function waitGL(){
+    bootStep(60,'forging the orb…');
     if(pcExt && !gl.getProgramParameter(prog,pcExt.COMPLETION_STATUS_KHR)){
-      bootStep(Math.min(88,bootPct+6),'forging the orb…');
       setTimeout(waitGL,24); return;
     }
-    bootStep(80,'forging the orb…');
     finishGL();
   }
   requestAnimationFrame(function(){ setTimeout(waitGL,0); });
@@ -1558,7 +1573,7 @@
       var T=currentDur(),sp=playSpeed(),played=T/sp;
       if(playing&&!scrubActive) scrub.value=String((((elapsed%played)/played)).toFixed(3));
       if(timeEl) timeEl.textContent=(elapsed%played).toFixed(2)+' / '+played.toFixed(2)+' s';
-      if(!bootHidden){ bootHidden=true; bootStep(100,'ready'); bootDone(); } // first real frame is up — clear the boot screen
+      if(!bootHidden){ bootHidden=true; bootStep(100,'ready'); bootFinish(); bootDone(); } // first real frame is up — clear the boot screen
     }
     requestAnimationFrame(frame);
   }
