@@ -57,13 +57,19 @@ jobs:
       - name: Purge edge cache
         # The zone's browser-cache TTL keeps assets hot at the edge for hours;
         # a deploy must invalidate them or the live site serves stale code.
+        # CRITICAL: app.js is immutable-cached under the query-stamped URL
+        # (/app.js?v=<sha>). Cloudflare keys cache by the FULL URL including the
+        # query, so we must purge that exact stamped URL — a request that raced
+        # the deploy can otherwise pin the OLD bytes there for a year.
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           ZONE_ID: 25620efbfe9c51d7addcdbf4886b86ab
         run: |
+          V="${GITHUB_SHA::7}"
+          O="https://orbforge.wranngle.com"; L="https://orb-forge.wranngle.com"
           curl -sf -X POST \
             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
             -H "Content-Type: application/json" \
             "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/purge_cache" \
-            --data '{"files":["https://orbforge.wranngle.com/","https://orbforge.wranngle.com/index.html","https://orbforge.wranngle.com/app.js","https://orbforge.wranngle.com/assets/og.png","https://orbforge.wranngle.com/assets/orb.webp","https://orbforge.wranngle.com/og.png","https://orbforge.wranngle.com/orb.webp","https://orbforge.wranngle.com/robots.txt","https://orbforge.wranngle.com/llms.txt","https://orb-forge.wranngle.com/","https://orb-forge.wranngle.com/index.html","https://orb-forge.wranngle.com/app.js"]}' \
+            --data "{\"files\":[\"$O/\",\"$O/index.html\",\"$O/app.js\",\"$O/app.js?v=${V}\",\"$O/assets/og.png\",\"$O/assets/orb.webp\",\"$O/assets/favicon.png\",\"$O/assets/favicon-32.png\",\"$O/og.png\",\"$O/orb.webp\",\"$O/robots.txt\",\"$O/llms.txt\",\"$L/\",\"$L/index.html\",\"$L/app.js\",\"$L/app.js?v=${V}\"]}" \
             | grep -q '"success": *true' && echo "cache purged"
