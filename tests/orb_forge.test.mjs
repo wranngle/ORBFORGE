@@ -215,6 +215,12 @@ async function main() {
     const deploySrc = fs.readFileSync(path.join(ROOT, '.github/workflows/deploy.yml'), 'utf8');
     check('index.html script tag carries the ?v=dev cache-bust sentinel', /src="\/app\.js\?v=dev"/.test(idxSrc));
     check('deploy.yml stamps that same sentinel with the commit SHA', deploySrc.includes('s|/app.js?v=dev|/app.js?v=${GITHUB_SHA::7}|'));
+    // Doctrine drift: the marketing "N parameters" copy must equal the actual
+    // rendered slider count. Both the meta description and README carry the claim;
+    // bind them to the count so adding/removing a CONFIG param can't leave stale copy.
+    const claimedParams = parseInt((idxSrc.match(/(\d+)\s+parameters/) || [])[1], 10);
+    const readmeParams = parseInt((fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8').match(/(\d+)\s+parameters/) || [])[1], 10);
+    check('"N parameters" copy matches the rendered slider count', claimedParams === load.sliders && readmeParams === load.sliders, `meta=${claimedParams} readme=${readmeParams} sliders=${load.sliders}`);
     check('og:image meta points at /assets/og.png', /\/assets\/og\.png$/.test(social.ogImage), social.ogImage);
     check('twitter card is summary_large_image', social.twCard === 'summary_large_image', social.twCard);
     check('og.png social card is served from /assets/', social.ogPngOk);

@@ -136,7 +136,7 @@
   // Declared early: buildPresetOptions() (run at init) reads SEED.current.
   var SEED={current:null};
 
-  // Which layer the 40 parameter controls edit: 0 = base orb, 1..3 = overlay
+  // Which layer the 39 parameter controls edit: 0 = base orb, 1..3 = overlay
   // index+1. The live render always draws base (params) + overlays; the controls
   // just point at whichever layer's param object is active.
   var ACTIVE=0;
@@ -914,7 +914,7 @@
   var XMARK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>';
   var PLUS='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
   // The layer tabs are peers: the base orb (layer 0) plus one tab per overlay.
-  // Clicking a tab makes it the active edit target (the 40 controls bind to it);
+  // Clicking a tab makes it the active edit target (the 39 controls bind to it);
   // the eye toggles an overlay's visibility, the × removes it. The base tab is a
   // normal selectable tab — it just can't be hidden or removed (it's the founda-
   // tion, and the backdrop lives with it).

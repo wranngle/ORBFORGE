@@ -5,7 +5,7 @@
   <img alt="ORBFORGE" src="assets/brand/orbforge-wordmark-light.png" width="30%">
 </picture>
 
-#### burning rings · glassy globes · plasma cores · 3D wireframe sculptures · live WebGL console · 40 parameters · seeded archetypes · editable layers · 12 built-in presets · WebP · GIF · PNG · JPG · JSON export
+#### burning rings · glassy globes · plasma cores · 3D wireframe sculptures · live WebGL console · 39 parameters · seeded archetypes · editable layers · 12 built-in presets · WebP · GIF · PNG · JPG · JSON export
 
 # AI agent avatar synthesizer: shape an orb, download the loop
 
@@ -31,12 +31,12 @@ Free, runs entirely in your browser, no login or account required.
 
 ![The ORBFORGE console in motion: rolling new orbs and sweeping parameters as the live WebGL preview reacts](assets/hero-demo.webp)
 
-ORBFORGE is a WebGL console that renders a living animated orb — a burning ring, a glassy globe, a plasma core, a 3D wireframe sculpture — and exports it as a transparent animated WebP or GIF, a single PNG or JPG frame, or a JSON recipe, seed and full config baked into every file. Dial the 40 parameters by hand, roll a seeded archetype, stack editable layers, or start from one of 12 built-in presets; loop durations solve to whole cycle counts, so every animated export repeats without a visible seam. It is a static page with no build step, no server, and no account.
+ORBFORGE is a WebGL console that renders a living animated orb — a burning ring, a glassy globe, a plasma core, a 3D wireframe sculpture — and exports it as a transparent animated WebP or GIF, a single PNG or JPG frame, or a JSON recipe, seed and full config baked into every file. Dial the 39 parameters by hand, roll a seeded archetype, stack editable layers, or start from one of 12 built-in presets; loop durations solve to whole cycle counts, so every animated export repeats without a visible seam. It is a static page with no build step, no server, and no account.
 
 ## <img src="assets/orbs/features.webp" width="26" height="26" alt=""> Features
 
 - <img src="assets/orb.webp" width="15" alt=""> **Live WebGL preview**: seven surface texture styles (smoke, ridged filaments, plasma cells, banded rings, woven threads, stipple dots, wire lattice) that wrap a true 3D sphere via longitude/latitude — spinning dot, wire, and ring matrices — plus torus and sphere lighting, a volumetric core with radial plasma filaments, orbiting tracers, adjustable playback speed, glow, chromatic aberration, and a video-player transport (play, pause, scrub, speed, fullscreen) over the render.
-- <img src="assets/orb.webp" width="15" alt=""> **40 parameters in seven groups**, each with a slider, hold-to-repeat steppers, and a typeable value field. Hovering a parameter draws a pink marching-ants marquee around the exact region of the render it controls, tracked live by the shader.
+- <img src="assets/orb.webp" width="15" alt=""> **39 parameters in seven groups**, each with a slider, hold-to-repeat steppers, and a typeable value field. Hovering a parameter draws a pink marching-ants marquee around the exact region of the render it controls, tracked live by the shader.
 - <img src="assets/orb.webp" width="15" alt=""> **Seeded, archetype-weighted randomize**: each roll picks a coherent archetype (burning ring, plasma ball, glassy sphere, wire mesh, lit sculpture, thick aura) with correlated parameter ranges, so distinct species emerge instead of uniform noise. Every roll stamps a human-readable seed (`plasma-4f2a`) that deterministically rebuilds the same orb — and Roll rerolls whichever layer you're editing.
 - <img src="assets/orb.webp" width="15" alt=""> **Editable layers**: stack up to 3 presets additively above the base orb for composite looks; each layer is a tab you can select to edit its own parameters, hide, roll, or remove — and every visible layer rides along in the animation and the JSON.
 - <img src="assets/orb.webp" width="15" alt=""> **Transparent by default**: true alpha out of the box, or bake in a solid or gradient backdrop with hex-precise colors.
