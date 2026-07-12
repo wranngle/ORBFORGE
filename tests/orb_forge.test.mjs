@@ -401,6 +401,26 @@ async function main() {
       return { ok: lit === canvases.length, tiles: tiles.length, canvases: canvases.length, lit };
     });
     check('preset gallery renders an orb thumbnail per tile', gallery.ok, `${gallery.lit}/${gallery.canvases} lit`);
+    // Toggling an overlay checkbox must NOT rescroll the gallery to the top
+    // (it used to rebuild the whole list). Scroll to the bottom, toggle a box,
+    // assert the scroll position holds AND the overlay was actually added.
+    const scrollKeep = await page.evaluate(() => {
+      const list = document.getElementById('mgrList');
+      list.scrollTop = list.scrollHeight; // jump to the bottom
+      const before = list.scrollTop;
+      if (before < 5) return { ok: true, skipped: 'gallery not scrollable at this viewport', before };
+      const cb = [...document.querySelectorAll('#mgrList .mgr-ov input[type=checkbox]')].find(c => !c.checked && !c.disabled);
+      if (!cb) return { ok: false, why: 'no togglable checkbox' };
+      const overlaysBefore = document.querySelectorAll('#layerTabs .layer-tab.overlay').length;
+      cb.click();
+      const after = document.getElementById('mgrList').scrollTop;
+      const overlaysAfter = document.querySelectorAll('#layerTabs .layer-tab.overlay').length;
+      return { ok: Math.abs(after - before) < 4 && overlaysAfter === overlaysBefore + 1, before, after, overlaysAfter };
+    });
+    check('toggling an overlay checkbox keeps the gallery scroll position', scrollKeep.ok, JSON.stringify(scrollKeep));
+    // undo the overlay this test added, so the export tests start from the base
+    await page.evaluate(() => { const cb = [...document.querySelectorAll('#mgrList .mgr-ov input[type=checkbox]')].find(c => c.checked); if (cb) cb.click(); });
+    await new Promise(r => setTimeout(r, 40));
     await page.keyboard.press('Escape');
     await new Promise(r => setTimeout(r, 60));
     // clean up the overlay so the export tests below start from the base

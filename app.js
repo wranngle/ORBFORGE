@@ -1118,6 +1118,16 @@
       a.timer=setTimeout(step,80); // ~12fps, one tile at a time
     })();
   }
+  // Refresh every overlay checkbox in place (checked + the ≤3 cap disable state)
+  // without rebuilding the gallery, so toggling one overlay keeps scroll position.
+  function syncMgrOverlayChecks(){
+    var full=OVERLAYS.length>=3;
+    var boxes=document.querySelectorAll('#mgrList .mgr-ov input[type=checkbox]');
+    for(var i=0;i<boxes.length;i++){
+      var el=boxes[i], on=overlayIndexByName(el.dataset.preset)>=0;
+      el.checked=on; el.disabled=!on&&full;
+    }
+  }
   function renderManager(){
     var list=document.getElementById('mgrList'); if(!list) return;
     stopFavAnim(); // the gallery is about to drive the shared GL canvas
@@ -1137,12 +1147,15 @@
       // overlay checkbox in the corner
       var ov=document.createElement('label'); ov.className='mgr-ov'; ov.title='Overlay above the base orb (up to 3)';
       var cb=document.createElement('input'); cb.type='checkbox'; cb.checked=overlayIndexByName(name)>=0;
+      cb.dataset.preset=name;
       cb.disabled=(!cb.checked&&OVERLAYS.length>=3); cb.setAttribute('aria-label','Overlay '+name);
       cb.addEventListener('click',function(e){ e.stopPropagation(); });
       cb.addEventListener('change',function(){
         if(cb.checked){ if(!pushOverlay(name,PRESETS[name])) cb.checked=false; }
         else { var idx=overlayIndexByName(name); if(idx>=0) removeOverlay(idx); }
-        renderManager();
+        // Sync the other tiles' checkbox state in place — do NOT rebuild the
+        // gallery, which would reset the scroll position and reflash every thumb.
+        syncMgrOverlayChecks();
       });
       ov.appendChild(cb); thumb.appendChild(ov);
       t.appendChild(thumb);
