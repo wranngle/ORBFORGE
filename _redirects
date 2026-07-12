@@ -1,2 +1,7 @@
 # Canonical host: orbforge.wranngle.com (old subdomain 301s, path-preserving)
 https://orb-forge.wranngle.com/* https://orbforge.wranngle.com/:splat 301
+
+# Assets moved under /assets/ — 301 the old root paths so cached social-scraper
+# og:image URLs and any external hotlinks keep resolving.
+/orb.webp /assets/orb.webp 301
+/og.png /assets/og.png 301

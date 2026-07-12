@@ -1,14 +1,18 @@
 {
   "name": "orb-forge",
-  "version": "1.0.0",
-  "description": "WebGL agent-avatar synthesizer — tune a burning comet-ring orb and export an animated WebP.",
+  "version": "1.1.0",
+  "description": "AI agent avatar synthesizer — forge a living WebGL orb (40 params, seeded archetypes) and export animated WebP, GIF, PNG, JPG, or JSON.",
   "private": true,
   "type": "module",
   "license": "MIT",
   "scripts": {
     "start": "python3 -m http.server 8080",
     "test": "node tests/orb_forge.test.mjs",
-    "og": "node scripts/make-og-card.mjs"
+    "og": "node scripts/make-og-card.mjs",
+    "orb": "node scripts/make-orb-brand.mjs",
+    "gallery": "node scripts/make-preset-gallery.mjs",
+    "readme-orbs": "node scripts/make-readme-orbs.mjs",
+    "hero": "node scripts/make-hero-demo.mjs"
   },
   "devDependencies": {
     "puppeteer": "^23.0.0"

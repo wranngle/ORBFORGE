@@ -199,13 +199,13 @@ async function main() {
     check('brand glyph uses orb.webp', load.glyphUsesOrb);
     check('footer begs for a star', load.footerStarCta);
     check('help dialog exists', load.helpDialog);
-    const orbOk = await page.evaluate(async () => (await fetch('/orb.webp')).ok);
-    check('orb.webp asset is served', orbOk);
+    const orbOk = await page.evaluate(async () => (await fetch('/assets/orb.webp')).ok);
+    check('orb.webp is served from /assets/', orbOk);
     // Social unfurl surface: og/twitter meta must declare the card and the asset must exist.
     const social = await page.evaluate(async () => ({
       ogImage: document.querySelector('meta[property="og:image"]')?.content || '',
       twCard: document.querySelector('meta[name="twitter:card"]')?.content || '',
-      ogPngOk: (await fetch('/og.png')).ok,
+      ogPngOk: (await fetch('/assets/og.png')).ok,
       robotsOk: await fetch('/robots.txt').then(async r => r.ok && (await r.text()).includes('User-agent')),
     }));
     // Doctrine drift: the cache-bust sentinel must exist in index.html AND be
@@ -215,9 +215,9 @@ async function main() {
     const deploySrc = fs.readFileSync(path.join(ROOT, '.github/workflows/deploy.yml'), 'utf8');
     check('index.html script tag carries the ?v=dev cache-bust sentinel', /src="\/app\.js\?v=dev"/.test(idxSrc));
     check('deploy.yml stamps that same sentinel with the commit SHA', deploySrc.includes('s|/app.js?v=dev|/app.js?v=${GITHUB_SHA::7}|'));
-    check('og:image meta points at og.png', /\/og\.png$/.test(social.ogImage), social.ogImage);
+    check('og:image meta points at /assets/og.png', /\/assets\/og\.png$/.test(social.ogImage), social.ogImage);
     check('twitter card is summary_large_image', social.twCard === 'summary_large_image', social.twCard);
-    check('og.png social card is served', social.ogPngOk);
+    check('og.png social card is served from /assets/', social.ogPngOk);
     check('robots.txt is served', social.robotsOk);
     // F004: option popups must not be near-white-on-white (dark background forced).
     const obg = (load.optionBg || '').match(/\d+/g)?.map(Number) || [255, 255, 255];

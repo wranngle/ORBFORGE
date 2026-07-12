@@ -6,8 +6,8 @@ on:
     paths:
       - index.html
       - app.js
-      - orb.webp
-      - og.png
+      - assets/orb.webp
+      - assets/og.png
       - robots.txt
       - llms.txt
       - _headers
@@ -36,8 +36,9 @@ jobs:
           node-version: "22"
       - name: Stage site files
         run: |
-          mkdir -p dist
-          cp index.html app.js orb.webp og.png robots.txt llms.txt sitemap.xml _headers _redirects dist/
+          mkdir -p dist/assets
+          cp index.html app.js robots.txt llms.txt sitemap.xml _headers _redirects dist/
+          cp assets/orb.webp assets/og.png dist/assets/
           # Cache-bust the engine: stale cached app.js paired with fresh markup
           # dead-ends every control. The ?v=dev sentinel becomes the commit SHA.
           sed -i "s|/app.js?v=dev|/app.js?v=${GITHUB_SHA::7}|" dist/index.html
@@ -62,5 +63,5 @@ jobs:
             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
             -H "Content-Type: application/json" \
             "https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/purge_cache" \
-            --data '{"files":["https://orbforge.wranngle.com/","https://orbforge.wranngle.com/index.html","https://orbforge.wranngle.com/app.js","https://orbforge.wranngle.com/og.png","https://orbforge.wranngle.com/orb.webp","https://orbforge.wranngle.com/robots.txt","https://orbforge.wranngle.com/llms.txt","https://orb-forge.wranngle.com/","https://orb-forge.wranngle.com/index.html","https://orb-forge.wranngle.com/app.js"]}' \
+            --data '{"files":["https://orbforge.wranngle.com/","https://orbforge.wranngle.com/index.html","https://orbforge.wranngle.com/app.js","https://orbforge.wranngle.com/assets/og.png","https://orbforge.wranngle.com/assets/orb.webp","https://orbforge.wranngle.com/og.png","https://orbforge.wranngle.com/orb.webp","https://orbforge.wranngle.com/robots.txt","https://orbforge.wranngle.com/llms.txt","https://orb-forge.wranngle.com/","https://orb-forge.wranngle.com/index.html","https://orb-forge.wranngle.com/app.js"]}' \
             | grep -q '"success": *true' && echo "cache purged"

@@ -11,10 +11,9 @@
 /app.js
   Cache-Control: public, max-age=31536000, immutable
 
-/orb.webp
-  Cache-Control: public, max-age=86400
-
-/og.png
+# All image assets share a one-day edge cache. Covers orb.webp, og.png, and any
+# future asset without a per-file rule.
+/assets/*
   Cache-Control: public, max-age=86400
 
 /

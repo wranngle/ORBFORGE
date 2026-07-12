@@ -4,10 +4,11 @@ node_modules/
 dist/
 
 # Generated orb exports — never commit (but orb.webp is the source brand asset
-# and docs/hero.webp is the README demo loop)
+# and assets/hero-demo.webp is the README demo loop)
 *.webp
-!orb.webp
-!docs/hero.webp
+!assets/orb.webp
+!assets/hero-demo.webp
+!assets/orbs/*.webp
 orb-forge.json
 orb-forge.events.jsonl
 

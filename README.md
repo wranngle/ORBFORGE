@@ -1,15 +1,15 @@
 <div align="center">
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/brand/orbforge-wordmark-dark.png">
-  <source media="(prefers-color-scheme: light)" srcset="docs/brand/orbforge-wordmark-light.png">
-  <img alt="ORBFORGE" src="docs/brand/orbforge-wordmark-light.png" width="30%">
+  <source media="(prefers-color-scheme: dark)" srcset="assets/brand/orbforge-wordmark-dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="assets/brand/orbforge-wordmark-light.png">
+  <img alt="ORBFORGE" src="assets/brand/orbforge-wordmark-light.png" width="30%">
 </picture>
 
-#### burning rings · glassy globes · plasma cores · 3D wireframe sculptures · live WebGL console · 40 parameters · seeded randomize · 12 built-in presets · transparent animated WebP + GIF export
+#### burning rings · glassy globes · plasma cores · 3D wireframe sculptures · live WebGL console · 40 parameters · seeded archetypes · editable layers · 12 built-in presets · WebP · GIF · PNG · JPG · JSON export
 
 # AI agent avatar synthesizer: shape an orb, download the loop
 
-**[Features](#-features) | [Presets](#-preset-gallery) | [Grab an orb](#-grab-an-orb) | [Getting started](#-getting-started) | [Shortcuts](#-json-io-and-shortcuts)**
+**[Features](#features) | [Presets](#preset-gallery) | [Grab an orb](#grab-an-orb) | [Getting started](#getting-started) | [Shortcuts](#json-io-and-shortcuts)**
 
 ### [🔥 Forge your orb → orbforge.wranngle.com](https://orbforge.wranngle.com)
 
@@ -29,49 +29,46 @@ Free, runs entirely in your browser, no login or account required.
 
 ---
 
-![The ORBFORGE console: a living orb rendering live in WebGL beside the 40-parameter control rig](docs/hero.webp)
+![The ORBFORGE console in motion: rolling new orbs and sweeping parameters as the live WebGL preview reacts](assets/hero-demo.webp)
 
-ORBFORGE is a WebGL console that renders a living animated orb — a burning ring, a glassy globe, a plasma core, a 3D wireframe sculpture — and exports it as a transparent animated WebP or GIF, seed and full recipe baked into every file. Dial the 40 parameters by hand, roll a seeded archetype, or start from one of 12 built-in presets; loop durations solve to whole cycle counts, so every export repeats without a visible seam. It is a static page with no build step, no server, and no account.
+ORBFORGE is a WebGL console that renders a living animated orb — a burning ring, a glassy globe, a plasma core, a 3D wireframe sculpture — and exports it as a transparent animated WebP or GIF, a single PNG or JPG frame, or a JSON recipe, seed and full config baked into every file. Dial the 40 parameters by hand, roll a seeded archetype, stack editable layers, or start from one of 12 built-in presets; loop durations solve to whole cycle counts, so every animated export repeats without a visible seam. It is a static page with no build step, no server, and no account.
 
-## 🔥 Features
+## <img src="assets/orbs/features.webp" width="26" height="26" alt=""> Features
 
-- 🔆 **Live WebGL preview**: seven surface texture styles (smoke, ridged filaments, plasma cells, banded rings, woven threads, stipple dots, wire lattice) that wrap a true 3D sphere via longitude/latitude — spinning dot, wire, and ring matrices — plus torus and sphere lighting, a volumetric core with radial plasma filaments, orbiting tracers, adjustable playback speed, glow, chromatic aberration, and a video-player transport (play, pause, scrub, speed, fullscreen) over the render.
-- 🎛️ **40 parameters in seven groups**, each with a slider, hold-to-repeat steppers, and a typeable value field. Hovering a parameter draws a pink marching-ants marquee around the exact region of the render it controls, tracked live by the shader.
-- 🎲 **Seeded, archetype-weighted randomize**: each roll picks a coherent archetype (comet ring, plasma ball, glassy sphere, wire mesh, lit sculpture, thick aura) with correlated parameter ranges, so distinct species emerge instead of uniform noise. Every roll stamps a human-readable seed (`plasma-4f2a`) that deterministically rebuilds the same orb.
-- 🧅 **Editable layers**: stack up to 3 presets additively above the base orb for composite looks; each layer is a tab you can select to edit its own parameters, hide, roll, or remove — and every visible layer rides along in the animation and the JSON.
-- 🖼️ **Transparent by default**: true alpha out of the box, or bake in a solid or gradient backdrop with hex-precise colors.
-- 📤 **Five export formats**: animated **WebP** (browser-native, transparent) and **GIF** (built-in median-cut, Floyd-Steinberg, LZW encoder) for loops; **PNG** and **JPG** for a single frame you pick with a scrubber and preview in-dialog; and **JSON** for the re-importable recipe. A target-file-size auto-tuner picks resolution, fps, and quality to fit a byte cap; the animated size estimate updates live.
-- 💾 **12 built-in presets** plus user presets saved to `localStorage`, with undoable delete.
-- 🧾 **Event log**: every action emits an ECS-shaped JSONL record you can copy or download as `.jsonl`.
+- <img src="assets/orb.webp" width="15" alt=""> **Live WebGL preview**: seven surface texture styles (smoke, ridged filaments, plasma cells, banded rings, woven threads, stipple dots, wire lattice) that wrap a true 3D sphere via longitude/latitude — spinning dot, wire, and ring matrices — plus torus and sphere lighting, a volumetric core with radial plasma filaments, orbiting tracers, adjustable playback speed, glow, chromatic aberration, and a video-player transport (play, pause, scrub, speed, fullscreen) over the render.
+- <img src="assets/orb.webp" width="15" alt=""> **40 parameters in seven groups**, each with a slider, hold-to-repeat steppers, and a typeable value field. Hovering a parameter draws a pink marching-ants marquee around the exact region of the render it controls, tracked live by the shader.
+- <img src="assets/orb.webp" width="15" alt=""> **Seeded, archetype-weighted randomize**: each roll picks a coherent archetype (burning ring, plasma ball, glassy sphere, wire mesh, lit sculpture, thick aura) with correlated parameter ranges, so distinct species emerge instead of uniform noise. Every roll stamps a human-readable seed (`plasma-4f2a`) that deterministically rebuilds the same orb — and Roll rerolls whichever layer you're editing.
+- <img src="assets/orb.webp" width="15" alt=""> **Editable layers**: stack up to 3 presets additively above the base orb for composite looks; each layer is a tab you can select to edit its own parameters, hide, roll, or remove — and every visible layer rides along in the animation and the JSON.
+- <img src="assets/orb.webp" width="15" alt=""> **Transparent by default**: true alpha out of the box, or bake in a solid or gradient backdrop with hex-precise colors.
+- <img src="assets/orb.webp" width="15" alt=""> **Five export formats**: animated **WebP** (browser-native, transparent) and **GIF** (built-in median-cut, Floyd-Steinberg, LZW encoder) for loops; **PNG** and **JPG** for a single frame you pick with a scrubber and preview in-dialog; and **JSON** for the re-importable recipe. A target-file-size auto-tuner picks resolution, fps, and quality to fit a byte cap; the animated size estimate updates live.
+- <img src="assets/orb.webp" width="15" alt=""> **12 built-in presets** plus user presets saved to `localStorage`, with undoable delete.
+- <img src="assets/orb.webp" width="15" alt=""> **Event log**: every action emits an ECS-shaped JSONL record you can copy or download as `.jsonl`.
 
-## 🎨 Preset gallery
+## <img src="assets/orbs/presets.webp" width="26" height="26" alt=""> Preset gallery
 
-![All twelve built-in presets rendered by the engine, from Ember comet to Obsidian sculpt](docs/brand/preset-gallery.png)
+![All twelve built-in presets rendered by the engine, from Ember comet to Obsidian sculpt](assets/brand/preset-gallery.png)
 
-*12 built-ins, in the preset manager.*
+## <img src="assets/orbs/grab.webp" width="26" height="26" alt=""> Grab an orb
 
-## 📦 Grab an orb
+The [**v1.1.0 capability pack**](https://github.com/wranngle/ORBFORGE/releases/tag/v1.1.0) ships six new orbs that show off the engine's newer tricks — true 3D longitude/latitude spheres, spinning dot and wire matrices, and volumetric cores. Drop one straight into a chat avatar, an agent UI, or a README; paste its seed into the in-app **Import** box to keep editing it.
 
-All 12 built-ins ship pre-exported as animated WebPs on the [latest release](https://github.com/wranngle/ORBFORGE/releases/tag/v1.0.0); seven preview below. Drop one straight into a chat avatar, an agent UI, or a README.
+| Orb | Preview | Seed | Frames |
+| --- | :---: | --- | ---: |
+| [Lattice bloom](https://github.com/wranngle/ORBFORGE/releases/download/v1.1.0/lattice-bloom.webp) | <img src="https://github.com/wranngle/ORBFORGE/releases/download/v1.1.0/lattice-bloom.webp" width="56" alt="Lattice bloom orb"> | `plasma-9f2a` | 80 |
+| [Sea urchin](https://github.com/wranngle/ORBFORGE/releases/download/v1.1.0/sea-urchin.webp) | <img src="https://github.com/wranngle/ORBFORGE/releases/download/v1.1.0/sea-urchin.webp" width="56" alt="Sea urchin orb"> | `glass-4c71` | 79 |
+| [Amethyst globe](https://github.com/wranngle/ORBFORGE/releases/download/v1.1.0/amethyst-globe.webp) | <img src="https://github.com/wranngle/ORBFORGE/releases/download/v1.1.0/amethyst-globe.webp" width="56" alt="Amethyst globe orb"> | `sculpt-a13f` | 38 |
+| [Crimson matrix](https://github.com/wranngle/ORBFORGE/releases/download/v1.1.0/crimson-matrix.webp) | <img src="https://github.com/wranngle/ORBFORGE/releases/download/v1.1.0/crimson-matrix.webp" width="56" alt="Crimson matrix orb"> | `quasar-3e9b` | 73 |
+| [Rose datasphere](https://github.com/wranngle/ORBFORGE/releases/download/v1.1.0/rose-datasphere.webp) | <img src="https://github.com/wranngle/ORBFORGE/releases/download/v1.1.0/rose-datasphere.webp" width="56" alt="Rose datasphere orb"> | `flux-d8a1` | 94 |
+| [Dusk halo](https://github.com/wranngle/ORBFORGE/releases/download/v1.1.0/dusk-halo.webp) | <img src="https://github.com/wranngle/ORBFORGE/releases/download/v1.1.0/dusk-halo.webp" width="56" alt="Dusk halo orb"> | `nova-51cc` | 126 |
 
-| Orb | Preview | Size | Frames |
-| --- | :---: | ---: | ---: |
-| [My default](https://github.com/wranngle/ORBFORGE/releases/download/v1.0.0/my-default.webp) | <img src="https://github.com/wranngle/ORBFORGE/releases/download/v1.0.0/my-default.webp" width="56" alt="My default orb"> | 3.9 MB | 151 |
-| [Ember comet](https://github.com/wranngle/ORBFORGE/releases/download/v1.0.0/ember-comet.webp) | <img src="https://github.com/wranngle/ORBFORGE/releases/download/v1.0.0/ember-comet.webp" width="56" alt="Ember comet orb"> | 3.4 MB | 137 |
-| [Solar flare](https://github.com/wranngle/ORBFORGE/releases/download/v1.0.0/solar-flare.webp) | <img src="https://github.com/wranngle/ORBFORGE/releases/download/v1.0.0/solar-flare.webp" width="56" alt="Solar flare orb"> | 590 KB | 121 |
-| [Plasma ring](https://github.com/wranngle/ORBFORGE/releases/download/v1.0.0/plasma-ring.webp) | <img src="https://github.com/wranngle/ORBFORGE/releases/download/v1.0.0/plasma-ring.webp" width="56" alt="Plasma ring orb"> | 1.9 MB | 91 |
-| [Ghost trail](https://github.com/wranngle/ORBFORGE/releases/download/v1.0.0/ghost-trail.webp) | <img src="https://github.com/wranngle/ORBFORGE/releases/download/v1.0.0/ghost-trail.webp" width="56" alt="Ghost trail orb"> | 4.0 MB | 163 |
-| [Whisper thread](https://github.com/wranngle/ORBFORGE/releases/download/v1.0.0/whisper-thread.webp) | <img src="https://github.com/wranngle/ORBFORGE/releases/download/v1.0.0/whisper-thread.webp" width="56" alt="Whisper thread orb"> | 2.6 MB | 126 |
-| [Supernova](https://github.com/wranngle/ORBFORGE/releases/download/v1.0.0/supernova.webp) | <img src="https://github.com/wranngle/ORBFORGE/releases/download/v1.0.0/supernova.webp" width="56" alt="Supernova orb"> | 539 KB | 151 |
+The original **[12 built-in presets](https://github.com/wranngle/ORBFORGE/releases/tag/v1.0.0)** ship pre-exported on v1.0.0.
 
-*Every orb above is a real engine export.*
-
-## 🚀 Getting started
+## <img src="assets/orbs/start.webp" width="26" height="26" alt=""> Getting started
 
 1. Clone and serve
 
    ```bash
-   git clone https://github.com/wranngle/ORBFORGE && cd orb_forge
+   git clone https://github.com/wranngle/ORBFORGE && cd ORBFORGE
    python3 -m http.server 8080
    ```
 
@@ -81,7 +78,7 @@ Or skip the clone: the same page is live at [orbforge.wranngle.com](https://orbf
 
 WebGL is required for the preview; WebP export uses browser-native WebP encoding (Chrome, Edge, or a recent Firefox), and Safari falls back to the built-in GIF encoder.
 
-## 🎮 JSON I/O and shortcuts
+## <img src="assets/orbs/shortcuts.webp" width="26" height="26" alt=""> JSON I/O and shortcuts
 
 | Control | Action |
 | --- | --- |
@@ -89,10 +86,10 @@ WebGL is required for the preview; WebP export uses browser-native WebP encoding
 | <kbd>⌘/Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd>, or <kbd>⌘/Ctrl</kbd> + <kbd>Y</kbd> | Redo |
 | <kbd>Space</kbd> | Play or pause |
 | <kbd>F</kbd> | Fullscreen |
-| JSON copy, download, paste | Full parameter config out, full config back in |
-| Seed dialog | Re-enter any seed (`plasma-4f2a`) to rebuild the exact orb; seeds are also stamped in the export JSON |
+| Download → JSON | Copy or download the full config; re-import it to keep editing |
+| Import box | Paste a config JSON or a bare seed (`plasma-4f2a`) — or drop a `.json`, `.webp`, or `.gif` — to rebuild the exact orb |
 
-## 🌐 Where an orb goes
+## <img src="assets/orbs/where.webp" width="26" height="26" alt=""> Where an orb goes
 
 A finished orb is a small transparent looping image, so it goes anywhere one does.
 
@@ -111,7 +108,7 @@ A finished orb is a small transparent looping image, so it goes anywhere one doe
 
 Named surfaces are usage examples, not integrations.
 
-## ⭐ Star history
+## <img src="assets/orbs/stars.webp" width="26" height="26" alt=""> Star history
 
 <!--
 Restore this line when api.star-history.com recovers from its outage:

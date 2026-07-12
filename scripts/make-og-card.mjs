@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import puppeteer from 'puppeteer';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const OUT = path.join(ROOT, 'og.png');
+const OUT = path.join(ROOT, 'assets', 'og.png');
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.webp': 'image/webp' };
 
 function serve() {
@@ -93,7 +93,7 @@ try {
         <div style="height:14px"></div>
         <div class="sub">Agent Avatar Synthesizer</div>
       </div>
-      <div class="desc">Forge a burning comet-ring orb in WebGL — <b>25 live parameters</b>, seamless-loop solving, and transparent <b>animated WebP</b> export.</div>
+      <div class="desc">Forge a living WebGL orb — <b>40 parameters</b>, seeded archetypes, editable layers, and export as animated <b>WebP, GIF, PNG, JPG,</b> or JSON.</div>
     </div>
     <div class="domain"><span>&gt;_</span>&nbsp; orbforge.wranngle.com</div>
   </body></html>`, { waitUntil: 'networkidle0' });
@@ -111,7 +111,7 @@ im = Image.open(${JSON.stringify(OUT)}).convert('RGB')
 im.quantize(colors=256, method=Image.MEDIANCUT, dither=Image.FLOYDSTEINBERG).save(${JSON.stringify(OUT)}, optimize=True)
 `]);
   } catch { console.warn('PIL unavailable — keeping unquantized PNG'); }
-  console.log(`og.png written: 1200x630, ${Math.round(fs.statSync(OUT).size / 1024)} KB`);
+  console.log(`assets/og.png written: 1200x630, ${Math.round(fs.statSync(OUT).size / 1024)} KB`);
 } finally {
   await browser.close();
   server.close();
