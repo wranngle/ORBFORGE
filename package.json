@@ -1,7 +1,7 @@
 {
   "name": "orb-forge",
-  "version": "1.1.0",
-  "description": "AI agent avatar synthesizer — forge a living WebGL orb (40 params, seeded archetypes) and export animated WebP, GIF, PNG, JPG, or JSON.",
+  "version": "1.2.0",
+  "description": "AI agent avatar synthesizer — forge a living WebGL orb (39 params, seeded archetypes) and export animated WebP, GIF, PNG, JPG, or JSON.",
   "private": true,
   "type": "module",
   "license": "MIT",
