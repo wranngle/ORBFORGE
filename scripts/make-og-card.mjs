@@ -93,7 +93,7 @@ try {
         <div style="height:14px"></div>
         <div class="sub">Agent Avatar Synthesizer</div>
       </div>
-      <div class="desc">Forge a living WebGL orb — <b>40 parameters</b>, seeded archetypes, editable layers, and export as animated <b>WebP, GIF, PNG, JPG,</b> or JSON.</div>
+      <div class="desc">Forge a living WebGL orb — <b>39 parameters</b>, seeded archetypes, editable layers, and export as animated <b>WebP, GIF, PNG, JPG,</b> or JSON.</div>
     </div>
     <div class="domain"><span>&gt;_</span>&nbsp; orbforge.wranngle.com</div>
   </body></html>`, { waitUntil: 'networkidle0' });

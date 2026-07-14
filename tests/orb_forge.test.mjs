@@ -257,7 +257,9 @@ async function main() {
     const claimedParams = parseInt((idxSrc.match(/(\d+)\s+parameters/) || [])[1], 10);
     const readmeParams = parseInt((fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8').match(/(\d+)\s+parameters/) || [])[1], 10);
     const pkgParams = parseInt((fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8').match(/(\d+)\s+params?\b/) || [])[1], 10);
-    check('"N parameters" copy matches the rendered slider count', claimedParams === load.sliders && readmeParams === load.sliders && pkgParams === load.sliders, `meta=${claimedParams} readme=${readmeParams} pkg=${pkgParams} sliders=${load.sliders}`);
+    // The OG social card bakes the same claim; a stale count there ships a wrong share image.
+    const ogParams = parseInt((fs.readFileSync(path.join(ROOT, 'scripts/make-og-card.mjs'), 'utf8').match(/(\d+)\s+parameters/) || [])[1], 10);
+    check('"N parameters" copy matches the rendered slider count', claimedParams === load.sliders && readmeParams === load.sliders && pkgParams === load.sliders && ogParams === load.sliders, `meta=${claimedParams} readme=${readmeParams} pkg=${pkgParams} og=${ogParams} sliders=${load.sliders}`);
     check('og:image meta points at /assets/og.png', /\/assets\/og\.png$/.test(social.ogImage), social.ogImage);
     check('twitter card is summary_large_image', social.twCard === 'summary_large_image', social.twCard);
     check('og.png social card is served from /assets/', social.ogPngOk);
